@@ -1,0 +1,6 @@
+{
+  "name": "PERSONAL OS // Executive Blueprint Terminal",
+  "description": "A long-term personal operating system and command terminal for software engineering, learning retention, milestone project execution, financial allocation, and 10-year compounding.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
