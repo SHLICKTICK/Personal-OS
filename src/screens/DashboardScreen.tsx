@@ -427,6 +427,25 @@ export const DashboardScreen: React.FC = () => {
     }));
   };
 
+  const handleAddRoadmapItem = (item: Omit<RoadmapItem, 'id' | 'updatedAt'>) => {
+    const newItem: RoadmapItem = {
+      ...item,
+      id: `rm-${Date.now()}`,
+      updatedAt: new Date().toISOString(),
+    };
+    updateState((prev) => ({
+      ...prev,
+      roadmap: [...prev.roadmap, newItem],
+    }));
+  };
+
+  const handleDeleteRoadmapItem = (itemId: string) => {
+    updateState((prev) => ({
+      ...prev,
+      roadmap: prev.roadmap.filter((r) => r.id !== itemId),
+    }));
+  };
+
   const handleAddStopItem = (text: string) => {
     updateState((prev) => ({
       ...prev,
@@ -605,6 +624,7 @@ export const DashboardScreen: React.FC = () => {
               onAddGoal={handleAddGoal}
               onUpdateGoal={handleUpdateGoal}
               onDeleteGoal={handleDeleteGoal}
+              onNavigateToSection={handleSelectSection}
             />
           </div>
         );
@@ -689,6 +709,7 @@ export const DashboardScreen: React.FC = () => {
               onAddReview={handleAddReview}
               onDeleteReview={handleDeleteReview}
               onUpdateRoadmapItem={handleUpdateRoadmapItem}
+              onNavigateToSection={handleSelectSection}
             />
           </div>
         );
@@ -698,11 +719,14 @@ export const DashboardScreen: React.FC = () => {
           <div className="space-y-8 animate-fadeIn">
             <HorizonSection
               state={state}
-              viewMode={viewMode}
-              onChangeViewMode={handleChangeViewMode}
               onUpdateHorizonMetric={handleUpdateHorizonMetric}
               onUpdateHorizonText={handleUpdateHorizonText}
               onSelectCreedStage={handleSelectCreedStage}
+              onUpdateRoadmapItem={handleUpdateRoadmapItem}
+              onAddRoadmapItem={handleAddRoadmapItem}
+              onDeleteRoadmapItem={handleDeleteRoadmapItem}
+              onUpdateGoal={handleUpdateGoal}
+              onNavigateToSection={handleSelectSection}
             />
           </div>
         );
@@ -742,19 +766,14 @@ export const DashboardScreen: React.FC = () => {
     <div className={`min-h-screen bg-[#111318] text-[#e2e2e8] flex flex-col ${androidPreviewMode ? 'max-w-[430px] mx-auto border-x border-[#3c4a42]/40 shadow-2xl' : ''}`}>
       {/* Top Header */}
       <ExecutiveHeader
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        activeSection={activeSection}
         onSelectSection={handleSelectSection}
-        onOpenAuditLog={() => handleSelectSection('decisions')}
-        onDeployProtocol={() => handleSelectSection('principle-70')}
         onOpenQuickCreate={() => setQuickCreateOpen(true)}
         onOpenCommandPalette={() => setCommandPaletteOpen(true)}
         onToggleMobileMenu={() => setMobileMenuOpen((prev) => !prev)}
         androidPreviewMode={androidPreviewMode}
         onToggleAndroidPreview={() => setAndroidPreviewMode((prev) => !prev)}
-        activeDirectivesCount={state.goals.length + state.projects.length}
-        totalDirectivesCount={100}
+        version={state.version}
+        operatorName={state.operatorName}
       />
 
       {/* Responsive Sidebar */}
@@ -770,7 +789,7 @@ export const DashboardScreen: React.FC = () => {
       />
 
       {/* Main Content Area - Renders exclusively one tab view at a time */}
-      <main className={`flex-1 transition-all pt-20 pb-16 px-4 md:px-8 ${androidPreviewMode ? 'lg:pl-4' : 'lg:pl-72'}`}>
+      <main className={`flex-1 transition-all pt-18 pb-16 px-4 md:px-8 ${androidPreviewMode ? 'lg:pl-4' : 'lg:pl-72'}`}>
         <div className="max-w-7xl mx-auto space-y-6">
 
           {/* Single Tab Control & Breadcrumb Bar */}

@@ -20,9 +20,16 @@ export class LocalStoragePOSRepository implements IPOSRepository {
         return SEED_POS_STATE;
       }
       const parsed = JSON.parse(raw) as Partial<POSState>;
+      const existingGoals = Array.isArray(parsed.goals) ? parsed.goals : SEED_POS_STATE.goals;
+      const hasTodayGoals = existingGoals.some((g) => g.horizon === 'Today');
+      const mergedGoals = hasTodayGoals
+        ? existingGoals
+        : [...SEED_POS_STATE.goals.filter((g) => g.horizon === 'Today'), ...existingGoals];
+
       return {
         ...SEED_POS_STATE,
         ...parsed,
+        goals: mergedGoals,
       };
     } catch {
       return SEED_POS_STATE;

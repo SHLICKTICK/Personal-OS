@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import {
   DailyCadenceBlock,
+  NavigationSection,
   POSState,
   Review,
   RoadmapItem,
@@ -24,7 +25,8 @@ interface DailyCadenceFlightPlanProps {
   onToggleCadenceBlock: (id: string) => void;
   onAddReview: (review: Omit<Review, 'id' | 'createdAt'>) => void;
   onDeleteReview: (id: string) => void;
-  onUpdateRoadmapItem: (itemId: string, updates: Partial<RoadmapItem>) => void;
+  onUpdateRoadmapItem?: (itemId: string, updates: Partial<RoadmapItem>) => void;
+  onNavigateToSection?: (section: NavigationSection) => void;
 }
 
 export const DailyCadenceFlightPlan: React.FC<DailyCadenceFlightPlanProps> = ({
@@ -33,6 +35,7 @@ export const DailyCadenceFlightPlan: React.FC<DailyCadenceFlightPlanProps> = ({
   onAddReview,
   onDeleteReview,
   onUpdateRoadmapItem,
+  onNavigateToSection,
 }) => {
   const [subView, setSubView] = useState<'cadence' | 'timer' | 'reviews' | 'flightplan'>('cadence');
 
@@ -380,14 +383,26 @@ export const DailyCadenceFlightPlan: React.FC<DailyCadenceFlightPlanProps> = ({
       {/* SubView: 10-Year Horizon Flight Plan */}
       {subView === 'flightplan' && (
         <div className="space-y-4">
-          <div className="p-4 rounded-lg bg-[#1a1c20] border border-[#3c4a42]/30 flex items-center justify-between">
+          <div className="p-4 rounded-lg bg-[#1a1c20] border border-[#4edea3]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Rocket className="w-4 h-4 text-[#4edea3]" />
-              <h3 className="font-mono text-xs font-bold text-[#e2e2e8] uppercase">
-                THE 10-YEAR HORIZON FLIGHT PLAN ROADMAP (2026 – 2036)
-              </h3>
+              <div>
+                <h3 className="font-mono text-xs font-bold text-[#e2e2e8] uppercase">
+                  THE 10-YEAR HORIZON FLIGHT PLAN ROADMAP (2026 – 2036)
+                </h3>
+                <p className="font-mono text-[11px] text-[#bbcabf]">
+                  Interactive phase trajectory, decade goals alignment, and 3,652-day compounding timeline.
+                </p>
+              </div>
             </div>
-            <span className="font-mono text-xs text-[#4edea3]">LONG-RANGE COMPOUNDING VECTOR</span>
+            {onNavigateToSection && (
+              <button
+                onClick={() => onNavigateToSection('horizon-flight-plan')}
+                className="px-3 py-1.5 rounded bg-[#4edea3] hover:bg-[#4edea3]/90 text-[#003822] font-mono text-xs font-bold transition-all cursor-pointer whitespace-nowrap"
+              >
+                OPEN DEDICATED MODULE 08 ➔
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

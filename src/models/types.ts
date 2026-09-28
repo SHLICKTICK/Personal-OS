@@ -49,10 +49,13 @@ export interface Goal {
   id: string;
   title: string;
   category: 'Engineering' | 'Commercial' | 'Financial' | 'Cognitive' | 'Physical';
-  horizon: 'Q4 2026' | '1-Year' | '3-Year' | '10-Year';
+  horizon: 'Today' | 'Q4 2026' | '1-Year' | '3-Year' | '10-Year';
   targetMetric: string;
   progress: number;
   status: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
+  linkedProjectCode?: string;
+  linkedProjectName?: string;
+  impactText?: string;
   createdAt: string;
   updatedAt: string;
 }
