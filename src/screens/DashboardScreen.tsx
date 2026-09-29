@@ -17,6 +17,7 @@ import {
   Asset,
   BusinessExperimentStep,
   BusinessLead,
+  CommercialExperimentSpec,
   DashboardViewMode,
   Decision,
   FinancialTarget,
@@ -237,6 +238,20 @@ export const DashboardScreen: React.FC = () => {
     }));
   };
 
+  const handleUpdateLearningTopic = (topic: LearningTopic) => {
+    updateState((prev) => ({
+      ...prev,
+      learningTopics: prev.learningTopics.map((t) => (t.id === topic.id ? topic : t)),
+    }));
+  };
+
+  const handleDeleteLearningTopic = (topicId: string) => {
+    updateState((prev) => ({
+      ...prev,
+      learningTopics: prev.learningTopics.filter((t) => t.id !== topicId),
+    }));
+  };
+
   const handleUpdateProject = (proj: Project) => {
     updateState((prev) => ({
       ...prev,
@@ -269,6 +284,13 @@ export const DashboardScreen: React.FC = () => {
     }));
   };
 
+  const handleUpdateCommercialExperiment = (experiment: CommercialExperimentSpec) => {
+    updateState((prev) => ({
+      ...prev,
+      activeCommercialExperiment: experiment,
+    }));
+  };
+
   const handleUpdateFinancialTarget = (target: FinancialTarget) => {
     updateState((prev) => ({
       ...prev,
@@ -295,6 +317,13 @@ export const DashboardScreen: React.FC = () => {
     }));
   };
 
+  const handleUpdateTransaction = (tx: Transaction) => {
+    updateState((prev) => ({
+      ...prev,
+      transactions: prev.transactions.map((t) => (t.id === tx.id ? tx : t)),
+    }));
+  };
+
   const handleUpdateAsset = (asset: Asset) => {
     updateState((prev) => ({
       ...prev,
@@ -314,10 +343,36 @@ export const DashboardScreen: React.FC = () => {
     }));
   };
 
+  const handleDeleteAsset = (id: string) => {
+    updateState((prev) => ({
+      ...prev,
+      assets: prev.assets.filter((a) => a.id !== id),
+    }));
+  };
+
   const handleUpdateLiability = (liability: Liability) => {
     updateState((prev) => ({
       ...prev,
       liabilities: prev.liabilities.map((l) => (l.id === liability.id ? liability : l)),
+    }));
+  };
+
+  const handleAddLiability = (liability: Omit<Liability, 'id' | 'updatedAt'>) => {
+    const newLiability: Liability = {
+      ...liability,
+      id: `li-${Date.now()}`,
+      updatedAt: new Date().toISOString(),
+    };
+    updateState((prev) => ({
+      ...prev,
+      liabilities: [...prev.liabilities, newLiability],
+    }));
+  };
+
+  const handleDeleteLiability = (id: string) => {
+    updateState((prev) => ({
+      ...prev,
+      liabilities: prev.liabilities.filter((l) => l.id !== id),
     }));
   };
 
@@ -647,6 +702,8 @@ export const DashboardScreen: React.FC = () => {
               onSelectCurrentStage={handleSelectCurrentStage}
               onReviewTopic={handleReviewTopic}
               onAddLearningTopic={handleAddLearningTopic}
+              onUpdateLearningTopic={handleUpdateLearningTopic}
+              onDeleteLearningTopic={handleDeleteLearningTopic}
             />
           </div>
         );
@@ -669,12 +726,17 @@ export const DashboardScreen: React.FC = () => {
               state={state}
               onToggleBusinessStep={handleToggleBusinessStep}
               onUpdateBusinessStep={handleUpdateBusinessStep}
+              onUpdateCommercialExperiment={handleUpdateCommercialExperiment}
               onUpdateFinancialTarget={handleUpdateFinancialTarget}
               onAddTransaction={handleAddTransaction}
+              onUpdateTransaction={handleUpdateTransaction}
               onDeleteTransaction={handleDeleteTransaction}
               onUpdateAsset={handleUpdateAsset}
               onAddAsset={handleAddAsset}
+              onDeleteAsset={handleDeleteAsset}
               onUpdateLiability={handleUpdateLiability}
+              onAddLiability={handleAddLiability}
+              onDeleteLiability={handleDeleteLiability}
               onAddBusinessLead={handleAddBusinessLead}
               onUpdateBusinessLead={handleUpdateBusinessLead}
               onDeleteBusinessLead={handleDeleteBusinessLead}

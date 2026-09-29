@@ -94,6 +94,9 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({
         onAddTopic({
           code: `SK-${Date.now().toString().slice(-3)}`,
           topic: title.trim(),
+          importance: 'P1',
+          status: 'IN_PROGRESS',
+          category: 'General',
           stage: 'L1',
           stageLabel: 'L1: Vocabulary & Schema',
           intervalLabel: '1 Day',

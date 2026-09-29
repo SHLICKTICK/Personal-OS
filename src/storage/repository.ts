@@ -26,10 +26,26 @@ export class LocalStoragePOSRepository implements IPOSRepository {
         ? existingGoals
         : [...SEED_POS_STATE.goals.filter((g) => g.horizon === 'Today'), ...existingGoals];
 
+      // Merge activeCommercialExperiment & step productAction if older localStorage version
+      const activeCommercialExperiment =
+        parsed.activeCommercialExperiment || SEED_POS_STATE.activeCommercialExperiment;
+
+      const mergedSteps = Array.isArray(parsed.businessExperimentSteps)
+        ? parsed.businessExperimentSteps.map((s, idx) => ({
+            ...s,
+            productAction:
+              s.productAction ||
+              SEED_POS_STATE.businessExperimentSteps[idx]?.productAction ||
+              '',
+          }))
+        : SEED_POS_STATE.businessExperimentSteps;
+
       return {
         ...SEED_POS_STATE,
         ...parsed,
         goals: mergedGoals,
+        activeCommercialExperiment,
+        businessExperimentSteps: mergedSteps,
       };
     } catch {
       return SEED_POS_STATE;

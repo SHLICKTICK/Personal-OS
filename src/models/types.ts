@@ -93,6 +93,9 @@ export interface LearningStageInfo {
   isCurrentStage?: boolean;
 }
 
+export type TopicImportance = 'P0' | 'P1' | 'P2';
+export type TopicStatus = 'UNTOUCHED' | 'IN_PROGRESS' | 'MASTERED';
+
 export interface LearningReview {
   id: string;
   topicId: string;
@@ -105,6 +108,10 @@ export interface LearningTopic {
   id: string;
   code: string;
   topic: string;
+  importance: TopicImportance;
+  status: TopicStatus;
+  category?: string;
+  targetLevel?: LearningStageLevel;
   stage: LearningStageLevel;
   stageLabel: string;
   intervalLabel: string;
@@ -118,6 +125,26 @@ export interface LearningTopic {
   reviewCount: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export type SDLCPhase =
+  | 'REQUIREMENTS'
+  | 'ARCHITECTURE'
+  | 'IMPLEMENTATION'
+  | 'TESTING'
+  | 'DEPLOYMENT'
+  | 'MAINTENANCE';
+
+export interface ProjectStep {
+  id: string;
+  projectId: string;
+  title: string;
+  sdlcPhase: SDLCPhase;
+  estimatedDurationMinutes: number; // e.g. 45, 90, 180 mins
+  completed: boolean;
+  completedAt?: string;
+  order: number;
+  notes?: string;
 }
 
 export interface Milestone {
@@ -154,6 +181,11 @@ export interface Project {
   status: 'COMPLETED' | 'IN PROGRESS' | 'QUEUED';
   phaseTag: 'FOUNDATION' | 'ACTIVE' | 'PLANNED' | 'FUTURE' | 'LONG TERM';
   spanText: string;
+  startDate?: string;
+  targetDeadline?: string;
+  dailyCapacitySteps?: number;
+  currentSDLCPhase?: SDLCPhase;
+  steps?: ProjectStep[];
   progress: number;
   progressLabel: string;
   currentMilestone: string;
@@ -183,6 +215,21 @@ export interface BusinessExperimentStep {
   title: string;
   detail: string;
   completed: boolean;
+  productAction?: string;
+}
+
+export interface CommercialExperimentSpec {
+  id: string;
+  productOrServiceName: string;
+  targetVertical: string;
+  linkedProjectId?: string;
+  targetPersona: string;
+  coreHypothesis: string;
+  pricingModel: string;
+  grandSlamOffer: string;
+  primaryMetric: string;
+  status: 'DISCOVERY' | 'VALIDATING' | 'CONVERTED' | 'PIVOTED';
+  updatedAt: string;
 }
 
 export interface BusinessLead {
@@ -194,6 +241,7 @@ export interface BusinessLead {
   estimatedValueRand: number;
   nextAction: string;
   notes: string;
+  convertedToLedger?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -207,6 +255,7 @@ export interface FinancialTarget {
   currentAmountRand: number;
   deadline: string;
   associatedCapability: string;
+  autoSyncLedger?: boolean;
   updatedAt: string;
 }
 
@@ -217,6 +266,8 @@ export interface Transaction {
   description: string;
   amountRand: number;
   date: string;
+  isRecurring?: boolean;
+  notes?: string;
   createdAt: string;
 }
 
@@ -233,6 +284,9 @@ export interface Liability {
   name: string;
   category: string;
   amountRand: number;
+  interestRatePercent?: number;
+  monthlyPaymentRand?: number;
+  notes?: string;
   updatedAt: string;
 }
 
@@ -357,6 +411,7 @@ export interface POSState {
   learningReviews: LearningReview[];
   projects: Project[];
   dodGateProtocol: DoDGateItem[];
+  activeCommercialExperiment?: CommercialExperimentSpec;
   businessExperimentSteps: BusinessExperimentStep[];
   businessLeads: BusinessLead[];
   financialTargets: FinancialTarget[];
