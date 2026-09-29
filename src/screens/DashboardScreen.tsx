@@ -18,6 +18,7 @@ import {
   BusinessExperimentStep,
   BusinessLead,
   CommercialExperimentSpec,
+  DailyPerformanceLog,
   DashboardViewMode,
   Decision,
   FinancialTarget,
@@ -592,6 +593,166 @@ export const DashboardScreen: React.FC = () => {
     }));
   };
 
+  const handleSaveDailyPerformanceLog = (log: DailyPerformanceLog) => {
+    updateState((prev) => {
+      const existing = prev.dailyPerformanceLogs || [];
+      const filtered = existing.filter((l) => l.id !== log.id && l.date !== log.date);
+      return {
+        ...prev,
+        dailyPerformanceLogs: [log, ...filtered],
+        auditLogs: [
+          {
+            id: `audit-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            module: 'MODULE 01',
+            action: 'EOD_PERFORMANCE_LOGGED',
+            detail: `Recorded End-of-Day score of ${log.score}% (${log.grade}) for ${log.date}.`,
+          },
+          ...prev.auditLogs,
+        ],
+      };
+    });
+  };
+
+  const handleDeleteDailyPerformanceLog = (logId: string) => {
+    updateState((prev) => ({
+      ...prev,
+      dailyPerformanceLogs: (prev.dailyPerformanceLogs || []).filter((l) => l.id !== logId),
+    }));
+  };
+
+  const handleSyncDailyDirectives = (directives: Goal[]) => {
+    updateState((prev) => {
+      const nonTodayGoals = prev.goals.filter((g) => g.horizon !== 'Today');
+      return {
+        ...prev,
+        goals: [...directives, ...nonTodayGoals],
+        auditLogs: [
+          {
+            id: `audit-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            module: 'MODULE 01',
+            action: 'DIRECTIVES_SYNCED',
+            detail: `Synchronized 4 daily strategic directives across Milestone, Financial, and Learning vectors.`,
+          },
+          ...prev.auditLogs,
+        ],
+      };
+    });
+  };
+
+  const handleToggleGoalAndSyncSource = (goal: Goal) => {
+    const isCompleted = goal.status === 'COMPLETED' || goal.progress === 100;
+    const nextCompleted = !isCompleted;
+    const nextProgress = nextCompleted ? 100 : 0;
+    const nextStatus = nextCompleted ? 'COMPLETED' : 'ACTIVE';
+    const nowIso = new Date().toISOString();
+
+    updateState((prev) => {
+      // 1. Update matching Milestone Project step if linked
+      let updatedProjects = prev.projects;
+      if (goal.sourceType === 'MILESTONE_PROJECT' && (goal.sourceProjectId || goal.linkedProjectCode)) {
+        updatedProjects = prev.projects.map((p) => {
+          if (p.id !== goal.sourceProjectId && p.code !== goal.linkedProjectCode) return p;
+          const updatedSteps = (p.steps || []).map((step) => {
+            if (step.id === goal.sourceProjectStepId || (!goal.sourceProjectStepId && step.title.toLowerCase() === goal.title.toLowerCase())) {
+              return {
+                ...step,
+                completed: nextCompleted,
+                completedAt: nextCompleted ? nowIso.split('T')[0] : undefined,
+              };
+            }
+            return step;
+          });
+          const completedCount = updatedSteps.filter((s) => s.completed).length;
+          const totalCount = updatedSteps.length;
+          const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : p.progress;
+          return {
+            ...p,
+            steps: updatedSteps,
+            progress: progressPercent,
+            progressLabel: `${completedCount}/${totalCount} Steps (${progressPercent}%)`,
+            updatedAt: nowIso,
+          };
+        });
+      }
+
+      // 2. Update matching Financial OS experiment step if linked
+      let updatedExpSteps = prev.businessExperimentSteps;
+      if (goal.sourceType === 'FINANCIAL_OS') {
+        updatedExpSteps = prev.businessExperimentSteps.map((s) => {
+          if (s.id === goal.sourceFinancialStepId || (goal.sourceFinancialStepId && s.stepNumber.includes(goal.sourceFinancialStepId))) {
+            return { ...s, completed: nextCompleted };
+          }
+          return s;
+        });
+      }
+
+      // 3. Update matching Learning Engine topic if linked
+      let updatedLearningTopics = prev.learningTopics;
+      let updatedLearningReviews = prev.learningReviews;
+      if (goal.sourceType === 'LEARNING_ENGINE' && goal.sourceLearningTopicId) {
+        updatedLearningTopics = prev.learningTopics.map((t) => {
+          if (t.id === goal.sourceLearningTopicId) {
+            return {
+              ...t,
+              status: nextCompleted ? 'MASTERED' : 'IN_PROGRESS',
+              retentionState: nextCompleted ? 'MASTERED' : 'OPTIMAL',
+              lastReviewed: nextCompleted ? nowIso.split('T')[0] : t.lastReviewed,
+              reviewCount: nextCompleted ? t.reviewCount + 1 : t.reviewCount,
+              updatedAt: nowIso,
+            };
+          }
+          return t;
+        });
+        if (nextCompleted) {
+          updatedLearningReviews = [
+            {
+              id: `lr-${Date.now()}`,
+              topicId: goal.sourceLearningTopicId,
+              rating: 'Good',
+              notes: 'Directive completed in North Star Daily Focus.',
+              reviewedAt: nowIso,
+            },
+            ...prev.learningReviews,
+          ];
+        }
+      }
+
+      // 4. Update the goal itself
+      const updatedGoals = prev.goals.map((g) => {
+        if (g.id === goal.id) {
+          return {
+            ...g,
+            status: nextStatus as Goal['status'],
+            progress: nextProgress,
+            updatedAt: nowIso,
+          };
+        }
+        return g;
+      });
+
+      return {
+        ...prev,
+        goals: updatedGoals,
+        projects: updatedProjects,
+        businessExperimentSteps: updatedExpSteps,
+        learningTopics: updatedLearningTopics,
+        learningReviews: updatedLearningReviews,
+        auditLogs: [
+          {
+            id: `audit-${Date.now()}`,
+            timestamp: nowIso,
+            module: 'MODULE 01',
+            action: nextCompleted ? 'DIRECTIVE_COMPLETED' : 'DIRECTIVE_REOPENED',
+            detail: `${nextCompleted ? 'Completed' : 'Reopened'} directive "${goal.title}" [${goal.sourceType || 'CUSTOM'}] with 2-way system sync.`,
+          },
+          ...prev.auditLogs,
+        ],
+      };
+    });
+  };
+
   const handleAddProjectDirect = (proj: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newP: Project = {
       ...proj,
@@ -680,6 +841,10 @@ export const DashboardScreen: React.FC = () => {
               onUpdateGoal={handleUpdateGoal}
               onDeleteGoal={handleDeleteGoal}
               onNavigateToSection={handleSelectSection}
+              onSaveDailyPerformanceLog={handleSaveDailyPerformanceLog}
+              onDeleteDailyPerformanceLog={handleDeleteDailyPerformanceLog}
+              onSyncDailyDirectives={handleSyncDailyDirectives}
+              onToggleGoalAndSyncSource={handleToggleGoalAndSyncSource}
             />
           </div>
         );

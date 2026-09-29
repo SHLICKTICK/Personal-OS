@@ -45,6 +45,8 @@ export interface Principle {
   updatedAt: string;
 }
 
+export type DirectiveSourceType = 'MILESTONE_PROJECT' | 'FINANCIAL_OS' | 'LEARNING_ENGINE' | 'CUSTOM';
+
 export interface Goal {
   id: string;
   title: string;
@@ -56,8 +58,48 @@ export interface Goal {
   linkedProjectCode?: string;
   linkedProjectName?: string;
   impactText?: string;
+  sourceType?: DirectiveSourceType;
+  sourceRefCode?: string;
+  sourceProjectId?: string;
+  sourceProjectStepId?: string;
+  sourceSdlcPhase?: SDLCPhase;
+  sourceFinancialStepId?: string;
+  sourceLearningTopicId?: string;
+  slotNumber?: 1 | 2 | 3 | 4;
+  estimatedMinutes?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface DailyPerformanceLog {
+  id: string;
+  date: string; // YYYY-MM-DD
+  score: number; // 0 - 100 percentage
+  grade: 'APEX' | 'HIGH' | 'NOMINAL' | 'AT_RISK' | 'CRITICAL';
+  completedCount: number;
+  totalCount: number;
+  completedDirectives: {
+    id: string;
+    title: string;
+    sourceType: DirectiveSourceType;
+    sourceRef?: string;
+  }[];
+  missedDirectives: {
+    id: string;
+    title: string;
+    sourceType: DirectiveSourceType;
+    sourceRef?: string;
+  }[];
+  domainBreakdown: {
+    milestoneProjects: { completed: number; total: number };
+    financialOS: { completed: number; total: number };
+    learningEngine: { completed: number; total: number };
+    custom?: { completed: number; total: number };
+  };
+  streakCount: number;
+  insights: string[];
+  operatorNotes?: string;
+  loggedAt: string;
 }
 
 export interface Objective {
@@ -436,4 +478,5 @@ export interface POSState {
   lastCommittedTimestamp: string;
   commitCount: number;
   auditLogs: AuditLogEntry[];
+  dailyPerformanceLogs?: DailyPerformanceLog[];
 }

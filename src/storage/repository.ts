@@ -26,6 +26,29 @@ export class LocalStoragePOSRepository implements IPOSRepository {
         ? existingGoals
         : [...SEED_POS_STATE.goals.filter((g) => g.horizon === 'Today'), ...existingGoals];
 
+      // Enrich Today goals if missing slotNumber or sourceType
+      const enrichedGoals = mergedGoals.map((g) => {
+        if (g.horizon === 'Today') {
+          const matchingSeed = SEED_POS_STATE.goals.find((sg) => sg.id === g.id || sg.slotNumber === g.slotNumber);
+          if (matchingSeed) {
+            return {
+              ...matchingSeed,
+              ...g,
+              slotNumber: g.slotNumber || matchingSeed.slotNumber,
+              sourceType: g.sourceType || matchingSeed.sourceType,
+              sourceRefCode: g.sourceRefCode || matchingSeed.sourceRefCode,
+              sourceProjectId: g.sourceProjectId || matchingSeed.sourceProjectId,
+              sourceProjectStepId: g.sourceProjectStepId || matchingSeed.sourceProjectStepId,
+              sourceSdlcPhase: g.sourceSdlcPhase || matchingSeed.sourceSdlcPhase,
+              sourceFinancialStepId: g.sourceFinancialStepId || matchingSeed.sourceFinancialStepId,
+              sourceLearningTopicId: g.sourceLearningTopicId || matchingSeed.sourceLearningTopicId,
+              estimatedMinutes: g.estimatedMinutes || matchingSeed.estimatedMinutes,
+            };
+          }
+        }
+        return g;
+      });
+
       // Merge activeCommercialExperiment & step productAction if older localStorage version
       const activeCommercialExperiment =
         parsed.activeCommercialExperiment || SEED_POS_STATE.activeCommercialExperiment;
@@ -40,12 +63,17 @@ export class LocalStoragePOSRepository implements IPOSRepository {
           }))
         : SEED_POS_STATE.businessExperimentSteps;
 
+      const dailyPerformanceLogs = Array.isArray(parsed.dailyPerformanceLogs) && parsed.dailyPerformanceLogs.length > 0
+        ? parsed.dailyPerformanceLogs
+        : SEED_POS_STATE.dailyPerformanceLogs;
+
       return {
         ...SEED_POS_STATE,
         ...parsed,
-        goals: mergedGoals,
+        goals: enrichedGoals,
         activeCommercialExperiment,
         businessExperimentSteps: mergedSteps,
+        dailyPerformanceLogs,
       };
     } catch {
       return SEED_POS_STATE;
