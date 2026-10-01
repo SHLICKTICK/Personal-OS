@@ -39,8 +39,11 @@ import {
   ClipboardCheck,
   X,
   ExternalLink,
+  Compass,
+  ShieldAlert,
 } from 'lucide-react';
 import {
+  CompetenceBadge,
   DailyPerformanceLog,
   DirectiveSourceType,
   Goal,
@@ -65,6 +68,9 @@ interface NorthStarSectionProps {
   onDeleteDailyPerformanceLog?: (id: string) => void;
   onSyncDailyDirectives?: (directives: Goal[]) => void;
   onToggleGoalAndSyncSource?: (goal: Goal) => void;
+  onUpdateNorthStarStatement?: (corePrinciple: string, supporting: string) => void;
+  onUpdateCompetenceBadges?: (badges: CompetenceBadge[]) => void;
+  onUpdateStopImmediatelyList?: (list: string[]) => void;
 }
 
 export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
@@ -80,7 +86,25 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
   onDeleteDailyPerformanceLog,
   onSyncDailyDirectives,
   onToggleGoalAndSyncSource,
+  onUpdateNorthStarStatement,
+  onUpdateCompetenceBadges,
+  onUpdateStopImmediatelyList,
 }) => {
+  // North Star Vision Editing State
+  const [editingNorthStar, setEditingNorthStar] = useState(false);
+  const [northStarCoreDraft, setNorthStarCoreDraft] = useState(state.northStarCorePrinciple || 'Become highly capable.');
+  const [northStarSupportingDraft, setNorthStarSupportingDraft] = useState(
+    state.northStarSupporting || 'Build deep technical capability, strong reasoning, practical execution, and the ability to create useful systems.'
+  );
+
+  // Competence Badges Allocation Editing State
+  const [editingBadges, setEditingBadges] = useState(false);
+  const [badgesDraft, setBadgesDraft] = useState<CompetenceBadge[]>(state.competenceBadges || []);
+
+  // Core Non-Negotiables / Anti-Goals State
+  const [showAddAntiGoal, setShowAddAntiGoal] = useState(false);
+  const [newAntiGoalInput, setNewAntiGoalInput] = useState('');
+
   const [editingQuotes, setEditingQuotes] = useState(false);
   const [passiveDraft, setPassiveDraft] = useState(state.passiveAccumulationQuote);
   const [activeDraft, setActiveDraft] = useState(state.activeCapabilityQuote);
@@ -132,6 +156,35 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
       default:
         return <PenTool className="w-4 h-4 text-[#4edea3]" />;
     }
+  };
+
+  const handleSaveNorthStar = () => {
+    if (onUpdateNorthStarStatement && northStarCoreDraft.trim()) {
+      onUpdateNorthStarStatement(northStarCoreDraft.trim(), northStarSupportingDraft.trim());
+    }
+    setEditingNorthStar(false);
+  };
+
+  const handleSaveBadges = () => {
+    if (onUpdateCompetenceBadges) {
+      onUpdateCompetenceBadges(badgesDraft);
+    }
+    setEditingBadges(false);
+  };
+
+  const handleAddAntiGoal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAntiGoalInput.trim() || !onUpdateStopImmediatelyList) return;
+    const currentList = state.stopImmediatelyList || [];
+    onUpdateStopImmediatelyList([...currentList, newAntiGoalInput.trim()]);
+    setNewAntiGoalInput('');
+    setShowAddAntiGoal(false);
+  };
+
+  const handleRemoveAntiGoal = (index: number) => {
+    if (!onUpdateStopImmediatelyList) return;
+    const currentList = state.stopImmediatelyList || [];
+    onUpdateStopImmediatelyList(currentList.filter((_, i) => i !== index));
   };
 
   const handleSavePrinciple = () => {
@@ -518,30 +571,206 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
         </div>
       </div>
 
-      {/* 5 Competence Vector Badges (Role & Allocation Weights) */}
-      <div className="flex flex-wrap items-center gap-2">
-        {state.competenceBadges.map((badge, idx) => (
-          <div
-            key={badge.id}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#111318] border border-[#3c4a42]/40 shadow-sm"
-          >
-            {getBadgeIcon(idx)}
-            <span className="font-mono text-[12px] text-[#e2e2e8]">{badge.role}</span>
-            <span
-              className={`font-mono text-[10px] font-bold tabular-nums ${
-                badge.accent === 'secondary'
-                  ? 'text-[#4cd7f6]'
-                  : badge.accent === 'tertiary'
-                  ? 'text-[#c0c1ff]'
-                  : badge.accent === 'neutral'
-                  ? 'text-[#e2e2e8]'
-                  : 'text-[#4edea3]'
-              }`}
-            >
-              {badge.allocationText}
+      {/* 1. PERSONAL NORTH STAR MISSION STATEMENT (10-YEAR ANCHOR) */}
+      <div className="p-4 sm:p-5 rounded-xl bg-gradient-to-r from-[#111318] via-[#161c18] to-[#111318] border border-[#4edea3]/50 shadow-[0_0_25px_rgba(78,222,163,0.08)] flex flex-col gap-3 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#4edea3]/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-wrap items-center justify-between gap-2 relative z-10 border-b border-[#3c4a42]/30 pb-2.5">
+          <div className="flex items-center gap-2">
+            <Compass className="w-4 h-4 text-[#4edea3]" />
+            <span className="font-mono text-xs font-bold text-[#4edea3] uppercase tracking-wider">
+              North Star Vision // 10-Year Sovereign Anchor (2026 — 2036)
             </span>
           </div>
-        ))}
+          <button
+            type="button"
+            onClick={() => {
+              if (editingNorthStar) {
+                handleSaveNorthStar();
+              } else {
+                setNorthStarCoreDraft(state.northStarCorePrinciple || 'Become highly capable.');
+                setNorthStarSupportingDraft(
+                  state.northStarSupporting ||
+                    'Build deep technical capability, strong reasoning, practical execution, and the ability to create useful systems.'
+                );
+                setEditingNorthStar(true);
+              }
+            }}
+            className="px-2.5 py-1 rounded bg-[#1e2024] hover:bg-[#282a2e] border border-[#4edea3]/40 text-[#4edea3] font-mono text-[11px] font-semibold transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+          >
+            {editingNorthStar ? (
+              <>
+                <Check className="w-3.5 h-3.5" /> Save Vision
+              </>
+            ) : (
+              <>
+                <Edit3 className="w-3.5 h-3.5" /> Edit North Star
+              </>
+            )}
+          </button>
+        </div>
+
+        {editingNorthStar ? (
+          <div className="flex flex-col gap-2 relative z-10 animate-fadeIn">
+            <label className="font-mono text-[10px] text-[#4cd7f6] uppercase font-bold">
+              Core Mission Anchor
+            </label>
+            <input
+              type="text"
+              value={northStarCoreDraft}
+              onChange={(e) => setNorthStarCoreDraft(e.target.value)}
+              placeholder="e.g. Build sovereign technical autonomy, architect resilient high-leverage software systems..."
+              className="bg-[#0c0e12] border border-[#4edea3]/60 focus:border-[#4edea3] rounded px-3 py-2 text-sm font-bold text-[#e2e2e8] focus:outline-none"
+              autoFocus
+            />
+            <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold mt-1">
+              Operational Creed &amp; Reasoning Standard
+            </label>
+            <textarea
+              rows={2}
+              value={northStarSupportingDraft}
+              onChange={(e) => setNorthStarSupportingDraft(e.target.value)}
+              placeholder="Operational description of your long-term capability and standard..."
+              className="bg-[#0c0e12] border border-[#3c4a42]/60 focus:border-[#4edea3] rounded px-3 py-2 text-xs text-[#bbcabf] focus:outline-none resize-none leading-relaxed"
+            />
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setEditingNorthStar(false)}
+                className="px-3 py-1 rounded bg-[#1e2024] text-[#bbcabf] font-mono text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveNorthStar}
+                className="px-3.5 py-1 rounded bg-[#4edea3] text-[#003824] font-mono text-xs font-bold cursor-pointer"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="relative z-10 flex flex-col gap-1">
+            <h1 className="text-xl sm:text-2xl font-black text-[#e2e2e8] tracking-tight leading-tight">
+              &ldquo;{state.northStarCorePrinciple || 'Become highly capable.'}&rdquo;
+            </h1>
+            <p className="text-xs sm:text-sm text-[#bbcabf] font-mono leading-relaxed mt-0.5">
+              {state.northStarSupporting ||
+                'Build deep technical capability, strong reasoning, practical execution, and the ability to create useful systems.'}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* 2. COMPETENCE ALLOCATION MATRIX (ROLE & ALLOCATION WEIGHTS) */}
+      <div className="p-4 rounded-xl bg-[#0c0e12] border border-[#3c4a42]/40 flex flex-col gap-2.5">
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[10px] text-[#bbcabf] uppercase tracking-wider flex items-center gap-1.5">
+            <Cpu className="w-3.5 h-3.5 text-[#4cd7f6]" />
+            Competence Allocation Matrix // 100% Focus Budget
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              if (editingBadges) {
+                handleSaveBadges();
+              } else {
+                setBadgesDraft(state.competenceBadges.map((b) => ({ ...b })));
+                setEditingBadges(true);
+              }
+            }}
+            className="font-mono text-[10px] text-[#4cd7f6] hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            {editingBadges ? (
+              <>
+                <Check className="w-3 h-3" /> Save Allocations
+              </>
+            ) : (
+              <>
+                <Edit3 className="w-3 h-3" /> Edit Allocations
+              </>
+            )}
+          </button>
+        </div>
+
+        {editingBadges ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 pt-1 animate-fadeIn">
+            {badgesDraft.map((badge, idx) => (
+              <div key={badge.id} className="p-2.5 rounded bg-[#16181d] border border-[#4cd7f6]/40 flex flex-col gap-1.5">
+                <input
+                  type="text"
+                  value={badge.role}
+                  onChange={(e) => {
+                    const next = [...badgesDraft];
+                    next[idx].role = e.target.value;
+                    setBadgesDraft(next);
+                  }}
+                  className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded px-2 py-0.5 text-xs text-[#e2e2e8] font-bold"
+                  placeholder="Role Name"
+                />
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={badge.percentage || 0}
+                    onChange={(e) => {
+                      const next = [...badgesDraft];
+                      const val = Number(e.target.value);
+                      next[idx].percentage = val;
+                      const suffix = next[idx].allocationText.split(' ')[1] || 'Focus';
+                      next[idx].allocationText = `${val}% ${suffix}`;
+                      setBadgesDraft(next);
+                    }}
+                    className="w-14 bg-[#0c0e12] border border-[#3c4a42]/50 rounded px-2 py-0.5 text-xs font-mono text-[#4edea3]"
+                  />
+                  <input
+                    type="text"
+                    value={badge.allocationText}
+                    onChange={(e) => {
+                      const next = [...badgesDraft];
+                      next[idx].allocationText = e.target.value;
+                      setBadgesDraft(next);
+                    }}
+                    className="flex-1 bg-[#0c0e12] border border-[#3c4a42]/50 rounded px-2 py-0.5 text-[10px] font-mono text-[#bbcabf]"
+                    placeholder="e.g. 40% Depth"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            {state.competenceBadges.map((badge, idx) => (
+              <div
+                key={badge.id}
+                onClick={() => {
+                  setBadgesDraft(state.competenceBadges.map((b) => ({ ...b })));
+                  setEditingBadges(true);
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#111318] border border-[#3c4a42]/40 shadow-sm hover:border-[#4cd7f6]/50 transition-colors cursor-pointer group"
+                title="Click to edit competence allocations"
+              >
+                {getBadgeIcon(idx)}
+                <span className="font-mono text-[12px] text-[#e2e2e8] group-hover:text-[#4cd7f6]">{badge.role}</span>
+                <span
+                  className={`font-mono text-[10px] font-bold tabular-nums ${
+                    badge.accent === 'secondary'
+                      ? 'text-[#4cd7f6]'
+                      : badge.accent === 'tertiary'
+                      ? 'text-[#c0c1ff]'
+                      : badge.accent === 'neutral'
+                      ? 'text-[#e2e2e8]'
+                      : 'text-[#4edea3]'
+                  }`}
+                >
+                  {badge.allocationText}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ========================================================================= */}
@@ -599,58 +828,19 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
               <span>Scoreboard &amp; Logs ({performanceLogs.length})</span>
             </button>
 
-            {/* Horizon Filter Tabs */}
-            <div className="flex items-center p-0.5 rounded-lg bg-[#0c0e12] border border-[#3c4a42]/40">
+            {/* Direct Link to Module 02 for Multi-Year Roadmap */}
+            {onNavigateToSection && (
               <button
-                onClick={() => setSelectedHorizon('Today')}
-                className={`px-2.5 py-1 rounded font-mono text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                  selectedHorizon === 'Today'
-                    ? 'bg-[#4edea3] text-[#003822] shadow-sm font-bold'
-                    : 'text-[#bbcabf] hover:text-[#e2e2e8]'
-                }`}
+                type="button"
+                onClick={() => onNavigateToSection('capability-stack')}
+                className="px-2.5 py-1.5 rounded-lg bg-[#111318] hover:bg-[#1a1c20] border border-[#4cd7f6]/40 text-[#4cd7f6] font-mono text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                title="View Strategic Horizons and Capability Roadmap in Module 02"
               >
-                <span>Today's Focus</span>
-                <span className="text-[10px] px-1 py-0.2 rounded bg-black/20 font-bold">
-                  {todayGoals.length}
-                </span>
+                <Calendar className="w-3.5 h-3.5 text-[#4cd7f6]" />
+                <span>Strategic Horizons (Module 02)</span>
+                <ArrowUpRight className="w-3 h-3" />
               </button>
-              <button
-                onClick={() => setSelectedHorizon('Q4 2026')}
-                className={`px-2.5 py-1 rounded font-mono text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                  selectedHorizon === 'Q4 2026'
-                    ? 'bg-[#4edea3] text-[#003822] shadow-sm font-bold'
-                    : 'text-[#bbcabf] hover:text-[#e2e2e8]'
-                }`}
-              >
-                <span>Q4 2026</span>
-                <span className="text-[10px] px-1 py-0.2 rounded bg-black/20 font-bold">
-                  {q4Goals.length}
-                </span>
-              </button>
-              <button
-                onClick={() => setSelectedHorizon('1-Year')}
-                className={`px-2.5 py-1 rounded font-mono text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                  selectedHorizon === '1-Year'
-                    ? 'bg-[#4edea3] text-[#003822] shadow-sm font-bold'
-                    : 'text-[#bbcabf] hover:text-[#e2e2e8]'
-                }`}
-              >
-                <span>1-Year</span>
-                <span className="text-[10px] px-1 py-0.2 rounded bg-black/20 font-bold">
-                  {y1Goals.length}
-                </span>
-              </button>
-              <button
-                onClick={() => setSelectedHorizon('ALL')}
-                className={`px-2.5 py-1 rounded font-mono text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                  selectedHorizon === 'ALL'
-                    ? 'bg-[#4edea3] text-[#003822] shadow-sm font-bold'
-                    : 'text-[#bbcabf] hover:text-[#e2e2e8]'
-                }`}
-              >
-                All ({state.goals.length})
-              </button>
-            </div>
+            )}
 
             {/* Custom Directive Add */}
             <button
@@ -1354,6 +1544,91 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
             <span>Compounding Rate: Exponential (1.01³⁶⁵)</span>
             <span>Skin in the Game</span>
           </div>
+        </div>
+      </div>
+
+      {/* CORE NON-NEGOTIABLES // THE "NEVER LIST" (ANTI-GOALS / INVERSION PRINCIPLE) */}
+      <div className="p-5 rounded-xl bg-[#141214] border border-[#ffb4ab]/40 flex flex-col gap-3 shadow-[0_0_15px_rgba(255,180,171,0.05)]">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#ffb4ab]/20 pb-2.5">
+          <div className="flex items-center gap-2">
+            <XCircle className="w-4 h-4 text-[#ffb4ab]" />
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs font-bold text-[#ffb4ab] uppercase tracking-wider">
+                  Core Non-Negotiables // The &ldquo;Never List&rdquo; (Anti-Goals)
+                </span>
+                <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-[#ffb4ab]/20 text-[#ffb4ab] font-bold">
+                  INVERSION PRINCIPLE
+                </span>
+              </div>
+              <p className="text-[11px] text-[#bbcabf] font-mono mt-0.5">
+                Strict operational boundaries derived from inversion: what to eliminate with zero compromise.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAddAntiGoal(!showAddAntiGoal)}
+            className="px-2.5 py-1 rounded bg-[#1e2024] hover:bg-[#282a2e] border border-[#ffb4ab]/40 text-[#ffb4ab] font-mono text-[11px] font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+          >
+            <Plus className="w-3 h-3" /> Add Anti-Goal
+          </button>
+        </div>
+
+        {showAddAntiGoal && (
+          <form
+            onSubmit={handleAddAntiGoal}
+            className="p-3 rounded-lg bg-[#0c0e12] border border-[#ffb4ab]/40 flex gap-2 animate-fadeIn"
+          >
+            <input
+              type="text"
+              required
+              value={newAntiGoalInput}
+              onChange={(e) => setNewAntiGoalInput(e.target.value)}
+              placeholder="e.g. Never check communication apps during morning 90-min deep work blocks..."
+              className="flex-1 bg-[#16181d] border border-[#3c4a42]/50 rounded px-3 py-1.5 text-xs text-[#e2e2e8] focus:outline-none focus:border-[#ffb4ab]"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={() => setShowAddAntiGoal(false)}
+              className="px-2.5 py-1.5 rounded bg-[#1e2024] text-[#bbcabf] font-mono text-xs cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-3 py-1.5 rounded bg-[#ffb4ab] text-[#690005] font-mono text-xs font-bold cursor-pointer hover:bg-[#ffdad6]"
+            >
+              Save Rule
+            </button>
+          </form>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+          {(state.stopImmediatelyList || []).map((item, idx) => (
+            <div
+              key={idx}
+              className="p-3 rounded-lg bg-[#0c0e12]/80 border border-[#ffb4ab]/25 hover:border-[#ffb4ab]/50 transition-colors flex items-start justify-between gap-2.5 group"
+            >
+              <div className="flex items-start gap-2.5">
+                <span className="w-4 h-4 rounded-full bg-[#ffb4ab]/15 text-[#ffb4ab] font-mono text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                  ✕
+                </span>
+                <span className="text-xs text-[#e2e2e8] leading-relaxed">
+                  {item}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleRemoveAntiGoal(idx)}
+                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[#282a2e] text-[#86948a] hover:text-[#ffb4ab] transition-opacity cursor-pointer shrink-0"
+                title="Remove Anti-Goal"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
         </div>
       </div>
 

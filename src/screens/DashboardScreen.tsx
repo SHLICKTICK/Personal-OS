@@ -14,14 +14,17 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import {
+  ActiveFocusTimer,
   Asset,
   BusinessExperimentStep,
   BusinessLead,
   CommercialExperimentSpec,
+  CompetenceBadge,
   DailyPerformanceLog,
   DashboardViewMode,
   Decision,
   FinancialTarget,
+  FocusSession,
   Goal,
   HorizonMetric,
   KnowledgeNote,
@@ -476,6 +479,98 @@ export const DashboardScreen: React.FC = () => {
     }));
   };
 
+  const handleToggleDailyScheduleBlock = (id: string) => {
+    updateState((prev) => ({
+      ...prev,
+      dailySchedule: (prev.dailySchedule || []).map((b) =>
+        b.id === id ? { ...b, completedToday: !b.completedToday, updatedAt: new Date().toISOString() } : b
+      ),
+    }));
+  };
+
+  const handleAddFocusSession = (
+    session: Omit<FocusSession, 'id' | 'createdAt'>,
+    syncDirective?: boolean
+  ) => {
+    const newSession: FocusSession = {
+      ...session,
+      id: `fs-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    updateState((prev) => {
+      let updatedGoals = prev.goals;
+      let updatedProjects = prev.projects;
+      let updatedCadenceBlocks = prev.deepWorkBlocks;
+
+      // Auto check off corresponding deep work block
+      if (session.mode === 'deep1' || session.mode === 'deep2') {
+        const blockCode = session.mode === 'deep1' ? 'BLOCK 01' : 'BLOCK 02';
+        updatedCadenceBlocks = prev.deepWorkBlocks.map((b) =>
+          b.code === blockCode ? { ...b, completedToday: true, updatedAt: new Date().toISOString() } : b
+        );
+      }
+
+      // If linked to a directive and sync requested
+      if (syncDirective && session.linkedDirectiveId) {
+        const targetGoal = prev.goals.find((g) => g.id === session.linkedDirectiveId);
+        if (targetGoal) {
+          if (targetGoal.sourceType === 'MILESTONE_PROJECT' && targetGoal.sourceProjectId) {
+            updatedProjects = prev.projects.map((p) => {
+              if (p.id !== targetGoal.sourceProjectId) return p;
+              const steps = (p.steps || []).map((s) =>
+                s.id === targetGoal.sourceProjectStepId ? { ...s, completed: true, completedAt: new Date().toISOString().split('T')[0] } : s
+              );
+              const completedCount = steps.filter((s) => s.completed).length;
+              return {
+                ...p,
+                steps,
+                progress: steps.length > 0 ? Math.round((completedCount / steps.length) * 100) : p.progress,
+              };
+            });
+          }
+          updatedGoals = prev.goals.map((g) =>
+            g.id === session.linkedDirectiveId
+              ? { ...g, status: 'COMPLETED' as const, progress: 100, updatedAt: new Date().toISOString() }
+              : g
+          );
+        }
+      }
+
+      return {
+        ...prev,
+        focusSessions: [newSession, ...(prev.focusSessions || [])],
+        deepWorkBlocks: updatedCadenceBlocks,
+        goals: updatedGoals,
+        projects: updatedProjects,
+        commitCount: prev.commitCount + 1,
+        auditLogs: [
+          {
+            id: `audit-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            module: 'MODULE 07',
+            action: 'DEEP_WORK_LOGGED',
+            detail: `Logged ${session.durationMinutes}m focus session (${session.mode.toUpperCase()}) with rating ${session.focusRating || 5}/5.`,
+          },
+          ...prev.auditLogs,
+        ],
+      };
+    });
+  };
+
+  const handleDeleteFocusSession = (id: string) => {
+    updateState((prev) => ({
+      ...prev,
+      focusSessions: (prev.focusSessions || []).filter((s) => s.id !== id),
+    }));
+  };
+
+  const handleUpdateActiveTimer = (timer: ActiveFocusTimer | undefined) => {
+    updateState((prev) => ({
+      ...prev,
+      activeFocusTimer: timer,
+    }));
+  };
+
   const handleUpdateRoadmapItem = (itemId: string, updates: Partial<RoadmapItem>) => {
     updateState((prev) => ({
       ...prev,
@@ -563,6 +658,28 @@ export const DashboardScreen: React.FC = () => {
       ...prev,
       passiveAccumulationQuote: passiveQuote,
       activeCapabilityQuote: activeQuote,
+    }));
+  };
+
+  const handleUpdateNorthStarStatement = (corePrinciple: string, supporting: string) => {
+    updateState((prev) => ({
+      ...prev,
+      northStarCorePrinciple: corePrinciple,
+      northStarSupporting: supporting,
+    }));
+  };
+
+  const handleUpdateCompetenceBadges = (badges: CompetenceBadge[]) => {
+    updateState((prev) => ({
+      ...prev,
+      competenceBadges: badges,
+    }));
+  };
+
+  const handleUpdateStopImmediatelyList = (list: string[]) => {
+    updateState((prev) => ({
+      ...prev,
+      stopImmediatelyList: list,
     }));
   };
 
@@ -807,19 +924,13 @@ export const DashboardScreen: React.FC = () => {
       case 'financial-os':
         return '05 // FINANCIAL OS & BUSINESS REVENUE ENGINE';
       case 'ai-guardrails':
-      case 'knowledge':
-      case 'decisions':
-      case 'ai-assistant':
         return '06 // COGNITION, AI GUARDRAILS & VAULT';
       case 'work-scoreboards':
-      case 'reviews':
         return '07 // WORK SCOREBOARDS & 90-15-90 CADENCE';
       case 'horizon-flight-plan':
         return '08 // 10-YEAR HORIZON FLIGHT PLAN';
       case 'principle-70':
         return '09 // THE 70TH PRINCIPLE & SIGN-OFF';
-      case 'goals':
-        return 'GOALS & VECTORS // DIRECTIVE OVERVIEW';
       default:
         return 'EXECUTIVE BLUEPRINT TERMINAL';
     }
@@ -829,7 +940,6 @@ export const DashboardScreen: React.FC = () => {
   const renderTabContent = () => {
     switch (activeSection) {
       case 'north-star':
-      case 'goals':
         return (
           <div className="space-y-8 animate-fadeIn">
             <NorthStarSection
@@ -845,6 +955,9 @@ export const DashboardScreen: React.FC = () => {
               onDeleteDailyPerformanceLog={handleDeleteDailyPerformanceLog}
               onSyncDailyDirectives={handleSyncDailyDirectives}
               onToggleGoalAndSyncSource={handleToggleGoalAndSyncSource}
+              onUpdateNorthStarStatement={handleUpdateNorthStarStatement}
+              onUpdateCompetenceBadges={handleUpdateCompetenceBadges}
+              onUpdateStopImmediatelyList={handleUpdateStopImmediatelyList}
             />
           </div>
         );
@@ -910,9 +1023,6 @@ export const DashboardScreen: React.FC = () => {
         );
 
       case 'ai-guardrails':
-      case 'knowledge':
-      case 'decisions':
-      case 'ai-assistant':
         return (
           <div className="space-y-8 animate-fadeIn">
             <CognitionAI
@@ -922,21 +1032,26 @@ export const DashboardScreen: React.FC = () => {
               onAddDecision={handleAddDecision}
               onDeleteDecision={handleDeleteDecision}
               onToggleWorkflowStep={handleToggleWorkflowStep}
+              onAddGoal={handleAddGoal}
             />
           </div>
         );
 
       case 'work-scoreboards':
-      case 'reviews':
         return (
           <div className="space-y-8 animate-fadeIn">
             <DailyCadenceFlightPlan
               state={state}
               onToggleCadenceBlock={handleToggleCadenceBlock}
+              onToggleDailyScheduleBlock={handleToggleDailyScheduleBlock}
+              onAddFocusSession={handleAddFocusSession}
+              onDeleteFocusSession={handleDeleteFocusSession}
+              onUpdateActiveTimer={handleUpdateActiveTimer}
               onAddReview={handleAddReview}
               onDeleteReview={handleDeleteReview}
               onUpdateRoadmapItem={handleUpdateRoadmapItem}
               onNavigateToSection={handleSelectSection}
+              onToggleGoalAndSyncSource={handleToggleGoalAndSyncSource}
             />
           </div>
         );

@@ -67,6 +67,16 @@ export class LocalStoragePOSRepository implements IPOSRepository {
         ? parsed.dailyPerformanceLogs
         : SEED_POS_STATE.dailyPerformanceLogs;
 
+      const focusSessions = Array.isArray(parsed.focusSessions) && parsed.focusSessions.length > 0
+        ? parsed.focusSessions
+        : (SEED_POS_STATE.focusSessions || []);
+
+      const dailySchedule = Array.isArray(parsed.dailySchedule) && parsed.dailySchedule.length > 0
+        ? parsed.dailySchedule
+        : SEED_POS_STATE.dailySchedule;
+
+      const activeFocusTimer = parsed.activeFocusTimer || SEED_POS_STATE.activeFocusTimer;
+
       return {
         ...SEED_POS_STATE,
         ...parsed,
@@ -74,6 +84,9 @@ export class LocalStoragePOSRepository implements IPOSRepository {
         activeCommercialExperiment,
         businessExperimentSteps: mergedSteps,
         dailyPerformanceLogs,
+        focusSessions,
+        dailySchedule,
+        activeFocusTimer,
       };
     } catch {
       return SEED_POS_STATE;

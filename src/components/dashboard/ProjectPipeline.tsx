@@ -16,6 +16,11 @@ import {
   Check,
   Target,
   Cpu,
+  ChevronDown,
+  Zap,
+  RotateCcw,
+  Loader2,
+  Wand2,
 } from 'lucide-react';
 import {
   POSState,
@@ -23,6 +28,47 @@ import {
   ProjectStep,
   SDLCPhase,
 } from '../../models/types';
+import {
+  HybridGeminiAIService,
+  SDLC_ARCHETYPE_PRESETS,
+  DecomposeProjectResult,
+  DecomposedStepOutput,
+} from '../../services/aiService';
+
+const aiService = new HybridGeminiAIService();
+
+const PHASE_QUICK_CHIPS: Record<SDLCPhase, { label: string; duration: number }[]> = {
+  REQUIREMENTS: [
+    { label: 'Specify functional scope, user workflows & boundaries', duration: 60 },
+    { label: 'Draft API contracts & data serialization spec', duration: 45 },
+    { label: 'Document threat matrix & role permissions', duration: 45 },
+  ],
+  ARCHITECTURE: [
+    { label: 'Design relational database schema & indexes', duration: 60 },
+    { label: 'Define API endpoint schemas (OpenAPI / JSON-RPC)', duration: 60 },
+    { label: 'Architect state machine & error backoff retry logic', duration: 90 },
+  ],
+  IMPLEMENTATION: [
+    { label: 'Implement core domain logic & service handlers', duration: 120 },
+    { label: 'Build responsive UI views & reactive state bindings', duration: 90 },
+    { label: 'Integrate external API hooks & data validation', duration: 60 },
+  ],
+  TESTING: [
+    { label: 'Write unit test suite with 80%+ branch coverage', duration: 60 },
+    { label: 'Build Playwright E2E regression test suite', duration: 90 },
+    { label: 'Execute load & stress benchmark (<50ms latency)', duration: 45 },
+  ],
+  DEPLOYMENT: [
+    { label: 'Configure multi-stage Dockerfile container build', duration: 45 },
+    { label: 'Set up GitHub Actions CI/CD automated pipeline', duration: 60 },
+    { label: 'Deploy to Cloud Run with live custom domain & SSL', duration: 30 },
+  ],
+  MAINTENANCE: [
+    { label: 'Instrument structured logging & OpenTelemetry alerts', duration: 45 },
+    { label: 'Perform disaster recovery & failover simulation drill', duration: 45 },
+    { label: 'Draft developer quickstart guide & architecture docs', duration: 45 },
+  ],
+};
 
 interface ProjectPipelineProps {
   state: POSState;
@@ -165,12 +211,26 @@ export const ProjectPipeline: React.FC<ProjectPipelineProps> = ({
   const [newEvidenceLabel, setNewEvidenceLabel] = useState('');
   const [newEvidenceUrl, setNewEvidenceUrl] = useState('');
 
+  // AI & Preset Decomposition State
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiResult, setAiResult] = useState<DecomposeProjectResult | null>(null);
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [presetDropdownOpen, setPresetDropdownOpen] = useState(false);
+
+  // Project Info (Title & Objective/Description) Editing State
+  const [isEditingProjectInfo, setIsEditingProjectInfo] = useState(false);
+  const [editProjectTitle, setEditProjectTitle] = useState('');
+  const [editProjectObjective, setEditProjectObjective] = useState('');
+
   const selectedProject = state.projects.find((p) => p.id === selectedProjectId) || null;
 
   // Open modal and initialize editable time span states
   const openProjectModal = (proj: Project) => {
     setSelectedProjectId(proj.id);
     setIsEditingTimeSpan(false);
+    setIsEditingProjectInfo(false);
+    setEditProjectTitle(proj.title);
+    setEditProjectObjective(proj.objective);
     setEditStartDate(proj.startDate || '2026-09-01');
     setEditTargetDeadline(proj.targetDeadline || '2026-10-31');
     setEditSpanText(proj.spanText || 'Span: 8 Weeks');
@@ -178,6 +238,124 @@ export const ProjectPipeline: React.FC<ProjectPipelineProps> = ({
     setEditingStepId(null);
     setSelectedPhaseFilter('ALL');
     setNewTechInput('');
+    setShowAiModal(false);
+    setAiResult(null);
+    setPresetDropdownOpen(false);
+  };
+
+  // Save Project Info (Title & Objective)
+  const handleSaveProjectInfo = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!selectedProject || !editProjectTitle.trim()) return;
+
+    onUpdateProject({
+      ...selectedProject,
+      title: editProjectTitle.trim(),
+      objective: editProjectObjective.trim(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    setIsEditingProjectInfo(false);
+  };
+
+  // AI Decomposition Trigger
+  const handleTriggerAiDecompose = async () => {
+    if (!selectedProject) return;
+    setIsGeneratingAI(true);
+    try {
+      const result = await aiService.decomposeProjectSteps({
+        title: selectedProject.title,
+        objective: selectedProject.objective,
+        technologies: selectedProject.technologies,
+        targetDeadline: selectedProject.targetDeadline || selectedProject.spanText,
+      });
+      setAiResult(result);
+      setShowAiModal(true);
+    } catch (err) {
+      console.error('Failed to decompose project steps:', err);
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+
+  // Apply Generated or Preset Steps
+  const handleApplyGeneratedSteps = (mode: 'REPLACE' | 'APPEND', stepsToApply: DecomposedStepOutput[]) => {
+    if (!selectedProject) return;
+    const now = Date.now();
+    const newSteps: ProjectStep[] = stepsToApply.map((s, idx) => ({
+      id: `step-${now}-${idx}`,
+      projectId: selectedProject.id,
+      title: s.title,
+      sdlcPhase: s.sdlcPhase,
+      estimatedDurationMinutes: s.estimatedDurationMinutes,
+      completed: false,
+      order: mode === 'REPLACE' ? idx + 1 : (selectedProject.steps || []).length + idx + 1,
+    }));
+
+    const finalSteps = mode === 'REPLACE' ? newSteps : [...(selectedProject.steps || []), ...newSteps];
+    const totalCount = finalSteps.length;
+    const completedCount = finalSteps.filter((s) => s.completed).length;
+    const computedProgress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+    onUpdateProject({
+      ...selectedProject,
+      steps: finalSteps,
+      progress: computedProgress,
+      progressLabel: totalCount > 0 ? `${completedCount}/${totalCount} Steps (${computedProgress}%)` : 'No Steps Defined',
+      status: computedProgress === 100 ? 'COMPLETED' : computedProgress > 0 ? 'IN PROGRESS' : 'QUEUED',
+      updatedAt: new Date().toISOString(),
+    });
+
+    setShowAiModal(false);
+    setAiResult(null);
+    setPresetDropdownOpen(false);
+  };
+
+  // Quick Preset Selection
+  const handleSelectPreset = (presetId: string) => {
+    const found = SDLC_ARCHETYPE_PRESETS.find((p) => p.id === presetId);
+    if (!found || !selectedProject) return;
+
+    if ((selectedProject.steps || []).length === 0) {
+      handleApplyGeneratedSteps('REPLACE', found.steps);
+    } else {
+      setAiResult({
+        architectureSummary: found.description,
+        steps: found.steps,
+        source: 'preset-heuristic',
+      });
+      setShowAiModal(true);
+    }
+    setPresetDropdownOpen(false);
+  };
+
+  // Quick Chip Add
+  const handleAddQuickChip = (title: string, phase: SDLCPhase, duration: number) => {
+    if (!selectedProject) return;
+    const currentSteps = selectedProject.steps || [];
+    const newStep: ProjectStep = {
+      id: `step-${Date.now()}`,
+      projectId: selectedProject.id,
+      title,
+      sdlcPhase: phase,
+      estimatedDurationMinutes: duration,
+      completed: false,
+      order: currentSteps.length + 1,
+    };
+
+    const updatedSteps = [...currentSteps, newStep];
+    const totalCount = updatedSteps.length;
+    const completedCount = updatedSteps.filter((s) => s.completed).length;
+    const computedProgress = Math.round((completedCount / totalCount) * 100);
+
+    onUpdateProject({
+      ...selectedProject,
+      steps: updatedSteps,
+      progress: computedProgress,
+      progressLabel: `${completedCount}/${totalCount} Steps (${computedProgress}%)`,
+      status: computedProgress === 100 ? 'COMPLETED' : computedProgress > 0 ? 'IN PROGRESS' : 'QUEUED',
+      updatedAt: new Date().toISOString(),
+    });
   };
 
   // Calculations for Time Span & Cadence
@@ -581,18 +759,6 @@ export const ProjectPipeline: React.FC<ProjectPipelineProps> = ({
     setNewEvidenceUrl('');
   };
 
-  const handleToggleProjectDoD = (project: Project, gateId: string) => {
-    const exists = project.dodPassedIds.includes(gateId);
-    const nextDod = exists
-      ? project.dodPassedIds.filter((id) => id !== gateId)
-      : [...project.dodPassedIds, gateId];
-    onUpdateProject({
-      ...project,
-      dodPassedIds: nextDod,
-      updatedAt: new Date().toISOString(),
-    });
-  };
-
   const linkedTopicsForSelected = selectedProject
     ? state.learningTopics.filter((t) => t.linkedProjectId === selectedProject.id)
     : [];
@@ -681,9 +847,23 @@ export const ProjectPipeline: React.FC<ProjectPipelineProps> = ({
 
                 {/* Title & Objective */}
                 <div>
-                  <h3 className="text-[15px] font-bold text-[#e2e2e8] group-hover:text-[#4edea3] transition-colors leading-snug">
-                    {proj.title}
-                  </h3>
+                  <div className="flex items-start justify-between gap-1.5">
+                    <h3 className="text-[15px] font-bold text-[#e2e2e8] group-hover:text-[#4edea3] transition-colors leading-snug">
+                      {proj.title}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openProjectModal(proj);
+                        setIsEditingProjectInfo(true);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-[#86948a] hover:text-[#4cd7f6] transition-opacity cursor-pointer shrink-0"
+                      title="Edit project name & description"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </button>
+                  </div>
                   <p className="text-[11px] text-[#bbcabf] line-clamp-2 mt-1 leading-relaxed">
                     {proj.objective}
                   </p>
@@ -763,52 +943,13 @@ export const ProjectPipeline: React.FC<ProjectPipelineProps> = ({
         })}
       </div>
 
-      {/* 3. Global 14-Point Definition of Done Gate Checklist */}
-      <div className="p-4 rounded-xl bg-[#0c0e12] border border-[#3c4a42]/40 flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="font-mono text-[10px] text-[#4edea3] uppercase font-bold tracking-wider">
-            14-Point Production Definition of Done (DoD) Protocol (Click gate to verify globally)
-          </span>
-          <span className="font-mono text-[10px] text-[#bbcabf] tabular-nums">
-            {state.dodGateProtocol.filter((g) => g.passed).length}/14 GATES PASSED // ZERO WARNINGS &amp; STRICT COMPLIANCE
-          </span>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-          {state.dodGateProtocol.map((gate) => (
-            <button
-              key={gate.id}
-              onClick={() => onToggleGlobalDoDGate(gate.id)}
-              title={gate.description}
-              className={`p-2 rounded border transition-all flex items-center gap-2 text-left cursor-pointer ${
-                gate.passed
-                  ? 'bg-[#1e2024] border-[#3c4a42]/40 hover:border-[#4edea3]'
-                  : 'bg-[#1a1c20]/50 border-[#ffb4ab]/30 opacity-70 hover:opacity-100'
-              }`}
-            >
-              <span
-                className={`w-3.5 h-3.5 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                  gate.passed
-                    ? 'bg-[#4edea3] text-[#003824]'
-                    : 'bg-[#282a2e] text-[#86948a]'
-                }`}
-              >
-                {gate.passed ? '✓' : '·'}
-              </span>
-              <span className="font-mono text-[10px] text-[#e2e2e8] truncate">
-                {gate.label}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 4. Comprehensive Interactive Project Detail Modal */}
+      {/* 3. Comprehensive Interactive Project Detail Modal */}
       {selectedProject && timeMetrics && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xs">
           <div className="w-full max-w-4xl rounded-xl bg-[#1a1c20] border border-[#4cd7f6]/50 shadow-2xl p-5 sm:p-6 flex flex-col gap-5 max-h-[92vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex items-start justify-between gap-4 border-b border-[#3c4a42]/30 pb-3">
-              <div>
+              <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
                   <span className="text-[#4edea3] font-bold">
                     {selectedProject.code}
@@ -818,19 +959,103 @@ export const ProjectPipeline: React.FC<ProjectPipelineProps> = ({
                   <span>//</span>
                   <span className="text-[#bbcabf]">{selectedProject.spanText}</span>
                 </div>
-                <h3 className="text-xl font-bold text-[#e2e2e8] mt-1">
-                  {selectedProject.title}
-                </h3>
-                <p className="text-xs text-[#bbcabf] mt-0.5">
-                  {selectedProject.objective}
-                </p>
+
+                {!isEditingProjectInfo ? (
+                  <div className="mt-1 group">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-xl font-bold text-[#e2e2e8]">
+                        {selectedProject.title}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditProjectTitle(selectedProject.title);
+                          setEditProjectObjective(selectedProject.objective);
+                          setIsEditingProjectInfo(true);
+                        }}
+                        className="p-1 rounded hover:bg-[#282a2e] text-[#86948a] hover:text-[#4cd7f6] transition-colors cursor-pointer"
+                        title="Edit project name & description"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-[#bbcabf] mt-0.5 leading-relaxed">
+                      {selectedProject.objective}
+                    </p>
+                  </div>
+                ) : (
+                  <form
+                    onSubmit={handleSaveProjectInfo}
+                    className="mt-2.5 p-3.5 rounded-lg bg-[#14161a] border border-[#4cd7f6]/50 flex flex-col gap-2.5 animate-fadeIn"
+                  >
+                    <div className="flex flex-col gap-1">
+                      <label className="font-mono text-[10px] text-[#4cd7f6] uppercase font-bold flex items-center gap-1">
+                        <Edit2 className="w-3 h-3" /> Project Name / Title
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={editProjectTitle}
+                        onChange={(e) => setEditProjectTitle(e.target.value)}
+                        placeholder="e.g. Personal Automation Engine"
+                        className="bg-[#0c0e12] border border-[#3c4a42]/60 focus:border-[#4cd7f6] rounded px-3 py-1.5 text-sm font-bold text-[#e2e2e8] focus:outline-none"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
+                        Description / Objective
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={editProjectObjective}
+                        onChange={(e) => setEditProjectObjective(e.target.value)}
+                        placeholder="Describe the primary mission, capabilities, and target outcome..."
+                        className="bg-[#0c0e12] border border-[#3c4a42]/60 focus:border-[#4cd7f6] rounded px-3 py-1.5 text-xs text-[#bbcabf] focus:outline-none resize-none leading-relaxed"
+                      />
+                    </div>
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-[#3c4a42]/30">
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingProjectInfo(false)}
+                        className="px-3 py-1 rounded bg-[#1e2024] hover:bg-[#282a2e] text-[#bbcabf] font-mono text-xs cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-3.5 py-1 rounded bg-[#4edea3] hover:bg-[#3ec991] text-[#003824] font-mono text-xs font-bold cursor-pointer flex items-center gap-1.5 shadow"
+                      >
+                        <Check className="w-3.5 h-3.5" /> Save Changes
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
-              <button
-                onClick={() => setSelectedProjectId(null)}
-                className="p-1.5 rounded bg-[#282a2e] text-[#bbcabf] hover:text-[#e2e2e8] cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                {!isEditingProjectInfo && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditProjectTitle(selectedProject.title);
+                      setEditProjectObjective(selectedProject.objective);
+                      setIsEditingProjectInfo(true);
+                    }}
+                    className="px-2.5 py-1 rounded bg-[#1e2024] hover:bg-[#282a2e] border border-[#3c4a42]/50 text-[#bbcabf] hover:text-[#4cd7f6] font-mono text-[11px] flex items-center gap-1.5 cursor-pointer"
+                    title="Change project name and description"
+                  >
+                    <Edit2 className="w-3 h-3 text-[#4cd7f6]" />
+                    <span>Edit Name/Desc</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedProjectId(null)}
+                  className="p-1.5 rounded bg-[#282a2e] text-[#bbcabf] hover:text-[#e2e2e8] cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* A. TIME SPAN & DAILY CADENCE ENGINE BAR */}
@@ -1205,7 +1430,7 @@ export const ProjectPipeline: React.FC<ProjectPipelineProps> = ({
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {/* Phase Filter */}
                   <select
                     value={selectedPhaseFilter}
@@ -1221,17 +1446,128 @@ export const ProjectPipeline: React.FC<ProjectPipelineProps> = ({
                     <option value="MAINTENANCE">Maintenance</option>
                   </select>
 
-                  {/* SDLC Template Generator button if zero steps */}
-                  {(selectedProject.steps || []).length === 0 && (
+                  {/* Archetype Presets Dropdown */}
+                  <div className="relative">
                     <button
-                      onClick={handleGenerateSDLCTemplate}
-                      className="px-2.5 py-1 rounded bg-[#4edea3]/20 hover:bg-[#4edea3]/30 border border-[#4edea3]/40 text-[#4edea3] font-mono text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                      type="button"
+                      onClick={() => setPresetDropdownOpen(!presetDropdownOpen)}
+                      className="px-2.5 py-1 rounded bg-[#1e2024] hover:bg-[#282a2e] border border-[#3c4a42]/50 text-[#bbcabf] hover:text-[#e2e2e8] font-mono text-[11px] flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Sparkles className="w-3 h-3" /> Auto-Generate 6-Phase SDLC Breakdown
+                      <Zap className="w-3 h-3 text-[#4cd7f6]" />
+                      <span>Presets</span>
+                      <ChevronDown className="w-3 h-3" />
                     </button>
-                  )}
+                    {presetDropdownOpen && (
+                      <div className="absolute right-0 top-full mt-1 w-64 rounded-lg bg-[#16181d] border border-[#4cd7f6]/40 shadow-2xl py-1.5 z-50 flex flex-col font-mono text-xs">
+                        <span className="px-3 py-1 text-[10px] text-[#86948a] uppercase font-bold border-b border-[#3c4a42]/30">
+                          Architecture Presets
+                        </span>
+                        {SDLC_ARCHETYPE_PRESETS.map((preset) => (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => handleSelectPreset(preset.id)}
+                            className="px-3 py-2 text-left hover:bg-[#22252a] text-[#e2e2e8] flex flex-col gap-0.5 cursor-pointer"
+                          >
+                            <span className="font-bold text-[#4cd7f6] text-[11px]">{preset.label}</span>
+                            <span className="text-[10px] text-[#86948a] line-clamp-1">{preset.description}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* AI Decompose Button */}
+                  <button
+                    type="button"
+                    onClick={handleTriggerAiDecompose}
+                    disabled={isGeneratingAI}
+                    className="px-3 py-1 rounded bg-[#4edea3]/20 hover:bg-[#4edea3]/30 border border-[#4edea3]/50 text-[#4edea3] font-mono text-[11px] font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors shadow-sm"
+                    title="Automatically analyze project objective & stack to generate 6-8 atomic SDLC engineering steps"
+                  >
+                    {isGeneratingAI ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#4edea3]" />
+                        <span>Decomposing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 text-[#4edea3]" />
+                        <span>AI Decompose Project</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
+
+              {/* AI DECOMPOSER REVIEW CARD */}
+              {showAiModal && aiResult && (
+                <div className="p-4 rounded-xl bg-[#111318] border border-[#4edea3]/60 shadow-xl flex flex-col gap-3 font-mono animate-fadeIn">
+                  <div className="flex items-center justify-between border-b border-[#3c4a42]/40 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-[#4edea3]" />
+                      <span className="text-xs font-bold text-[#4edea3] uppercase tracking-wider">
+                        AI SDLC Breakdown // {aiResult.source === 'gemini' ? 'Gemini Live Architecture' : 'Preset Heuristic'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setShowAiModal(false)}
+                      className="p-1 rounded text-[#86948a] hover:text-[#e2e2e8] cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-[#d8f4ff] bg-[#0c0e12] p-2.5 rounded border border-[#4cd7f6]/30 italic">
+                    &ldquo;{aiResult.architectureSummary}&rdquo;
+                  </p>
+
+                  <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                    {aiResult.steps.map((st, i) => (
+                      <div
+                        key={i}
+                        className="p-2 rounded bg-[#16181d] border border-[#3c4a42]/30 flex items-center justify-between gap-2 text-xs"
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-[#4edea3]/15 text-[#4edea3] font-bold">
+                            {st.sdlcPhase}
+                          </span>
+                          <span className="text-[#e2e2e8] truncate">{st.title}</span>
+                        </div>
+                        <span className="text-[10px] text-[#4cd7f6] shrink-0 font-mono">
+                          {formatDuration(st.estimatedDurationMinutes)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-[#3c4a42]/30">
+                    <button
+                      type="button"
+                      onClick={() => setShowAiModal(false)}
+                      className="px-3 py-1.5 rounded bg-[#1e2024] hover:bg-[#282a2e] text-[#bbcabf] text-xs cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    {(selectedProject.steps || []).length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleApplyGeneratedSteps('APPEND', aiResult.steps)}
+                        className="px-3.5 py-1.5 rounded bg-[#4cd7f6]/20 hover:bg-[#4cd7f6]/30 border border-[#4cd7f6]/50 text-[#4cd7f6] text-xs font-bold cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Append ({aiResult.steps.length} Steps)
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleApplyGeneratedSteps('REPLACE', aiResult.steps)}
+                      className="px-4 py-1.5 rounded bg-[#4edea3] hover:bg-[#3ec991] text-[#003824] text-xs font-bold cursor-pointer flex items-center gap-1.5 shadow-md"
+                    >
+                      <Check className="w-3.5 h-3.5" /> {(selectedProject.steps || []).length > 0 ? 'Replace All Steps' : 'Apply Steps'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Daily Target Cadence Banner */}
               {timeMetrics.todayTargetSteps.length > 0 && (
@@ -1464,41 +1800,32 @@ export const ProjectPipeline: React.FC<ProjectPipelineProps> = ({
                     <Plus className="w-3.5 h-3.5" /> Add
                   </button>
                 </div>
+
+                {/* Contextual Quick-Add Chips for current phase */}
+                {PHASE_QUICK_CHIPS[newStepPhase] && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-[#3c4a42]/30">
+                    <span className="font-mono text-[9px] text-[#86948a] uppercase flex items-center gap-1 mr-1">
+                      <Zap className="w-2.5 h-2.5 text-[#4edea3]" /> Quick Add ({newStepPhase}):
+                    </span>
+                    {PHASE_QUICK_CHIPS[newStepPhase].map((chip, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleAddQuickChip(chip.label, newStepPhase, chip.duration)}
+                        className="px-2 py-0.5 rounded bg-[#0c0e12] hover:bg-[#282a2e] border border-[#3c4a42]/40 hover:border-[#4edea3]/50 text-[#d0fbe0] text-[10px] font-mono flex items-center gap-1.5 cursor-pointer transition-colors"
+                        title="Click to add this step immediately"
+                      >
+                        <Plus className="w-2.5 h-2.5 text-[#4edea3]" />
+                        <span className="truncate max-w-[200px] sm:max-w-none">{chip.label}</span>
+                        <span className="text-[#4cd7f6] text-[9px]">({chip.duration}m)</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </form>
             </div>
 
-            {/* E. PROJECT-SPECIFIC 14-POINT DoD GATES */}
-            <div className="p-3.5 rounded-lg bg-[#0c0e12] border border-[#3c4a42]/30 flex flex-col gap-2">
-              <span className="font-mono text-[10px] text-[#4edea3] uppercase font-bold">
-                Project Definition of Done Verification ({selectedProject.dodPassedIds.length}/14 Passed)
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                {state.dodGateProtocol.map((gate) => {
-                  const passed = selectedProject.dodPassedIds.includes(gate.id);
-                  return (
-                    <button
-                      key={gate.id}
-                      type="button"
-                      onClick={() => handleToggleProjectDoD(selectedProject, gate.id)}
-                      className={`p-1.5 rounded border font-mono text-[10px] flex items-center gap-1.5 text-left cursor-pointer ${
-                        passed
-                          ? 'bg-[#4edea3]/15 border-[#4edea3]/40 text-[#e2e2e8]'
-                          : 'bg-[#1e2024] border-[#3c4a42]/30 text-[#86948a]'
-                      }`}
-                    >
-                      <CheckCircle2
-                        className={`w-3 h-3 shrink-0 ${
-                          passed ? 'text-[#4edea3]' : 'text-[#86948a]'
-                        }`}
-                      />
-                      <span className="truncate">{gate.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* F. CONNECTED LEARNING TOPICS & EVIDENCE */}
+            {/* E. CONNECTED LEARNING TOPICS & EVIDENCE */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-3.5 rounded-lg bg-[#0c0e12] border border-[#3c4a42]/30 flex flex-col gap-2">
                 <span className="font-mono text-[10px] text-[#c0c1ff] uppercase font-bold flex items-center gap-1.5">

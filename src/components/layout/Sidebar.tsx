@@ -13,12 +13,6 @@ import {
   CheckCircle2,
   Sliders,
   Command,
-  Target,
-  BookOpen,
-  GitBranch,
-  ClipboardCheck,
-  Sparkles,
-  LayoutGrid,
   X,
 } from 'lucide-react';
 import { NavigationSection } from '../../models/types';
@@ -61,14 +55,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'work-scoreboards', label: 'Work Scoreboards', number: '07', icon: <Gauge className="w-4 h-4" /> },
     { id: 'horizon-flight-plan', label: '10-Year Horizon', number: '08', icon: <Rocket className="w-4 h-4" /> },
     { id: 'principle-70', label: '70th Principle', number: '09', icon: <CheckCircle2 className="w-4 h-4" /> },
-  ];
-
-  const workspaceViews: NavItem[] = [
-    { id: 'goals', label: 'Goals & Vectors', number: 'G1', icon: <Target className="w-4 h-4" /> },
-    { id: 'knowledge', label: 'Knowledge Vault', number: 'K2', icon: <BookOpen className="w-4 h-4" /> },
-    { id: 'decisions', label: 'Decision Log', number: 'D3', icon: <GitBranch className="w-4 h-4" /> },
-    { id: 'reviews', label: 'Execution Reviews', number: 'R4', icon: <ClipboardCheck className="w-4 h-4" /> },
-    { id: 'ai-assistant', label: 'AI Force Multiplier', number: 'AI', icon: <Sparkles className="w-4 h-4" /> },
   ];
 
   const handleNavClick = (section: NavigationSection) => {
@@ -127,60 +113,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
 
         {/* 9 Core Modules Navigation — Single-Tab View Switcher */}
-        <div className="mt-1.5 overflow-y-auto pr-1 space-y-3 max-h-[calc(100vh-260px)]">
-          <div className="flex flex-col gap-0.5">
-            <div className="px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-[#86948a] flex items-center justify-between">
-              <span>View Switcher (01–09)</span>
-              <span className="text-[#4edea3] text-[9px]">Single-Page</span>
-            </div>
-            {coreTabs.map((item) => {
-              const isActive = activeSection === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavClick(item.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg font-mono text-[12px] transition-colors cursor-pointer ${
-                    isActive
-                      ? 'bg-[#282a2e]/90 text-[#4edea3] border-l-2 border-[#4edea3] font-medium shadow-xs'
-                      : 'text-[#bbcabf] hover:text-[#e2e2e8] hover:bg-[#1e2024]/50'
-                  }`}
-                >
-                  {item.icon}
-                  <span className="truncate">{item.label}</span>
-                  <span className="ml-auto font-mono text-[10px] opacity-60 tabular-nums">
-                    {item.number}
-                  </span>
-                </button>
-              );
-            })}
+        <div className="mt-2 overflow-y-auto pr-1 space-y-1">
+          <div className="px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-[#86948a] flex items-center justify-between">
+            <span>Core Modules (01–09)</span>
+            <span className="text-[#4edea3] text-[9px] font-bold">Single-Page</span>
           </div>
-
-          {/* Dedicated Subsystem Screens */}
-          <div className="flex flex-col gap-0.5 pt-2 border-t border-[#3c4a42]/20">
-            <div className="px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-[#86948a]">
-              Dedicated Subsystems
-            </div>
-            {workspaceViews.map((item) => {
-              const isActive = activeSection === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavClick(item.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg font-mono text-[11px] transition-colors cursor-pointer ${
-                    isActive
-                      ? 'bg-[#282a2e]/90 text-[#4cd7f6] border-l-2 border-[#4cd7f6] font-medium'
-                      : 'text-[#bbcabf] hover:text-[#e2e2e8] hover:bg-[#1e2024]/50'
-                  }`}
-                >
-                  {item.icon}
-                  <span className="truncate">{item.label}</span>
-                  <span className="ml-auto font-mono text-[10px] opacity-50 tabular-nums">
-                    {item.number}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          {coreTabs.map((item) => {
+            const isActive = activeSection === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item.id)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg font-mono text-[12px] transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-[#282a2e]/90 text-[#4edea3] border-l-2 border-[#4edea3] font-bold shadow-xs'
+                    : 'text-[#bbcabf] hover:text-[#e2e2e8] hover:bg-[#1e2024]/60'
+                }`}
+              >
+                {item.icon}
+                <span className="truncate">{item.label}</span>
+                <span className={`ml-auto font-mono text-[10px] tabular-nums ${isActive ? 'text-[#4edea3]' : 'opacity-60'}`}>
+                  {item.number}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

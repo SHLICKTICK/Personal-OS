@@ -7,12 +7,7 @@ export type NavigationSection =
   | 'ai-guardrails'
   | 'work-scoreboards'
   | 'horizon-flight-plan'
-  | 'principle-70'
-  | 'goals'
-  | 'knowledge'
-  | 'decisions'
-  | 'reviews'
-  | 'ai-assistant';
+  | 'principle-70';
 
 export type DashboardViewMode = 'single-tab' | 'continuous-blueprint' | 'roadmap' | 'scoreboard';
 
@@ -382,6 +377,9 @@ export interface AIInsight {
   directives: string[];
   bottleneckIdentified: string;
   createdAt: string;
+  source?: string;
+  model?: string;
+  crossModuleCorrelation?: string;
 }
 
 export interface DailyCadenceBlock {
@@ -406,6 +404,32 @@ export interface Review {
   nextDayDirective: string;
   deepWorkMinutesLogged: number;
   createdAt: string;
+}
+
+export interface FocusSession {
+  id: string;
+  date: string; // YYYY-MM-DD
+  startTime: string; // e.g. 06:00
+  endTime: string; // e.g. 07:30
+  durationMinutes: number;
+  mode: 'deep1' | 'rest' | 'deep2' | 'custom';
+  linkedDirectiveId?: string;
+  linkedDirectiveTitle?: string;
+  focusRating?: number; // 1 to 5
+  distractionCount?: number;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface ActiveFocusTimer {
+  isRunning: boolean;
+  mode: 'deep1' | 'rest' | 'deep2' | 'custom';
+  totalDurationSeconds: number;
+  targetEndTime: string | null; // ISO string timestamp for persistence across tab navigation
+  remainingSeconds: number;
+  linkedDirectiveId?: string;
+  linkedDirectiveTitle?: string;
+  startedAt?: string;
 }
 
 export interface RoadmapItem {
@@ -479,4 +503,6 @@ export interface POSState {
   commitCount: number;
   auditLogs: AuditLogEntry[];
   dailyPerformanceLogs?: DailyPerformanceLog[];
+  focusSessions?: FocusSession[];
+  activeFocusTimer?: ActiveFocusTimer;
 }
