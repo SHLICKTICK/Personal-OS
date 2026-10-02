@@ -6,6 +6,7 @@ import {
   Smartphone,
   Monitor,
   Command,
+  Sparkles,
 } from 'lucide-react';
 import { NavigationSection } from '../../models/types';
 
@@ -18,6 +19,7 @@ interface ExecutiveHeaderProps {
   onDeployProtocol?: () => void;
   onOpenQuickCreate: () => void;
   onOpenCommandPalette: () => void;
+  onOpenOnboarding?: () => void;
   onToggleMobileMenu: () => void;
   androidPreviewMode: boolean;
   onToggleAndroidPreview: () => void;
@@ -31,6 +33,7 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
   onSelectSection,
   onOpenQuickCreate,
   onOpenCommandPalette,
+  onOpenOnboarding,
   onToggleMobileMenu,
   androidPreviewMode,
   onToggleAndroidPreview,
@@ -97,6 +100,18 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
             ⌘N
           </kbd>
         </button>
+
+        {/* Setup Flow & Tour */}
+        {onOpenOnboarding && (
+          <button
+            onClick={onOpenOnboarding}
+            className="px-2.5 py-1.5 rounded-lg bg-[#1a1c20] hover:bg-[#282a2e] border border-[#3c4a42]/40 text-[#bbcabf] hover:text-[#4edea3] font-mono text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs"
+            title="Open Executive POS Setup Flow & Tour"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#4edea3]" />
+            <span className="hidden sm:inline">Setup Flow</span>
+          </button>
+        )}
 
         {/* Viewport Dimension Toggle (Mobile/Desktop Preview) */}
         <button

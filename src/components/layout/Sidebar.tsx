@@ -14,6 +14,7 @@ import {
   Sliders,
   Command,
   X,
+  Sparkles,
 } from 'lucide-react';
 import { NavigationSection } from '../../models/types';
 
@@ -23,6 +24,7 @@ interface SidebarProps {
   onOpenQuickCreate: () => void;
   onOpenCommandPalette: () => void;
   onOpenSettings: () => void;
+  onOpenOnboarding?: () => void;
   mobileOpen: boolean;
   onCloseMobile: () => void;
   version: string;
@@ -41,6 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenQuickCreate,
   onOpenCommandPalette,
   onOpenSettings,
+  onOpenOnboarding,
   mobileOpen,
   onCloseMobile,
   version,
@@ -158,6 +161,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
             ⌘K
           </kbd>
         </button>
+
+        {onOpenOnboarding && (
+          <button
+            onClick={() => {
+              onOpenOnboarding();
+              onCloseMobile();
+            }}
+            className="w-full flex items-center justify-between px-3 py-2 rounded text-[#4edea3] hover:text-[#e2e2e8] hover:bg-[#4edea3]/10 border border-[#4edea3]/30 transition-colors font-mono text-[12px] cursor-pointer shadow-xs"
+          >
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#4edea3]" />
+              <span>Setup Flow &amp; Tour</span>
+            </span>
+            <span className="font-mono text-[10px] text-[#4edea3] font-bold">START</span>
+          </button>
+        )}
 
         <button
           onClick={() => {

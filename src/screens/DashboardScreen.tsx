@@ -53,6 +53,7 @@ import { DailyCadenceFlightPlan } from '../components/dashboard/DailyCadenceFlig
 import { SignOffSection } from '../components/dashboard/SignOffSection';
 import { QuickCreateModal } from '../components/modals/QuickCreateModal';
 import { CommandPaletteModal } from '../components/modals/CommandPaletteModal';
+import { OnboardingModal } from '../components/modals/OnboardingModal';
 
 const CORE_MODULE_ORDER: NavigationSection[] = [
   'north-star',
@@ -77,6 +78,37 @@ export const DashboardScreen: React.FC = () => {
   // Modals
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(() => {
+    try {
+      const completed = localStorage.getItem('executive_pos_onboarding_completed');
+      return completed !== 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleCompleteOnboarding = (data: {
+    operatorName: string;
+    northStarCorePrinciple: string;
+    northStarSupporting: string;
+    competenceBadges: CompetenceBadge[];
+    stopImmediatelyList: string[];
+  }) => {
+    try {
+      localStorage.setItem('executive_pos_onboarding_completed', 'true');
+    } catch (err) {
+      console.warn('Could not save onboarding status to localStorage:', err);
+    }
+
+    updateState((prev) => ({
+      ...prev,
+      operatorName: data.operatorName,
+      northStarCorePrinciple: data.northStarCorePrinciple,
+      northStarSupporting: data.northStarSupporting,
+      competenceBadges: data.competenceBadges,
+      stopImmediatelyList: data.stopImmediatelyList,
+    }));
+  };
 
   // Save changes to persistence whenever state changes
   const updateState = (updater: (prev: POSState) => POSState) => {
@@ -1111,6 +1143,7 @@ export const DashboardScreen: React.FC = () => {
         onSelectSection={handleSelectSection}
         onOpenQuickCreate={() => setQuickCreateOpen(true)}
         onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+        onOpenOnboarding={() => setOnboardingOpen(true)}
         onToggleMobileMenu={() => setMobileMenuOpen((prev) => !prev)}
         androidPreviewMode={androidPreviewMode}
         onToggleAndroidPreview={() => setAndroidPreviewMode((prev) => !prev)}
@@ -1125,6 +1158,7 @@ export const DashboardScreen: React.FC = () => {
         onOpenQuickCreate={() => setQuickCreateOpen(true)}
         onOpenCommandPalette={() => setCommandPaletteOpen(true)}
         onOpenSettings={() => setCommandPaletteOpen(true)}
+        onOpenOnboarding={() => setOnboardingOpen(true)}
         mobileOpen={mobileMenuOpen}
         onCloseMobile={() => setMobileMenuOpen(false)}
         version={state.version}
@@ -1249,6 +1283,14 @@ export const DashboardScreen: React.FC = () => {
         onExportState={handleExportState}
         onImportState={handleImportState}
         onTriggerAI={handleTriggerAI}
+      />
+
+      {/* Progressive Multi-Step Onboarding Modal */}
+      <OnboardingModal
+        isOpen={onboardingOpen}
+        onClose={() => setOnboardingOpen(false)}
+        state={state}
+        onCompleteOnboarding={handleCompleteOnboarding}
       />
     </div>
   );
