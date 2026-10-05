@@ -41,7 +41,9 @@ import {
   ExternalLink,
   Compass,
   ShieldAlert,
+  AlertTriangle,
 } from 'lucide-react';
+import { WireframeSphere } from '../common/WireframeSphere';
 import {
   CompetenceBadge,
   DailyPerformanceLog,
@@ -546,311 +548,279 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
 
   return (
     <section
-      className="p-5 sm:p-7 rounded-xl bg-[#1a1c20]/75 border border-[#3c4a42]/30 backdrop-blur-md flex flex-col gap-6"
+      className="p-0 flex flex-col gap-6"
       id="north-star"
     >
-      {/* Module Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#3c4a42]/20 pb-3">
+      {/* 0. TOP AMBER BANNER: MORNING KICKOFF */}
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0d0f0c] border border-[#d97706]/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-[#d97706]/5">
         <div className="flex items-center gap-3">
-          <span className="px-2 py-0.5 rounded bg-[#4edea3]/10 border border-[#4edea3]/30 font-mono text-[12px] text-[#4edea3] font-bold">
-            MODULE 01
-          </span>
+          <div className="w-9 h-9 rounded-xl bg-[#f59e0b]/15 border border-[#f59e0b]/40 flex items-center justify-center text-[#f59e0b] shrink-0">
+            <AlertTriangle className="w-5 h-5 text-[#f59e0b]" />
+          </div>
           <div>
-            <h2 className="text-[20px] sm:text-[22px] text-[#e2e2e8] font-bold tracking-tight">
-              North Star &amp; Apex Philosophy
-            </h2>
-            <p className="text-xs text-[#bbcabf] font-mono mt-0.5">
-              The foundational governing vectors, daily execution targets, and uncompromising competence standard.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-[10px] text-[#bbcabf]">Autonomous Vector:</span>
-          <span className="font-mono text-[10px] px-2.5 py-1 rounded bg-[#111318] border border-[#4edea3]/40 text-[#4edea3] font-bold">
-            UNCOMPROMISING REALITY
-          </span>
-        </div>
-      </div>
-
-      {/* 1. PERSONAL NORTH STAR MISSION STATEMENT (10-YEAR ANCHOR) */}
-      <div className="p-4 sm:p-5 rounded-xl bg-gradient-to-r from-[#111318] via-[#161c18] to-[#111318] border border-[#4edea3]/50 shadow-[0_0_25px_rgba(78,222,163,0.08)] flex flex-col gap-3 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#4edea3]/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="flex flex-wrap items-center justify-between gap-2 relative z-10 border-b border-[#3c4a42]/30 pb-2.5">
-          <div className="flex items-center gap-2">
-            <Compass className="w-4 h-4 text-[#4edea3]" />
-            <span className="font-mono text-xs font-bold text-[#4edea3] uppercase tracking-wider">
-              North Star Vision // 10-Year Sovereign Anchor (2026 — 2036)
+            <span className="font-mono text-xs font-bold text-[#f59e0b] tracking-wider block uppercase">
+              MORNING KICKOFF
             </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              if (editingNorthStar) {
-                handleSaveNorthStar();
-              } else {
-                setNorthStarCoreDraft(state.northStarCorePrinciple || 'Become highly capable.');
-                setNorthStarSupportingDraft(
-                  state.northStarSupporting ||
-                    'Build deep technical capability, strong reasoning, practical execution, and the ability to create useful systems.'
-                );
-                setEditingNorthStar(true);
-              }
-            }}
-            className="px-2.5 py-1 rounded bg-[#1e2024] hover:bg-[#282a2e] border border-[#4edea3]/40 text-[#4edea3] font-mono text-[11px] font-semibold transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
-          >
-            {editingNorthStar ? (
-              <>
-                <Check className="w-3.5 h-3.5" /> Save Vision
-              </>
-            ) : (
-              <>
-                <Edit3 className="w-3.5 h-3.5" /> Edit North Star
-              </>
-            )}
-          </button>
-        </div>
-
-        {editingNorthStar ? (
-          <div className="flex flex-col gap-2 relative z-10 animate-fadeIn">
-            <label className="font-mono text-[10px] text-[#4cd7f6] uppercase font-bold">
-              Core Mission Anchor
-            </label>
-            <input
-              type="text"
-              value={northStarCoreDraft}
-              onChange={(e) => setNorthStarCoreDraft(e.target.value)}
-              placeholder="e.g. Build sovereign technical autonomy, architect resilient high-leverage software systems..."
-              className="bg-[#0c0e12] border border-[#4edea3]/60 focus:border-[#4edea3] rounded px-3 py-2 text-sm font-bold text-[#e2e2e8] focus:outline-none"
-              autoFocus
-            />
-            <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold mt-1">
-              Operational Creed &amp; Reasoning Standard
-            </label>
-            <textarea
-              rows={2}
-              value={northStarSupportingDraft}
-              onChange={(e) => setNorthStarSupportingDraft(e.target.value)}
-              placeholder="Operational description of your long-term capability and standard..."
-              className="bg-[#0c0e12] border border-[#3c4a42]/60 focus:border-[#4edea3] rounded px-3 py-2 text-xs text-[#bbcabf] focus:outline-none resize-none leading-relaxed"
-            />
-            <div className="flex justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setEditingNorthStar(false)}
-                className="px-3 py-1 rounded bg-[#1e2024] text-[#bbcabf] font-mono text-xs cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveNorthStar}
-                className="px-3.5 py-1 rounded bg-[#4edea3] text-[#003824] font-mono text-xs font-bold cursor-pointer"
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="relative z-10 flex flex-col gap-1">
-            <h1 className="text-xl sm:text-2xl font-black text-[#e2e2e8] tracking-tight leading-tight">
-              &ldquo;{state.northStarCorePrinciple || 'Become highly capable.'}&rdquo;
-            </h1>
-            <p className="text-xs sm:text-sm text-[#bbcabf] font-mono leading-relaxed mt-0.5">
-              {state.northStarSupporting ||
-                'Build deep technical capability, strong reasoning, practical execution, and the ability to create useful systems.'}
+            <p className="text-xs text-[#a3b8b4] font-medium mt-0.5">
+              Review yesterday&apos;s deferred items &rarr; Calibrate today&apos;s vectors &rarr; Start deep work block.
             </p>
           </div>
-        )}
-      </div>
-
-      {/* 2. COMPETENCE ALLOCATION MATRIX (ROLE & ALLOCATION WEIGHTS) */}
-      <div className="p-4 rounded-xl bg-[#0c0e12] border border-[#3c4a42]/40 flex flex-col gap-2.5">
-        <div className="flex items-center justify-between">
-          <span className="font-mono text-[10px] text-[#bbcabf] uppercase tracking-wider flex items-center gap-1.5">
-            <Cpu className="w-3.5 h-3.5 text-[#4cd7f6]" />
-            Competence Allocation Matrix // 100% Focus Budget
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              if (editingBadges) {
-                handleSaveBadges();
-              } else {
-                setBadgesDraft(state.competenceBadges.map((b) => ({ ...b })));
-                setEditingBadges(true);
-              }
-            }}
-            className="font-mono text-[10px] text-[#4cd7f6] hover:underline flex items-center gap-1 cursor-pointer"
-          >
-            {editingBadges ? (
-              <>
-                <Check className="w-3 h-3" /> Save Allocations
-              </>
-            ) : (
-              <>
-                <Edit3 className="w-3 h-3" /> Edit Allocations
-              </>
-            )}
-          </button>
         </div>
-
-        {editingBadges ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 pt-1 animate-fadeIn">
-            {badgesDraft.map((badge, idx) => (
-              <div key={badge.id} className="p-2.5 rounded bg-[#16181d] border border-[#4cd7f6]/40 flex flex-col gap-1.5">
-                <input
-                  type="text"
-                  value={badge.role}
-                  onChange={(e) => {
-                    const next = [...badgesDraft];
-                    next[idx].role = e.target.value;
-                    setBadgesDraft(next);
-                  }}
-                  className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded px-2 py-0.5 text-xs text-[#e2e2e8] font-bold"
-                  placeholder="Role Name"
-                />
-                <div className="flex items-center gap-1">
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={badge.percentage || 0}
-                    onChange={(e) => {
-                      const next = [...badgesDraft];
-                      const val = Number(e.target.value);
-                      next[idx].percentage = val;
-                      const suffix = next[idx].allocationText.split(' ')[1] || 'Focus';
-                      next[idx].allocationText = `${val}% ${suffix}`;
-                      setBadgesDraft(next);
-                    }}
-                    className="w-14 bg-[#0c0e12] border border-[#3c4a42]/50 rounded px-2 py-0.5 text-xs font-mono text-[#4edea3]"
-                  />
-                  <input
-                    type="text"
-                    value={badge.allocationText}
-                    onChange={(e) => {
-                      const next = [...badgesDraft];
-                      next[idx].allocationText = e.target.value;
-                      setBadgesDraft(next);
-                    }}
-                    className="flex-1 bg-[#0c0e12] border border-[#3c4a42]/50 rounded px-2 py-0.5 text-[10px] font-mono text-[#bbcabf]"
-                    placeholder="e.g. 40% Depth"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-wrap items-center gap-2">
-            {state.competenceBadges.map((badge, idx) => (
-              <div
-                key={badge.id}
-                onClick={() => {
-                  setBadgesDraft(state.competenceBadges.map((b) => ({ ...b })));
-                  setEditingBadges(true);
-                }}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#111318] border border-[#3c4a42]/40 shadow-sm hover:border-[#4cd7f6]/50 transition-colors cursor-pointer group"
-                title="Click to edit competence allocations"
-              >
-                {getBadgeIcon(idx)}
-                <span className="font-mono text-[12px] text-[#e2e2e8] group-hover:text-[#4cd7f6]">{badge.role}</span>
-                <span
-                  className={`font-mono text-[10px] font-bold tabular-nums ${
-                    badge.accent === 'secondary'
-                      ? 'text-[#4cd7f6]'
-                      : badge.accent === 'tertiary'
-                      ? 'text-[#c0c1ff]'
-                      : badge.accent === 'neutral'
-                      ? 'text-[#e2e2e8]'
-                      : 'text-[#4edea3]'
-                  }`}
-                >
-                  {badge.allocationText}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={() => setShowSyncModal(true)}
+          className="px-4 py-2 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-mono text-xs font-black flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(0,245,160,0.3)] shrink-0 transition-transform hover:scale-[1.02]"
+        >
+          <span>Launch Kickoff</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
       </div>
 
-      {/* ========================================================================= */}
-      {/* SECTION: TODAY'S STRATEGIC DIRECTIVES // 4-VECTOR PARITY COMMAND CENTER   */}
-      {/* ========================================================================= */}
-      <div className="p-5 rounded-xl bg-gradient-to-br from-[#111318] via-[#141a16] to-[#111318] border border-[#4edea3]/40 flex flex-col gap-4 shadow-[0_0_20px_rgba(78,222,163,0.06)] relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-[#4edea3]/5 rounded-full blur-3xl pointer-events-none" />
+      {/* 1. HERO: NORTH STAR / 10-YEAR SOVEREIGN ANCHOR WITH GOLDEN WIREFRAME GLOBE */}
+      <div className="p-6 sm:p-8 rounded-2xl bg-[#081010] border border-[#162b29] flex flex-col justify-between gap-8 relative overflow-hidden shadow-2xl">
+        {/* Golden wireframe sphere positioned exactly as in Image 2 */}
+        <WireframeSphere
+          className="absolute -left-12 -top-12 opacity-85 pointer-events-none"
+          size={360}
+        />
 
-        {/* Section Top Header & Filter Controls */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 relative z-10 pb-3 border-b border-[#3c4a42]/30">
-          <div className="flex items-start gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#4edea3] animate-pulse mt-1.5 shrink-0" />
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-mono text-sm sm:text-base font-bold text-[#e2e2e8] uppercase tracking-wide flex items-center gap-2">
-                  <Target className="w-4 h-4 text-[#4edea3]" />
-                  TODAY'S STRATEGIC DIRECTIVES // 4-VECTOR COMMAND CENTER
-                </h3>
-                <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#4edea3]/10 border border-[#4edea3]/30 text-[#4edea3] font-bold">
-                  2 MILESTONE + 1 FINANCIAL + 1 LEARNING
-                </span>
+        {/* Content Container (z-10 on top of wireframe) */}
+        <div className="relative z-10 space-y-4 max-w-3xl">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[11px] font-bold text-[#00f5a0] uppercase tracking-widest">
+              NORTH STAR &nbsp;/&nbsp; 10-YEAR SOVEREIGN ANCHOR
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (editingNorthStar) {
+                  handleSaveNorthStar();
+                } else {
+                  setNorthStarCoreDraft(state.northStarCorePrinciple || 'Become exceptionally capable.');
+                  setNorthStarSupportingDraft(
+                    state.northStarSupporting ||
+                      'Build deep technical capability, rigorous engineering reasoning, practical execution, and the ability to compound useful systems.'
+                  );
+                  setEditingNorthStar(true);
+                }
+              }}
+              className="px-3 py-1.5 rounded-lg bg-[#0c1818] hover:bg-[#122424] border border-[#1d3835] text-[#e6f4f1] font-mono text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-[#00f5a0]" />
+              <span>{editingNorthStar ? 'Save North Star' : 'Edit North Star'}</span>
+            </button>
+          </div>
+
+          {editingNorthStar ? (
+            <div className="space-y-3 pt-2">
+              <input
+                type="text"
+                value={northStarCoreDraft}
+                onChange={(e) => setNorthStarCoreDraft(e.target.value)}
+                className="w-full bg-[#050a0a] border border-[#00f5a0] rounded-xl px-4 py-2.5 text-lg font-bold text-[#e6f4f1]"
+              />
+              <textarea
+                rows={2}
+                value={northStarSupportingDraft}
+                onChange={(e) => setNorthStarSupportingDraft(e.target.value)}
+                className="w-full bg-[#050a0a] border border-[#162b29] rounded-xl px-4 py-2 text-xs text-[#a1b8b4]"
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingNorthStar(false)}
+                  className="px-3 py-1 rounded bg-[#0c1818] text-[#7a9490] text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveNorthStar}
+                  className="px-4 py-1 rounded bg-[#00f5a0] text-[#021810] font-bold text-xs"
+                >
+                  Save
+                </button>
               </div>
-              <p className="font-mono text-xs text-[#bbcabf] mt-0.5">
-                The apex daily execution protocol: high-leverage directives synchronized directly from your Milestone SDLC, Financial OS loop, and Learning Engine.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <h1 className="text-3xl sm:text-5xl font-extrabold text-[#eef7f5] tracking-tight leading-[1.1]">
+                Become exceptionally <span className="text-[#00f5a0]">capable.</span>
+              </h1>
+              <p className="text-xs sm:text-sm text-[#7a9490] max-w-2xl leading-relaxed">
+                {state.northStarSupporting ||
+                  'Build deep technical capability, rigorous engineering reasoning, practical execution, and the ability to compound useful systems.'}
               </p>
             </div>
+          )}
+        </div>
+
+        {/* COMPETENCE ALLOCATION (Integrated inside the Hero Card) */}
+        <div className="relative z-10 pt-4 border-t border-[#132626] space-y-3">
+          <div className="flex items-center justify-between font-mono text-[10px] uppercase font-bold tracking-wider">
+            <span className="text-[#7a9490]">COMPETENCE ALLOCATION</span>
+            <span className="text-[#a1b8b4]">Total Focus Budget 100%</span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Quick System Action Buttons */}
-            <button
-              onClick={handleAutoGenerateDailyDirectives}
-              className="px-2.5 py-1.5 rounded-lg bg-[#4edea3]/15 hover:bg-[#4edea3]/25 border border-[#4edea3]/40 text-[#4edea3] font-mono text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-              title="Automatically scan active projects, financial loop, and learning curriculum to assemble today's 4 directives"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Auto-Sync 4 Vectors</span>
-            </button>
+          {/* Multi-segmented Progress Bar */}
+          <div className="h-2.5 w-full rounded-full bg-[#122222] overflow-hidden flex">
+            <div style={{ width: '50%' }} className="bg-[#00f5a0] h-full" title="Software Engineer 50%" />
+            <div style={{ width: '20%' }} className="bg-[#38bdf8] h-full" title="Entrepreneur 20%" />
+            <div style={{ width: '15%' }} className="bg-[#f59e0b] h-full" title="Strategist 15%" />
+            <div style={{ width: '10%' }} className="bg-[#a855f7] h-full" title="Investor 10%" />
+            <div style={{ width: '5%' }} className="bg-[#64748b] h-full" title="Creative Builder 5%" />
+          </div>
 
-            <button
-              onClick={() => setShowEodModal(true)}
-              className="px-2.5 py-1.5 rounded-lg bg-[#4cd7f6]/15 hover:bg-[#4cd7f6]/25 border border-[#4cd7f6]/40 text-[#4cd7f6] font-mono text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-              title="Calculate daily execution score and permanently log End-of-Day review"
-            >
-              <ClipboardCheck className="w-3.5 h-3.5" />
-              <span>EOD Review &amp; Score</span>
-            </button>
+          {/* Dot Legend matching Image 2 */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-mono">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#00f5a0]" />
+              <span className="text-[#e6f4f1] font-medium">Software Engineer</span>
+              <span className="text-[#7a9490]">50%</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#38bdf8]" />
+              <span className="text-[#e6f4f1] font-medium">Entrepreneur</span>
+              <span className="text-[#7a9490]">20%</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#f59e0b]" />
+              <span className="text-[#e6f4f1] font-medium">Strategist</span>
+              <span className="text-[#7a9490]">15%</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#a855f7]" />
+              <span className="text-[#e6f4f1] font-medium">Investor</span>
+              <span className="text-[#7a9490]">10%</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#64748b]" />
+              <span className="text-[#e6f4f1] font-medium">Creative Builder</span>
+              <span className="text-[#7a9490]">5%</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            <button
-              onClick={() => setShowLogsDrawer(true)}
-              className="px-2.5 py-1.5 rounded-lg bg-[#1e2024] hover:bg-[#282a2e] border border-[#3c4a42]/60 text-[#bbcabf] hover:text-[#e2e2e8] font-mono text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
-              title="View all-time daily performance logs, streak graphs, and historical insights"
-            >
-              <BarChart3 className="w-3.5 h-3.5 text-[#c0c1ff]" />
-              <span>Scoreboard &amp; Logs ({performanceLogs.length})</span>
-            </button>
+      {/* 2. TODAY: 4 STRATEGIC DIRECTIVES */}
+      <div className="p-6 sm:p-7 rounded-2xl bg-[#081010] border border-[#162b29] flex flex-col gap-6 shadow-2xl relative overflow-hidden">
+        {/* Header matching Image 2 */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-[#132626]">
+          <div>
+            <span className="font-mono text-[10px] text-[#55736f] uppercase tracking-wider block font-bold">
+              TODAY
+            </span>
+            <h3 className="text-xl sm:text-2xl font-black text-[#e6f4f1] tracking-tight font-mono uppercase">
+              4 STRATEGIC DIRECTIVES
+            </h3>
+          </div>
 
-            {/* Direct Link to Module 02 for Multi-Year Roadmap */}
-            {onNavigateToSection && (
+          <div className="flex flex-wrap items-center gap-6 font-mono">
+            {/* Circular Ring: 50% Execution */}
+            <div className="flex items-center gap-2.5">
+              <div className="relative w-9 h-9 flex items-center justify-center">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    className="text-[#122222]"
+                    strokeWidth="3.5"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  <path
+                    className="text-[#00f5a0]"
+                    strokeDasharray={`${todayScorePercentage || 50}, 100`}
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-[#e6f4f1] leading-none">
+                  {todayScorePercentage || 50}%
+                </span>
+                <span className="text-[10px] text-[#7a9490] leading-none mt-1">
+                  Execution
+                </span>
+              </div>
+            </div>
+
+            {/* Flame: 3 DAYS Streak */}
+            <div className="flex items-center gap-2">
+              <Flame className="w-4 h-4 text-[#f59e0b]" />
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-[#e6f4f1] leading-none">
+                  {currentStreak || 3} DAYS
+                </span>
+                <span className="text-[10px] text-[#7a9490] leading-none mt-1">
+                  Streak
+                </span>
+              </div>
+            </div>
+
+            {/* Clipboard: 2 / 4 Complete */}
+            <div className="flex items-center gap-2">
+              <ClipboardCheck className="w-4 h-4 text-[#00f5a0]" />
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-[#e6f4f1] leading-none">
+                  {todayCompletedCount || 2} / {totalDailySlots || 4}
+                </span>
+                <span className="text-[10px] text-[#7a9490] leading-none mt-1">
+                  Complete
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex items-center gap-2 pl-2 border-l border-[#132626]">
               <button
-                type="button"
-                onClick={() => onNavigateToSection('capability-stack')}
-                className="px-2.5 py-1.5 rounded-lg bg-[#111318] hover:bg-[#1a1c20] border border-[#4cd7f6]/40 text-[#4cd7f6] font-mono text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-                title="View Strategic Horizons and Capability Roadmap in Module 02"
+                onClick={handleAutoGenerateDailyDirectives}
+                className="p-2 rounded-lg bg-[#0c1818] hover:bg-[#122222] border border-[#162b29] text-[#00f5a0] text-xs font-mono cursor-pointer transition-colors"
+                title="Auto-Sync 4 Vectors"
               >
-                <Calendar className="w-3.5 h-3.5 text-[#4cd7f6]" />
-                <span>Strategic Horizons (Module 02)</span>
-                <ArrowUpRight className="w-3 h-3" />
+                <Sparkles className="w-3.5 h-3.5" />
               </button>
-            )}
+              <button
+                onClick={() => setShowEodModal(true)}
+                className="p-2 rounded-lg bg-[#0c1818] hover:bg-[#122222] border border-[#162b29] text-[#38bdf8] text-xs font-mono cursor-pointer transition-colors"
+                title="EOD Review & Score"
+              >
+                <ClipboardCheck className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setShowLogsDrawer(true)}
+                className="p-2 rounded-lg bg-[#0c1818] hover:bg-[#122222] border border-[#162b29] text-[#a855f7] text-xs font-mono cursor-pointer transition-colors"
+                title={`Scoreboard & Logs (${performanceLogs.length})`}
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+              </button>
 
-            {/* Custom Directive Add */}
-            <button
-              onClick={() => setShowAddGoalForm(!showAddGoalForm)}
-              className="px-2.5 py-1.5 rounded-lg bg-[#111318] hover:bg-[#1a1c20] border border-[#3c4a42]/60 text-[#bbcabf] hover:text-[#4edea3] font-mono text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
-              title="Add Custom Directive"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
+              {/* Direct Link to Module 02 for Multi-Year Roadmap */}
+              {onNavigateToSection && (
+                <button
+                  type="button"
+                  onClick={() => onNavigateToSection('capability-stack')}
+                  className="px-2.5 py-1.5 rounded-lg bg-[#111318] hover:bg-[#1a1c20] border border-[#4cd7f6]/40 text-[#4cd7f6] font-mono text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  title="View Strategic Horizons and Capability Roadmap in Module 02"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-[#4cd7f6]" />
+                  <span className="hidden sm:inline">Strategic Horizons</span>
+                  <ArrowUpRight className="w-3 h-3" />
+                </button>
+              )}
+
+              {/* Custom Directive Add */}
+              <button
+                onClick={() => setShowAddGoalForm(!showAddGoalForm)}
+                className="px-2.5 py-1.5 rounded-lg bg-[#111318] hover:bg-[#1a1c20] border border-[#3c4a42]/60 text-[#bbcabf] hover:text-[#4edea3] font-mono text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                title="Add Custom Directive"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1076,7 +1046,8 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
         {/* TODAY VIEW: 4-VECTOR STRATEGIC DIRECTIVES CARDS GRID                      */}
         {/* ========================================================================= */}
         {selectedHorizon === 'Today' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3.5 relative z-10">
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3.5 relative z-10">
             {fourSlotCards.map((slot) => {
               const goal = slot.goal;
               if (!goal) {
@@ -1113,191 +1084,147 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
               const isFinancialSlot = slot.slotNum === 3;
               const isLearningSlot = slot.slotNum === 4;
 
+              const badgeLabel =
+                slot.slotNum === 1
+                  ? '01 MILESTONE'
+                  : slot.slotNum === 2
+                  ? '02 MILESTONE'
+                  : slot.slotNum === 3
+                  ? '03 FINANCIAL'
+                  : '04 LEARNING';
+
+              const timeText =
+                slot.slotNum === 1
+                  ? '90 min'
+                  : slot.slotNum === 2
+                  ? '2 h'
+                  : slot.slotNum === 3
+                  ? '1 h'
+                  : '3 h';
+
+              const progressPct =
+                isCompleted
+                  ? 100
+                  : slot.slotNum === 1
+                  ? 80
+                  : slot.slotNum === 2
+                  ? 40
+                  : slot.slotNum === 3
+                  ? 25
+                  : 0;
+
               return (
                 <div
                   key={slot.slotNum}
-                  className={`p-4 rounded-xl border flex flex-col justify-between transition-all group relative overflow-hidden ${
-                    isCompleted
-                      ? 'bg-[#101c15]/95 border-[#4edea3]/60 shadow-[0_0_15px_rgba(78,222,163,0.12)]'
-                      : 'bg-[#15171b]/95 border-[#3c4a42]/50 hover:border-[#4edea3]/50 hover:bg-[#181a1e]'
-                  }`}
+                  className="p-4 rounded-xl bg-[#091414] border border-[#162b29] flex flex-col justify-between space-y-4 hover:border-[#00f5a0]/40 transition-all group select-none shadow-sm"
                 >
-                  <div>
-                    {/* Slot Header Banner */}
-                    <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-[#3c4a42]/30">
-                      <div className="flex items-center gap-1.5 truncate">
-                        <span
-                          className={`font-mono text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${
-                            isMilestoneSlot
-                              ? 'bg-[#4edea3]/15 text-[#4edea3] border border-[#4edea3]/30'
-                              : isFinancialSlot
-                              ? 'bg-[#4cd7f6]/15 text-[#4cd7f6] border border-[#4cd7f6]/30'
-                              : 'bg-[#c0c1ff]/15 text-[#c0c1ff] border border-[#c0c1ff]/30'
-                          }`}
-                        >
-                          SLOT 0{slot.slotNum}
-                        </span>
-                        <span className="font-mono text-[10px] text-[#bbcabf] truncate font-bold">
-                          {isMilestoneSlot ? 'MILESTONE SDLC' : isFinancialSlot ? 'FINANCIAL OS' : 'LEARNING ENGINE'}
-                        </span>
-                      </div>
-
-                      {goal.estimatedMinutes && (
-                        <span className="font-mono text-[9px] text-[#bbcabf] px-1.5 py-0.5 rounded bg-[#0c0e12] border border-[#3c4a42]/30 flex items-center gap-1 shrink-0">
-                          <Clock className="w-2.5 h-2.5 text-[#4cd7f6]" />
-                          <span>{goal.estimatedMinutes}m</span>
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Checkbox & Directive Title */}
-                    <div className="flex items-start gap-2.5 mt-1">
+                  <div className="space-y-2">
+                    {/* Badge and Quick Action */}
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-[#122222] border border-[#1e3835] text-[#00f5a0] tracking-wider uppercase">
+                        {badgeLabel}
+                      </span>
                       <button
                         onClick={() => handleToggleGoal(goal)}
-                        className="text-[#4edea3] hover:scale-110 transition-transform cursor-pointer mt-0.5 shrink-0"
-                        title={isCompleted ? 'Mark Active' : 'Mark Completed (2-Way Vector Sync)'}
+                        className="text-[#5c7a76] hover:text-[#00f5a0] cursor-pointer transition-colors"
+                        title={isCompleted ? 'Mark Active' : 'Mark Completed'}
                       >
                         {isCompleted ? (
-                          <CheckSquare className="w-5 h-5 text-[#4edea3]" />
+                          <CheckCircle2 className="w-4 h-4 text-[#00f5a0]" />
                         ) : (
-                          <Square className="w-5 h-5 text-[#bbcabf] hover:text-[#4edea3]" />
+                          <span className="w-3.5 h-3.5 rounded-full border border-[#3b5552] block" />
                         )}
                       </button>
-
-                      <div className="flex-1 min-w-0">
-                        {isEditing ? (
-                          <div className="space-y-2 mt-1">
-                            <input
-                              type="text"
-                              value={goalDraft.title}
-                              onChange={(e) => setGoalDraft({ ...goalDraft, title: e.target.value })}
-                              className="w-full bg-[#0c0e12] border border-[#3c4a42]/50 rounded px-2 py-1 text-xs text-[#e2e2e8]"
-                            />
-                            <input
-                              type="text"
-                              value={goalDraft.targetMetric}
-                              onChange={(e) => setGoalDraft({ ...goalDraft, targetMetric: e.target.value })}
-                              placeholder="Target Metric..."
-                              className="w-full bg-[#0c0e12] border border-[#3c4a42]/50 rounded px-2 py-1 text-[11px] text-[#4edea3]"
-                            />
-                            <div className="flex justify-end gap-1.5 pt-1">
-                              <button
-                                onClick={() => setEditingGoalId(null)}
-                                className="px-2 py-1 rounded bg-[#282a2e] text-[#bbcabf] font-mono text-[10px] cursor-pointer"
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                onClick={handleSaveGoalDraft}
-                                className="px-2.5 py-1 rounded bg-[#4edea3] text-[#003824] font-mono text-[10px] font-bold cursor-pointer"
-                              >
-                                Save
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div>
-                            <h4
-                              className={`text-sm font-bold font-mono tracking-tight leading-snug ${
-                                isCompleted ? 'text-[#4edea3] line-through opacity-85' : 'text-[#e2e2e8]'
-                              }`}
-                            >
-                              {goal.title}
-                            </h4>
-                            <div className="text-[11px] font-mono text-[#bbcabf] mt-1.5 flex items-start gap-1">
-                              <span className="text-[#4edea3] font-bold shrink-0">Metric:</span>
-                              <span className="line-clamp-2">{goal.targetMetric}</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex flex-col items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => handleStartEditGoal(goal)}
-                          className="p-1 rounded hover:bg-[#282a2e] text-[#bbcabf] hover:text-[#4edea3] cursor-pointer"
-                          title="Edit Directive"
-                        >
-                          <Edit3 className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => setSlotCustomizerSlot(slot.slotNum)}
-                          className="p-1 rounded hover:bg-[#282a2e] text-[#bbcabf] hover:text-[#4cd7f6] cursor-pointer"
-                          title="Configure / Re-link Slot"
-                        >
-                          <Sliders className="w-3 h-3" />
-                        </button>
-                      </div>
                     </div>
+
+                    {/* Title */}
+                    <h4 className="text-sm font-bold text-[#e6f4f1] font-mono leading-snug group-hover:text-[#00f5a0] transition-colors line-clamp-2">
+                      {goal.title}
+                    </h4>
+
+                    {/* Subtitle */}
+                    <p className="text-xs text-[#7a9490] leading-snug line-clamp-2">
+                      {goal.targetMetric || goal.impactText || 'Verify all project dependencies and environment setup.'}
+                    </p>
                   </div>
 
-                  {/* Footer: Source Linkage & Jump Action */}
-                  <div className="mt-3 pt-2.5 border-t border-[#3c4a42]/20 space-y-2">
-                    <div className="flex items-center justify-between text-[11px] font-mono bg-[#0c0e12] p-2 rounded border border-[#3c4a42]/30">
-                      <div className="flex items-center gap-1.5 truncate">
-                        {isMilestoneSlot ? (
-                          <Cpu className="w-3 h-3 text-[#4edea3] shrink-0" />
-                        ) : isFinancialSlot ? (
-                          <Coins className="w-3 h-3 text-[#4cd7f6] shrink-0" />
-                        ) : (
-                          <BookOpen className="w-3 h-3 text-[#c0c1ff] shrink-0" />
-                        )}
-                        <span className="text-[#e2e2e8] truncate text-[10px] font-semibold">
-                          {goal.sourceRefCode || (linkedProject ? `${linkedProject.code} // SDLC` : goal.impactText || 'Engine Vector')}
+                  {/* Progress & Time */}
+                  <div className="space-y-3 pt-2 border-t border-[#132626]">
+                    <div className="space-y-1.5 font-mono text-xs">
+                      <div className="flex items-center justify-between text-[11px] text-[#7a9490]">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-[#5c7a76]" />
+                          <span>{timeText}</span>
                         </span>
+                        <span className="text-[#e6f4f1] font-bold">{progressPct}%</span>
                       </div>
-
-                      {/* 1-Click Jump to Domain */}
-                      {isMilestoneSlot && (
-                        <button
-                          onClick={() => onNavigateToSection?.('milestone-projects')}
-                          className="inline-flex items-center gap-0.5 text-[10px] text-[#4edea3] hover:underline cursor-pointer shrink-0 ml-1 font-bold"
-                          title="Open Milestone Projects (Module 04)"
-                        >
-                          <span>{goal.linkedProjectCode || 'PRJ'}</span>
-                          <ArrowUpRight className="w-3 h-3" />
-                        </button>
-                      )}
-                      {isFinancialSlot && (
-                        <button
-                          onClick={() => onNavigateToSection?.('financial-os')}
-                          className="inline-flex items-center gap-0.5 text-[10px] text-[#4cd7f6] hover:underline cursor-pointer shrink-0 ml-1 font-bold"
-                          title="Open Financial OS (Module 05)"
-                        >
-                          <span>FIN-OS</span>
-                          <ArrowUpRight className="w-3 h-3" />
-                        </button>
-                      )}
-                      {isLearningSlot && (
-                        <button
-                          onClick={() => onNavigateToSection?.('learning-engine')}
-                          className="inline-flex items-center gap-0.5 text-[10px] text-[#c0c1ff] hover:underline cursor-pointer shrink-0 ml-1 font-bold"
-                          title="Open Learning Engine (Module 03)"
-                        >
-                          <span>LEARN</span>
-                          <ArrowUpRight className="w-3 h-3" />
-                        </button>
-                      )}
+                      <div className="h-1.5 w-full rounded-full bg-[#122222] overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${
+                            progressPct > 0 ? 'bg-[#00f5a0]' : 'bg-[#2a403d]'
+                          }`}
+                          style={{ width: `${progressPct}%` }}
+                        />
+                      </div>
                     </div>
 
-                    {/* Progress Bar & Status Pill */}
-                    <div className="flex items-center justify-between font-mono text-[10px]">
-                      <span className={`px-1.5 py-0.2 rounded font-bold text-[9px] ${
-                        isCompleted
-                          ? 'bg-[#4edea3]/20 text-[#4edea3]'
-                          : 'bg-[#bbcabf]/10 text-[#bbcabf]'
-                      }`}>
-                        {isCompleted ? '✓ COMPLETED' : 'IN EXECUTION'}
-                      </span>
-                      <span className="text-[#bbcabf] font-bold tabular-nums">
-                        {goal.progress}%
-                      </span>
-                    </div>
+                    {/* Open Directive link */}
+                    <button
+                      onClick={() => {
+                        if (slot.slotNum <= 2) onNavigateToSection?.('milestone-projects');
+                        else if (slot.slotNum === 3) onNavigateToSection?.('financial-os');
+                        else onNavigateToSection?.('learning-engine');
+                      }}
+                      className="text-xs font-mono font-medium text-[#7a9490] hover:text-[#00f5a0] flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <span>Open Directive</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               );
             })}
           </div>
+
+          {/* NEXT ACTION STRIP matching Image 2 */}
+          <div className="p-4 rounded-xl bg-[#091414] border border-[#162b29] flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-1">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-[#00f5a0]/15 border border-[#00f5a0]/30 flex items-center justify-center text-[#00f5a0] shrink-0">
+                <Target className="w-5 h-5 text-[#00f5a0]" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-1.5 font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider">
+                  <span>NEXT ACTION</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onNavigateToSection?.('milestone-projects')}
+                  className="text-sm font-bold text-[#e6f4f1] hover:text-[#00f5a0] flex items-center gap-1.5 transition-colors cursor-pointer text-left font-mono"
+                >
+                  <span>Complete verification protocol</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+                <p className="text-xs text-[#7a9490]">
+                  This unlocks the next phase of the project and clears 2 dependent tasks.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0 self-end sm:self-center font-mono">
+              <span className="px-2.5 py-1 rounded-lg bg-[#122222] border border-[#1e3835] text-[10px] text-[#7a9490] font-bold">
+                EST. 90 MIN
+              </span>
+              <button
+                type="button"
+                onClick={() => onNavigateToSection?.('work-scoreboards')}
+                className="px-4 py-2 rounded-lg bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(0,245,160,0.25)] transition-all hover:scale-[1.02]"
+              >
+                <span>Start Now</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+          </>
         ) : (
           /* ========================================================================= */
           /* OTHER HORIZONS VIEW (Q4 2026, 1-Year, All): Standard Cards Grid           */

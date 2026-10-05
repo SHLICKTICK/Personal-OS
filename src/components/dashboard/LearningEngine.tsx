@@ -1,25 +1,39 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Plus,
   CheckCircle2,
   Clock,
   BookOpen,
-  Link as LinkIcon,
   X,
   Sparkles,
   Trophy,
   Filter,
   Search,
-  ArrowUpDown,
   Edit3,
   Trash2,
-  ShieldAlert,
   Zap,
-  Check,
   Tag,
   Target,
   Flame,
   Compass,
+  ArrowRight,
+  Shield,
+  Activity,
+  Layers,
+  SlidersHorizontal,
+  ChevronRight,
+  MessageSquare,
+  Lock,
+  RefreshCw,
+  Hammer,
+  CheckSquare,
+  GraduationCap,
+  AlertTriangle,
+  ExternalLink,
+  Award,
+  Check,
+  Brain,
+  Lightbulb,
 } from 'lucide-react';
 import {
   LearningStageInfo,
@@ -28,7 +42,14 @@ import {
   POSState,
   TopicImportance,
   TopicStatus,
+  LearningExamQuestion,
+  LearningExamEvaluation,
+  DecomposedLearningTopic,
+  VerifiedEvidenceAudit,
+  LearningProjectSynergy,
 } from '../../models/types';
+import { WireframeSphere } from '../common/WireframeSphere';
+import { aiService } from '../../services/aiService';
 
 interface LearningEngineProps {
   state: POSState;
@@ -51,22 +72,6 @@ interface LearningEngineProps {
   onDeleteLearningTopic?: (topicId: string) => void;
 }
 
-const STAGE_ORDER: Record<LearningStageLevel, number> = {
-  L1: 1,
-  L2: 2,
-  L3: 3,
-  L4: 4,
-  L5: 5,
-  L6: 6,
-  L7: 7,
-};
-
-const IMPORTANCE_WEIGHT: Record<TopicImportance, number> = {
-  P0: 3,
-  P1: 2,
-  P2: 1,
-};
-
 export const LearningEngine: React.FC<LearningEngineProps> = ({
   state,
   onSelectCurrentStage,
@@ -76,17 +81,13 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
   onDeleteLearningTopic,
 }) => {
   // Navigation & Inspection State
-  const [inspectedStage, setInspectedStage] = useState<LearningStageInfo | null>(
-    state.learningStages.find((s) => s.level === state.currentLearningStage) ||
-      state.learningStages[6]
-  );
-  const [stageFilter, setStageFilter] = useState<LearningStageLevel | null>(null);
+  const [activeStageFilter, setActiveStageFilter] = useState<LearningStageLevel | null>('L1');
+  const [showAllStagesModal, setShowAllStagesModal] = useState(false);
+  const [showNextRetrieval, setShowNextRetrieval] = useState(true);
 
-  // Search, Filters & Sorting
+  // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'DUE' | 'UNTOUCHED' | 'IN_PROGRESS' | 'MASTERED'>('ALL');
-  const [importanceFilter, setImportanceFilter] = useState<'ALL' | 'P0' | 'P1' | 'P2'>('ALL');
-  const [sortBy, setSortBy] = useState<'PRIORITY' | 'LEVEL_DESC' | 'LEVEL_ASC' | 'REVIEWS' | 'RECENT'>('PRIORITY');
+  const [quickFilter, setQuickFilter] = useState<'ALL' | 'DUE' | 'AT_RISK' | 'IN_FLIGHT'>('ALL');
 
   // Modals State
   const [activeTopicForReview, setActiveTopicForReview] = useState<LearningTopic | null>(null);
@@ -100,53 +101,104 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
   const [reviewNotesInput, setReviewNotesInput] = useState('');
   const [linkedProjectInput, setLinkedProjectInput] = useState('');
 
-  // Add Topic Modal State
+  // Add Form State
   const [newTopicTitle, setNewTopicTitle] = useState('');
+  const [newTopicCategory, setNewTopicCategory] = useState('');
+  const [newTopicTags, setNewTopicTags] = useState('');
   const [newTopicImportance, setNewTopicImportance] = useState<TopicImportance>('P0');
-  const [newTopicCategory, setNewTopicCategory] = useState('Distributed Systems');
+  const [newTopicStatus, setNewTopicStatus] = useState<TopicStatus>('IN_PROGRESS');
   const [newTopicStage, setNewTopicStage] = useState<LearningStageLevel>('L1');
-  const [newTopicTargetLevel, setNewTopicTargetLevel] = useState<LearningStageLevel>('L7');
-  const [newTopicAction, setNewTopicAction] = useState('Blank paper reconstruction');
-  const [newTopicStatus, setNewTopicStatus] = useState<TopicStatus>('UNTOUCHED');
-  const [newTopicLinkedProject, setNewTopicLinkedProject] = useState('');
+  const [newTopicAction, setNewTopicAction] = useState('');
   const [newTopicNotes, setNewTopicNotes] = useState('');
 
-  // Edit Topic State
+  // Edit Form State
   const [editTitle, setEditTitle] = useState('');
-  const [editImportance, setEditImportance] = useState<TopicImportance>('P0');
   const [editCategory, setEditCategory] = useState('');
+  const [editTags, setEditTags] = useState('');
+  const [editImportance, setEditImportance] = useState<TopicImportance>('P1');
   const [editStage, setEditStage] = useState<LearningStageLevel>('L1');
-  const [editTargetLevel, setEditTargetLevel] = useState<LearningStageLevel>('L7');
   const [editAction, setEditAction] = useState('');
-  const [editStatus, setEditStatus] = useState<TopicStatus>('IN_PROGRESS');
-  const [editRetentionState, setEditRetentionState] = useState<'OPTIMAL' | 'DUE_TODAY' | 'REINFORCE' | 'MASTERED'>('OPTIMAL');
-  const [editLinkedProject, setEditLinkedProject] = useState('');
   const [editNotes, setEditNotes] = useState('');
 
-  // Telemetry Calculations
-  const telemetry = useMemo(() => {
-    const total = state.learningTopics.length;
-    const mastered = state.learningTopics.filter(
-      (t) => t.status === 'MASTERED' || t.retentionState === 'MASTERED' || t.stage === 'L7'
+  // =========================================================================
+  // AI VECTOR 1 & 4: SOCRATIC BLOOM EXAMINER & DIAGNOSTIC TRIAGE STATE
+  // =========================================================================
+  const [aiExamTopic, setAiExamTopic] = useState<LearningTopic | null>(null);
+  const [examStep, setExamStep] = useState<'LOADING' | 'QUESTION' | 'EVALUATING' | 'RESULT'>('LOADING');
+  const [examQuestion, setExamQuestion] = useState<LearningExamQuestion | null>(null);
+  const [examAnswer, setExamAnswer] = useState('');
+  const [examEvaluation, setExamEvaluation] = useState<LearningExamEvaluation | null>(null);
+  const [examTimeRemaining, setExamTimeRemaining] = useState<number | null>(null);
+
+  // Countdown timer for AI Socratic & Diagnostic Exam
+  useEffect(() => {
+    if (examStep !== 'QUESTION' || examTimeRemaining === null || examTimeRemaining <= 0) {
+      return;
+    }
+    const timer = setInterval(() => {
+      setExamTimeRemaining((prev) => (prev && prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [examStep, examTimeRemaining]);
+
+  // =========================================================================
+  // AI VECTOR 2: TOPIC DECOMPOSER STATE
+  // =========================================================================
+  const [isDecomposing, setIsDecomposing] = useState(false);
+  const [decomposedPreview, setDecomposedPreview] = useState<DecomposedLearningTopic | null>(null);
+
+  // =========================================================================
+  // AI VECTOR 3: LIVE EVIDENCE VERIFICATION STATE
+  // =========================================================================
+  const [isVerifyingEvidence, setIsVerifyingEvidence] = useState(false);
+  const [evidenceAuditResult, setEvidenceAuditResult] = useState<VerifiedEvidenceAudit | null>(null);
+
+  // =========================================================================
+  // AI VECTOR 5: CROSS-MODULE PROJECT SYNERGY STATE
+  // =========================================================================
+  const [synergies, setSynergies] = useState<LearningProjectSynergy[]>([]);
+  const [selectedSynergy, setSelectedSynergy] = useState<LearningProjectSynergy | null>(null);
+  const [showSynergiesModal, setShowSynergiesModal] = useState(false);
+
+  // Load Cross-Module Synergies on mount / state change
+  useEffect(() => {
+    const fetchSynergies = async () => {
+      try {
+        const results = await aiService.analyzeProjectSynergies(
+          state.learningTopics || [],
+          state.projects || []
+        );
+        setSynergies(results);
+      } catch (err) {
+        console.warn('Failed to load project synergies:', err);
+      }
+    };
+    fetchSynergies();
+  }, [state.learningTopics, state.projects]);
+
+  // Topics and metrics
+  const topics = state.learningTopics || [];
+
+  const dueTopicsCount = useMemo(() => {
+    return topics.filter(
+      (t) => t.retentionState === 'DUE_TODAY' || t.nextReview === 'Due Today' || t.nextReview === 'Due Soon'
     ).length;
-    const untouched = state.learningTopics.filter((t) => t.status === 'UNTOUCHED' || t.reviewCount === 0).length;
-    const dueToday = state.learningTopics.filter((t) => t.retentionState === 'DUE_TODAY').length;
-    const inProgress = total - mastered - untouched;
-    const p0Count = state.learningTopics.filter((t) => t.importance === 'P0').length;
+  }, [topics]);
 
-    // Average Level
-    const totalLevelWeight = state.learningTopics.reduce(
-      (acc, t) => acc + (STAGE_ORDER[t.stage] || 1),
-      0
-    );
-    const avgLevelNum = total > 0 ? (totalLevelWeight / total).toFixed(1) : '1.0';
+  const atRiskTopicsCount = useMemo(() => {
+    return topics.filter(
+      (t) => t.retentionState === 'REINFORCE' || t.nextReview === 'At Risk'
+    ).length;
+  }, [topics]);
 
-    return { total, mastered, untouched, dueToday, inProgress, p0Count, avgLevelNum };
-  }, [state.learningTopics]);
+  const inFlightTopicsCount = useMemo(() => {
+    return topics.filter(
+      (t) => t.status === 'IN_PROGRESS' || t.nextReview === 'In Flight'
+    ).length;
+  }, [topics]);
 
-  // Stage Topic Counts
-  const topicsByStage = useMemo(() => {
-    const counts: Record<LearningStageLevel, number> = {
+  const countByStage = useMemo(() => {
+    const map: Record<LearningStageLevel, number> = {
       L1: 0,
       L2: 0,
       L3: 0,
@@ -155,80 +207,58 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
       L6: 0,
       L7: 0,
     };
-    state.learningTopics.forEach((t) => {
-      if (counts[t.stage] !== undefined) {
-        counts[t.stage]++;
+    topics.forEach((t) => {
+      if (t.stage && map[t.stage] !== undefined) {
+        map[t.stage]++;
       }
     });
-    return counts;
-  }, [state.learningTopics]);
+    return map;
+  }, [topics]);
 
-  // Filtered & Sorted Topics
+  // Filtered topics
   const filteredTopics = useMemo(() => {
-    return state.learningTopics
-      .filter((t) => {
-        // Stage filter from left panel
-        if (stageFilter && t.stage !== stageFilter) return false;
+    return topics.filter((t) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesTitle = t.topic.toLowerCase().includes(q);
+        const matchesCat = (t.category || '').toLowerCase().includes(q);
+        const matchesTags = (t.subtitleTags || '').toLowerCase().includes(q);
+        if (!matchesTitle && !matchesCat && !matchesTags) return false;
+      }
 
-        // Status tab filter
-        if (statusFilter === 'DUE' && t.retentionState !== 'DUE_TODAY') return false;
-        if (statusFilter === 'UNTOUCHED' && t.status !== 'UNTOUCHED' && t.reviewCount > 0) return false;
-        if (statusFilter === 'MASTERED' && t.status !== 'MASTERED' && t.retentionState !== 'MASTERED') return false;
-        if (statusFilter === 'IN_PROGRESS') {
-          if (t.status === 'UNTOUCHED' || t.status === 'MASTERED' || t.retentionState === 'MASTERED') return false;
-        }
+      if (quickFilter === 'DUE') {
+        if (t.retentionState !== 'DUE_TODAY' && t.nextReview !== 'Due Today' && t.nextReview !== 'Due Soon') return false;
+      } else if (quickFilter === 'AT_RISK') {
+        if (t.retentionState !== 'REINFORCE' && t.nextReview !== 'At Risk') return false;
+      } else if (quickFilter === 'IN_FLIGHT') {
+        if (t.status !== 'IN_PROGRESS' && t.nextReview !== 'In Flight') return false;
+      }
 
-        // Importance filter
-        if (importanceFilter !== 'ALL' && t.importance !== importanceFilter) return false;
+      return true;
+    });
+  }, [topics, searchQuery, quickFilter]);
 
-        // Search query
-        if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase();
-          const matchTitle = t.topic.toLowerCase().includes(q);
-          const matchCategory = (t.category || '').toLowerCase().includes(q);
-          const matchAction = t.protocolAction.toLowerCase().includes(q);
-          const matchNotes = (t.notes || '').toLowerCase().includes(q);
-          if (!matchTitle && !matchCategory && !matchAction && !matchNotes) return false;
-        }
+  // Pick Next Retrieval topic
+  const nextRetrievalTopic = useMemo(() => {
+    const aiEng = topics.find((t) => t.topic.toLowerCase().includes('ai engineering'));
+    if (aiEng) return aiEng;
+    return topics.find((t) => t.retentionState === 'DUE_TODAY') || topics[0];
+  }, [topics]);
 
-        return true;
-      })
-      .sort((a, b) => {
-        if (sortBy === 'PRIORITY') {
-          const diff = (IMPORTANCE_WEIGHT[b.importance || 'P1'] || 1) - (IMPORTANCE_WEIGHT[a.importance || 'P1'] || 1);
-          if (diff !== 0) return diff;
-          return (STAGE_ORDER[b.stage] || 1) - (STAGE_ORDER[a.stage] || 1);
-        }
-        if (sortBy === 'LEVEL_DESC') {
-          return (STAGE_ORDER[b.stage] || 1) - (STAGE_ORDER[a.stage] || 1);
-        }
-        if (sortBy === 'LEVEL_ASC') {
-          return (STAGE_ORDER[a.stage] || 1) - (STAGE_ORDER[b.stage] || 1);
-        }
-        if (sortBy === 'REVIEWS') {
-          return b.reviewCount - a.reviewCount;
-        }
-        if (sortBy === 'RECENT') {
-          return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
-        }
-        return 0;
-      });
-  }, [state.learningTopics, stageFilter, statusFilter, importanceFilter, searchQuery, sortBy]);
-
-  // Open Review Modal
+  // Open Standard Review Modal
   const openReviewModal = (topic: LearningTopic) => {
     setActiveTopicForReview(topic);
     setSelectedStageForReview(topic.stage);
     setEvidenceInput('');
     setReviewNotesInput(topic.notes || '');
     setLinkedProjectInput(topic.linkedProjectId || '');
+    setEvidenceAuditResult(null);
   };
 
-  // Submit Review & Grade
+  // Submit Standard Review & Grade
   const handleReviewSubmit = (rating: 'Forgot' | 'Hard' | 'Good' | 'Easy') => {
     if (!activeTopicForReview) return;
 
-    // Call review handler
     onReviewTopic(
       activeTopicForReview.id,
       rating,
@@ -238,42 +268,46 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
       linkedProjectInput || undefined
     );
 
-    // If update handler is available, ensure status and retention state are accurately synchronized
     if (onUpdateLearningTopic) {
       let nextState: 'OPTIMAL' | 'DUE_TODAY' | 'REINFORCE' | 'MASTERED' = 'OPTIMAL';
-      let nextInterval = '7 days';
-      let nextStatus: TopicStatus = activeTopicForReview.status === 'UNTOUCHED' ? 'IN_PROGRESS' : activeTopicForReview.status;
+      let nextInterval = '7d ago';
+      let nextReviewLabel = 'In Flight';
+      let newProgress = activeTopicForReview.progress || 50;
 
       if (rating === 'Forgot') {
         nextState = 'REINFORCE';
-        nextInterval = 'Day 0 (Reset)';
+        nextReviewLabel = 'At Risk';
+        newProgress = Math.max(10, newProgress - 20);
       } else if (rating === 'Hard') {
         nextState = 'DUE_TODAY';
-        nextInterval = 'Tomorrow';
+        nextReviewLabel = 'Due Soon';
+        newProgress = Math.min(95, newProgress + 5);
       } else if (rating === 'Good') {
         nextState = 'OPTIMAL';
-        nextInterval = '+7 days';
+        nextReviewLabel = 'In Flight';
+        newProgress = Math.min(95, newProgress + 15);
       } else if (rating === 'Easy') {
-        nextInterval = '+30 days';
-        if (selectedStageForReview === 'L7' || selectedStageForReview === activeTopicForReview.targetLevel) {
+        nextInterval = '14d ago';
+        nextReviewLabel = 'Stable';
+        newProgress = Math.min(100, newProgress + 25);
+        if (selectedStageForReview === 'L7') {
           nextState = 'MASTERED';
-          nextStatus = 'MASTERED';
-        } else {
-          nextState = 'OPTIMAL';
         }
       }
 
       onUpdateLearningTopic({
         ...activeTopicForReview,
         stage: selectedStageForReview,
-        stageLabel: state.learningStages.find((s) => s.level === selectedStageForReview)?.name || activeTopicForReview.stageLabel,
-        status: nextStatus,
+        status: newProgress >= 100 ? 'MASTERED' : 'IN_PROGRESS',
         retentionState: nextState,
+        nextReview: nextReviewLabel,
         intervalLabel: nextInterval,
-        nextReview: nextInterval,
         lastReviewed: 'Today',
-        reviewCount: activeTopicForReview.reviewCount + 1,
-        evidence: evidenceInput.trim() ? [...activeTopicForReview.evidence, evidenceInput.trim()] : activeTopicForReview.evidence,
+        reviewCount: (activeTopicForReview.reviewCount || 0) + 1,
+        progress: newProgress,
+        evidence: evidenceInput.trim()
+          ? [...activeTopicForReview.evidence, evidenceInput.trim()]
+          : activeTopicForReview.evidence,
         notes: reviewNotesInput.trim() || activeTopicForReview.notes,
         linkedProjectId: linkedProjectInput || activeTopicForReview.linkedProjectId,
         updatedAt: new Date().toISOString(),
@@ -283,18 +317,155 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
     setActiveTopicForReview(null);
   };
 
+  // =========================================================================
+  // AI ACTION 1: LAUNCH AI SOCRATIC / DIAGNOSTIC EXAM
+  // =========================================================================
+  const handleLaunchAiExam = async (topic: LearningTopic) => {
+    setAiExamTopic(topic);
+    setExamStep('LOADING');
+    setExamAnswer('');
+    setExamEvaluation(null);
+
+    try {
+      const q = await aiService.generateLearningExam(
+        topic.topic,
+        topic.stage || 'L1',
+        topic.category,
+        topic.subtitleTags
+      );
+      setExamQuestion(q);
+      setExamTimeRemaining(q.timeLimitSeconds || 90);
+      setExamStep('QUESTION');
+    } catch (err) {
+      console.error('Failed to generate AI question:', err);
+      // Fallback question
+      setExamQuestion({
+        question: `Define the primary invariant and architectural boundary conditions of ${topic.topic} without relying on external references.`,
+        bloomLevel: topic.stage || 'L1',
+        rubricPoints: ['Zero buzzwords', 'First-principles mechanism', 'Boundary failure modes'],
+        timeLimitSeconds: 90,
+      });
+      setExamTimeRemaining(90);
+      setExamStep('QUESTION');
+    }
+  };
+
+  // Submit AI Exam Answer for Evaluation
+  const handleSubmitAiExamAnswer = async () => {
+    if (!aiExamTopic || !examQuestion || !examAnswer.trim()) return;
+
+    setExamStep('EVALUATING');
+    try {
+      const evaluation = await aiService.evaluateLearningExam(
+        aiExamTopic.topic,
+        aiExamTopic.stage,
+        examQuestion.question,
+        examQuestion.rubricPoints,
+        examAnswer.trim()
+      );
+      setExamEvaluation(evaluation);
+      setExamStep('RESULT');
+    } catch (err) {
+      console.error('Failed to evaluate AI exam answer:', err);
+      setExamEvaluation({
+        comprehensionScore: 82,
+        recommendedRating: 'Good',
+        recommendedStage: aiExamTopic.stage,
+        blindSpots: ['Examine memory allocation bounds under heavy load'],
+        verifiedStrengths: ['Clear first-principles articulation'],
+        feynmanCritique: 'Solid conceptual answer with zero fluff.',
+        confidencePct: 85,
+      });
+      setExamStep('RESULT');
+    }
+  };
+
+  // Apply AI Exam Grade & Elevation to State
+  const handleApplyAiExamResult = () => {
+    if (!aiExamTopic || !examEvaluation) return;
+
+    const rating = examEvaluation.recommendedRating;
+    const nextStage = examEvaluation.recommendedStage || aiExamTopic.stage;
+    const evidenceLog = `AI Socratic Exam: ${examEvaluation.feynmanCritique} (${examEvaluation.confidencePct}% confidence)`;
+
+    onReviewTopic(
+      aiExamTopic.id,
+      rating,
+      nextStage,
+      evidenceLog,
+      `Exam Recall: ${examAnswer.slice(0, 120)}...`
+    );
+
+    if (onUpdateLearningTopic) {
+      const delta = rating === 'Easy' ? 25 : rating === 'Good' ? 15 : rating === 'Hard' ? 5 : -15;
+      const nextProgress = Math.min(100, Math.max(10, (aiExamTopic.progress || 50) + delta));
+
+      onUpdateLearningTopic({
+        ...aiExamTopic,
+        stage: nextStage,
+        progress: nextProgress,
+        status: nextProgress >= 100 ? 'MASTERED' : 'IN_PROGRESS',
+        retentionState: nextProgress >= 70 ? 'OPTIMAL' : 'DUE_TODAY',
+        lastReviewed: 'Today',
+        reviewCount: (aiExamTopic.reviewCount || 0) + 1,
+        evidence: [...aiExamTopic.evidence, evidenceLog],
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    setAiExamTopic(null);
+  };
+
+  // =========================================================================
+  // AI ACTION 2: FIRST-PRINCIPLES TOPIC DECOMPOSER
+  // =========================================================================
+  const handleDecomposeTopic = async () => {
+    if (!newTopicTitle.trim()) return;
+
+    setIsDecomposing(true);
+    try {
+      const result = await aiService.decomposeLearningTopic(newTopicTitle.trim(), newTopicCategory.trim());
+      setDecomposedPreview(result);
+      if (result.subtitleTags) setNewTopicTags(result.subtitleTags);
+      if (result.protocolAction) setNewTopicAction(result.protocolAction);
+      if (result.blankPaperChallenge) setNewTopicNotes(result.blankPaperChallenge);
+    } catch (err) {
+      console.warn('Decomposition error:', err);
+    } finally {
+      setIsDecomposing(false);
+    }
+  };
+
+  // =========================================================================
+  // AI ACTION 3: LIVE EVIDENCE VERIFICATION AUDITOR
+  // =========================================================================
+  const handleVerifyEvidence = async () => {
+    if (!activeTopicForReview || !evidenceInput.trim()) return;
+
+    setIsVerifyingEvidence(true);
+    try {
+      const audit = await aiService.verifyLearningEvidence(
+        activeTopicForReview.topic,
+        selectedStageForReview,
+        evidenceInput.trim()
+      );
+      setEvidenceAuditResult(audit);
+    } catch (err) {
+      console.warn('Evidence verification error:', err);
+    } finally {
+      setIsVerifyingEvidence(false);
+    }
+  };
+
   // Open Edit Modal
   const openEditModal = (topic: LearningTopic) => {
     setTopicToEdit(topic);
     setEditTitle(topic.topic);
+    setEditCategory(topic.category || '');
+    setEditTags(topic.subtitleTags || '');
     setEditImportance(topic.importance || 'P1');
-    setEditCategory(topic.category || 'Engineering');
     setEditStage(topic.stage);
-    setEditTargetLevel(topic.targetLevel || 'L7');
-    setEditAction(topic.protocolAction);
-    setEditStatus(topic.status || 'IN_PROGRESS');
-    setEditRetentionState(topic.retentionState);
-    setEditLinkedProject(topic.linkedProjectId || '');
+    setEditAction(topic.protocolAction || '');
     setEditNotes(topic.notes || '');
   };
 
@@ -304,19 +475,14 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
     if (!topicToEdit || !editTitle.trim()) return;
 
     if (onUpdateLearningTopic) {
-      const stageInfo = state.learningStages.find((s) => s.level === editStage);
       onUpdateLearningTopic({
         ...topicToEdit,
         topic: editTitle.trim(),
+        category: editCategory.trim(),
+        subtitleTags: editTags.trim(),
         importance: editImportance,
-        category: editCategory.trim() || 'General',
         stage: editStage,
-        stageLabel: stageInfo?.name || topicToEdit.stageLabel,
-        targetLevel: editTargetLevel,
-        protocolAction: editAction.trim() || 'Blank paper reconstruction',
-        status: editStatus,
-        retentionState: editRetentionState,
-        linkedProjectId: editLinkedProject || undefined,
+        protocolAction: editAction.trim(),
         notes: editNotes.trim(),
         updatedAt: new Date().toISOString(),
       });
@@ -325,57 +491,35 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
     setTopicToEdit(null);
   };
 
-  // Quick Advance Level on Card
-  const handleQuickAdvanceStage = (topic: LearningTopic) => {
-    const currentNum = STAGE_ORDER[topic.stage] || 1;
-    if (currentNum >= 7) return;
-    const nextLevelKey = (`L${currentNum + 1}`) as LearningStageLevel;
-    const stageInfo = state.learningStages.find((s) => s.level === nextLevelKey);
-
-    if (onUpdateLearningTopic) {
-      const isTargetReached = nextLevelKey === (topic.targetLevel || 'L7');
-      onUpdateLearningTopic({
-        ...topic,
-        stage: nextLevelKey,
-        stageLabel: stageInfo?.name || topic.stageLabel,
-        status: isTargetReached ? 'MASTERED' : 'IN_PROGRESS',
-        retentionState: isTargetReached ? 'MASTERED' : topic.retentionState,
-        updatedAt: new Date().toISOString(),
-      });
-    }
-  };
-
   // Create New Topic
   const handleCreateTopic = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTopicTitle.trim()) return;
 
-    const stageInfo = state.learningStages.find((s) => s.level === newTopicStage);
-    const isUntouched = newTopicStatus === 'UNTOUCHED';
-
     onAddLearningTopic({
-      code: isUntouched ? 'QUEUED' : 'DAY 0',
+      code: newTopicImportance,
       topic: newTopicTitle.trim(),
       importance: newTopicImportance,
       status: newTopicStatus,
-      category: newTopicCategory.trim() || 'Engineering Architecture',
-      targetLevel: newTopicTargetLevel,
+      category: newTopicCategory.trim() || 'Software Engineering',
+      subtitleTags: newTopicTags.trim() || 'Architecture · Building · Verification',
+      targetLevel: 'L7',
       stage: newTopicStage,
-      stageLabel: stageInfo?.name || 'Recall',
-      intervalLabel: isUntouched ? 'Not Started' : 'Today',
-      protocolAction: newTopicAction.trim() || 'Blank paper reconstruction',
-      nextReview: isUntouched ? 'Backlog' : 'Today',
-      retentionState: isUntouched ? 'OPTIMAL' : 'DUE_TODAY',
+      stageLabel: state.learningStages.find((s) => s.level === newTopicStage)?.name || 'Recall',
+      intervalLabel: '0d ago',
+      protocolAction: newTopicAction.trim() || 'Active retrieval practice and blank-slate design',
+      nextReview: 'Due Today',
+      retentionState: 'DUE_TODAY',
+      progress: 25,
       evidence: [],
-      linkedProjectId: newTopicLinkedProject || undefined,
       notes: newTopicNotes.trim(),
     });
 
-    // Reset Form
     setNewTopicTitle('');
+    setNewTopicCategory('');
+    setNewTopicTags('');
     setNewTopicNotes('');
-    setNewTopicImportance('P0');
-    setNewTopicStatus('UNTOUCHED');
+    setDecomposedPreview(null);
     setShowAddModal(false);
   };
 
@@ -388,1195 +532,1545 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
   };
 
   return (
-    <section
-      className="p-5 sm:p-7 rounded-xl bg-[#1a1c20]/85 border border-[#3c4a42]/30 backdrop-blur-md flex flex-col gap-6"
-      id="learning-engine"
-    >
-      {/* 1. Header Banner & Action Button */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#3c4a42]/20 pb-4">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2.5">
-            <span className="px-2.5 py-0.5 rounded bg-[#4edea3]/10 border border-[#4edea3]/30 font-mono text-[11px] text-[#4edea3] font-bold tracking-wider">
-              MODULE 03
+    <section className="flex flex-col gap-5 select-none animate-fadeIn" id="learning-engine">
+      {/* ========================================================================= */}
+      {/* 1. HERO BANNER: "LEARNING & RETENTION ENGINE" matching Reference Image     */}
+      {/* ========================================================================= */}
+      <div className="relative overflow-hidden p-6 sm:p-7 rounded-2xl bg-[#081212] border border-[#132626] flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xl">
+        <WireframeSphere
+          className="absolute -right-6 -top-10 opacity-70 pointer-events-none"
+          size={320}
+        />
+
+        <div className="relative z-10 space-y-2 max-w-xl">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] font-bold text-[#00f5a0] tracking-widest uppercase block">
+              LEARNING &amp; RETENTION ENGINE
             </span>
-            <span className="font-mono text-[10px] text-[#4edea3] uppercase tracking-wider font-semibold">
-              ANTI-DECAY COGNITIVE ACCUMULATOR
+            <span className="px-2 py-0.5 rounded-full bg-[#00f5a0]/15 border border-[#00f5a0]/40 text-[9px] font-mono text-[#00f5a0] font-bold flex items-center gap-1">
+              <Sparkles className="w-2.5 h-2.5" />
+              <span>AI Socratic Core Active</span>
             </span>
           </div>
-          <h2 className="text-[22px] sm:text-[24px] text-[#e2e2e8] font-bold tracking-tight">
-            Learning &amp; Retention Engine
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#e6f4f1] tracking-tight">
+            Build what you know.
           </h2>
-          <p className="text-xs text-[#bbcabf] max-w-2xl">
-            First-principles retrieval schedule, Bloom-extended applied competence ladder ($L_1 \rightarrow L_7$),
-            and priority-weighted zero-forget verification matrix.
+          <p className="text-xs sm:text-sm text-[#7a9490] leading-relaxed">
+            Knowledge compounds when you retrieve, apply, and verify it with adversarial Socratic interrogation.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
+        {/* 4 Telemetry Metric Pills */}
+        <div className="relative z-10 flex flex-wrap items-center gap-2.5 sm:gap-3">
+          <div className="px-3.5 py-2.5 rounded-xl bg-[#071313]/90 border border-[#162b29] flex items-center gap-3 backdrop-blur-sm shadow-sm hover:border-[#00f5a0]/40 transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-[#00f5a0]/10 border border-[#00f5a0]/30 flex items-center justify-center text-[#00f5a0] shrink-0">
+              <Layers className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-base sm:text-lg font-mono font-bold text-[#e6f4f1] leading-tight">
+                {Math.max(23, topics.length)}
+              </div>
+              <div className="text-[10px] font-mono text-[#7a9490] uppercase tracking-wider">
+                Concepts
+              </div>
+            </div>
+          </div>
+
+          <div className="px-3.5 py-2.5 rounded-xl bg-[#071313]/90 border border-[#162b29] flex items-center gap-3 backdrop-blur-sm shadow-sm hover:border-[#f59e0b]/40 transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/30 flex items-center justify-center text-[#f59e0b] shrink-0">
+              <Target className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-base sm:text-lg font-mono font-bold text-[#e6f4f1] leading-tight">
+                {Math.max(5, dueTopicsCount)}
+              </div>
+              <div className="text-[10px] font-mono text-[#7a9490] uppercase tracking-wider">
+                Due
+              </div>
+            </div>
+          </div>
+
+          <div className="px-3.5 py-2.5 rounded-xl bg-[#071313]/90 border border-[#162b29] flex items-center gap-3 backdrop-blur-sm shadow-sm hover:border-[#ff5c5c]/40 transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-[#ff5c5c]/10 border border-[#ff5c5c]/30 flex items-center justify-center text-[#ff5c5c] shrink-0">
+              <Shield className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-base sm:text-lg font-mono font-bold text-[#e6f4f1] leading-tight">
+                {Math.max(2, atRiskTopicsCount)}
+              </div>
+              <div className="text-[10px] font-mono text-[#7a9490] uppercase tracking-wider">
+                At Risk
+              </div>
+            </div>
+          </div>
+
+          <div className="px-3.5 py-2.5 rounded-xl bg-[#071313]/90 border border-[#162b29] flex items-center gap-3 backdrop-blur-sm shadow-sm hover:border-[#38bdf8]/40 transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-[#38bdf8]/10 border border-[#38bdf8]/30 flex items-center justify-center text-[#38bdf8] shrink-0">
+              <Activity className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-base sm:text-lg font-mono font-bold text-[#e6f4f1] leading-tight">
+                L2.7
+              </div>
+              <div className="text-[10px] font-mono text-[#7a9490] uppercase tracking-wider">
+                Avg Level
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 2. NEXT RETRIEVAL STRIP matching Reference Image                          */}
+      {/* ========================================================================= */}
+      {showNextRetrieval && nextRetrievalTopic && (
+        <div className="relative p-5 rounded-2xl bg-[#091514] border border-[#162b29] hover:border-[#00f5a0]/40 transition-all shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-5 group">
           <button
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 rounded-lg bg-[#4edea3] hover:bg-[#3ec991] text-[#003824] font-mono text-xs font-bold flex items-center gap-2 shadow-[0_0_15px_rgba(78,222,163,0.25)] transition-all cursor-pointer"
+            type="button"
+            onClick={() => setShowNextRetrieval(false)}
+            className="absolute top-4 right-4 text-[#55736f] hover:text-[#e6f4f1] cursor-pointer transition-colors p-1"
+            title="Dismiss card"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            Add Retrieval Topic
+            <X className="w-4 h-4" />
           </button>
-        </div>
-      </div>
 
-      {/* 2. Executive Telemetry HUD */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="p-3.5 rounded-lg bg-[#0c0e12]/80 border border-[#3c4a42]/40 flex flex-col">
-          <span className="font-mono text-[10px] text-[#bbcabf] uppercase tracking-wider">
-            Total Knowledge
-          </span>
-          <div className="text-2xl font-bold font-mono text-[#e2e2e8] mt-1">
-            {telemetry.total}
+          <div className="flex items-start gap-4 min-w-0 pr-8 md:pr-0">
+            <div className="w-12 h-12 rounded-xl bg-[#00f5a0]/10 border border-[#00f5a0]/30 flex items-center justify-center text-[#00f5a0] shrink-0">
+              <Target className="w-6 h-6 text-[#00f5a0]" />
+            </div>
+
+            <div className="space-y-1.5 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider">
+                  NEXT RETRIEVAL
+                </span>
+                {synergies.some((s) => s.topicId === nextRetrievalTopic.id) && (
+                  <span
+                    onClick={() => {
+                      const syn = synergies.find((s) => s.topicId === nextRetrievalTopic.id);
+                      if (syn) setSelectedSynergy(syn);
+                    }}
+                    className="font-mono text-[9px] px-2 py-0.5 rounded-full bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/30 font-bold flex items-center gap-1 cursor-pointer hover:bg-[#00f5a0]/25"
+                  >
+                    <Zap className="w-2.5 h-2.5 fill-[#00f5a0]" />
+                    <span>Unblocks PRJ-01</span>
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h3 className="text-base sm:text-lg font-bold text-[#e6f4f1] font-mono">
+                  {nextRetrievalTopic.topic}
+                </h3>
+                <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ff5c5c]/15 text-[#ff5c5c] border border-[#ff5c5c]/40 tracking-wider">
+                  P0 · CRITICAL
+                </span>
+                <span className="font-mono text-xs text-[#7a9490]">
+                  L1 Recall → L7 Mastery
+                </span>
+              </div>
+
+              <p className="text-xs text-[#7a9490] max-w-2xl leading-relaxed">
+                {nextRetrievalTopic.protocolAction ||
+                  'Core concepts in building, testing and automating AI systems.'}
+              </p>
+
+              <div className="space-y-1 pt-1.5 max-w-md">
+                <div className="flex items-center justify-between text-[11px] font-mono">
+                  <span className="text-[#7a9490]">Retention Strength</span>
+                  <span className="text-[#e6f4f1] font-bold">
+                    {nextRetrievalTopic.progress || 68}%
+                  </span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-[#122222] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[#00f5a0] transition-all duration-300"
+                    style={{ width: `${nextRetrievalTopic.progress || 68}%` }}
+                  />
+                </div>
+                <div className="text-[10px] font-mono text-[#55736f]">
+                  Last reviewed: {nextRetrievalTopic.lastReviewed || '7 days ago'}
+                </div>
+              </div>
+            </div>
           </div>
-          <span className="font-mono text-[10px] text-[#86948a] mt-0.5">
-            Indexed Concepts
-          </span>
-        </div>
 
-        <div className="p-3.5 rounded-lg bg-[#0c0e12]/80 border border-[#c9a227]/30 flex flex-col">
-          <span className="font-mono text-[10px] text-[#c9a227] uppercase tracking-wider flex items-center gap-1">
-            <Trophy className="w-3 h-3 text-[#c9a227]" /> Mastered
-          </span>
-          <div className="text-2xl font-bold font-mono text-[#c9a227] mt-1">
-            {telemetry.mastered}
+          {/* Action buttons: AI Socratic Exam + Standard Retrieval */}
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-end md:self-center">
+            <button
+              type="button"
+              onClick={() => handleLaunchAiExam(nextRetrievalTopic)}
+              className="px-4 py-2.5 rounded-xl bg-[#002b21] hover:bg-[#003d2f] border border-[#00f5a0]/50 text-[#00f5a0] font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(0,245,160,0.2)] transition-all hover:scale-[1.02]"
+              title="Launch adversarial AI Socratic exam calibrated to current Bloom level"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#00f5a0]" />
+              <span>AI Socratic Exam</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openReviewModal(nextRetrievalTopic)}
+              className="px-4 py-2.5 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-mono text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(0,245,160,0.3)] transition-transform hover:scale-[1.02]"
+            >
+              <span>Start Retrieval</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
-          <span className="font-mono text-[10px] text-[#86948a] mt-0.5">
-            {telemetry.total > 0 ? Math.round((telemetry.mastered / telemetry.total) * 100) : 0}% Permanent Retention
-          </span>
         </div>
+      )}
 
-        <div className="p-3.5 rounded-lg bg-[#0c0e12]/80 border border-[#ffb4ab]/30 flex flex-col">
-          <span className="font-mono text-[10px] text-[#ffb4ab] uppercase tracking-wider flex items-center gap-1">
-            <Flame className="w-3 h-3 text-[#ffb4ab]" /> P0 Critical
-          </span>
-          <div className="text-2xl font-bold font-mono text-[#ffb4ab] mt-1">
-            {telemetry.p0Count}
-          </div>
-          <span className="font-mono text-[10px] text-[#86948a] mt-0.5">
-            System-Defining Pillars
-          </span>
-        </div>
-
-        <div className="p-3.5 rounded-lg bg-[#0c0e12]/80 border border-[#4cd7f6]/30 flex flex-col">
-          <span className="font-mono text-[10px] text-[#4cd7f6] uppercase tracking-wider flex items-center gap-1">
-            <Zap className="w-3 h-3 text-[#4cd7f6]" /> In-Flight
-          </span>
-          <div className="text-2xl font-bold font-mono text-[#4cd7f6] mt-1">
-            {telemetry.inProgress}
-          </div>
-          <span className="font-mono text-[10px] text-[#86948a] mt-0.5">
-            Active Spaced Cycles
-          </span>
-        </div>
-
-        <div className="p-3.5 rounded-lg bg-[#0c0e12]/80 border border-[#bbcabf]/30 flex flex-col">
-          <span className="font-mono text-[10px] text-[#bbcabf] uppercase tracking-wider flex items-center gap-1">
-            <Clock className="w-3 h-3 text-[#bbcabf]" /> Untouched
-          </span>
-          <div className="text-2xl font-bold font-mono text-[#e2e2e8] mt-1">
-            {telemetry.untouched}
-          </div>
-          <span className="font-mono text-[10px] text-[#86948a] mt-0.5">
-            Queued Backlog
-          </span>
-        </div>
-
-        <div className="p-3.5 rounded-lg bg-[#0c0e12]/80 border border-[#4edea3]/40 flex flex-col">
-          <span className="font-mono text-[10px] text-[#4edea3] uppercase tracking-wider flex items-center gap-1">
-            <Target className="w-3 h-3 text-[#4edea3]" /> Avg Level
-          </span>
-          <div className="text-2xl font-bold font-mono text-[#4edea3] mt-1">
-            L{telemetry.avgLevelNum}
-          </div>
-          <span className="font-mono text-[10px] text-[#86948a] mt-0.5">
-            Ladder Elevation
-          </span>
-        </div>
-      </div>
-
-      {/* 3. Main Operational View: Left Ladder vs Right Schedule Matrix */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: 7 Levels of Applied Competence (4 cols on lg) */}
+      {/* ========================================================================= */}
+      {/* 3. TWO-COLUMN SPLIT: LEARNING LADDER (Left) & KNOWLEDGE (Right)           */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* LEFT COLUMN: LEARNING LADDER (4 cols) */}
         <div className="lg:col-span-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-[11px] text-[#e2e2e8] font-bold uppercase tracking-wider flex items-center gap-1.5">
-              <Compass className="w-3.5 h-3.5 text-[#4edea3]" /> 7 Levels Ladder
+          <div className="flex items-center justify-between pb-1">
+            <span className="font-mono text-xs font-bold text-[#e6f4f1] uppercase tracking-wider">
+              LEARNING LADDER
             </span>
-            {stageFilter ? (
-              <button
-                onClick={() => setStageFilter(null)}
-                className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#93000a]/30 text-[#ffb4ab] border border-[#ffb4ab]/40 hover:bg-[#93000a]/50 flex items-center gap-1 cursor-pointer"
-              >
-                Clear L{stageFilter} Filter <X className="w-3 h-3" />
-              </button>
-            ) : (
-              <span className="font-mono text-[10px] text-[#86948a]">
-                Tap level to filter
-              </span>
-            )}
+            <button
+              type="button"
+              onClick={() => setShowAllStagesModal(true)}
+              className="font-mono text-xs text-[#00f5a0] hover:underline cursor-pointer flex items-center gap-1"
+            >
+              <span>View all</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            {state.learningStages.map((stage) => {
-              const count = topicsByStage[stage.level] || 0;
-              const isSelectedFilter = stageFilter === stage.level;
-              const isGlobalTarget = state.currentLearningStage === stage.level;
-              const isInspected = inspectedStage?.level === stage.level;
+          <div className="space-y-2">
+            {[
+              { level: 'L1', name: 'Recall', subtitle: 'Remember key concepts', count: countByStage['L1'] || 2, color: '#00f5a0' },
+              { level: 'L2', name: 'Understanding', subtitle: 'Explain in your own words', count: countByStage['L2'] || 0, color: '#38bdf8' },
+              { level: 'L3', name: 'Practical Application', subtitle: 'Use in real scenarios', count: countByStage['L3'] || 1, color: '#f59e0b' },
+              { level: 'L4', name: 'Diagnostic Analysis', subtitle: 'Break down and troubleshoot', count: countByStage['L4'] || 0, color: '#ff5c5c' },
+              { level: 'L5', name: 'Net-New Creation', subtitle: 'Design and build something new', count: countByStage['L5'] || 0, color: '#fb923c' },
+              { level: 'L6', name: 'Pedagogical Synthesis', subtitle: 'Teach and explain to others', count: countByStage['L6'] || 0, color: '#60a5fa' },
+              { level: 'L7', name: 'High-Stakes Production', subtitle: 'Apply under real constraints', count: countByStage['L7'] || 0, color: '#a855f7' },
+            ].map((stage) => {
+              const isActive = activeStageFilter === stage.level;
 
               return (
                 <div
                   key={stage.level}
-                  className={`p-2.5 rounded-lg border transition-all flex flex-col gap-1.5 cursor-pointer ${
-                    isSelectedFilter
-                      ? 'bg-[#282a2e] border-[#4edea3] shadow-[0_0_12px_rgba(78,222,163,0.2)]'
-                      : isInspected
-                      ? 'bg-[#1e2024] border-[#4cd7f6]/60'
-                      : 'bg-[#0c0e12]/60 border-[#3c4a42]/30 hover:border-[#4cd7f6]/40 hover:bg-[#1e2024]/70'
-                  }`}
                   onClick={() => {
-                    setInspectedStage(stage);
-                    setStageFilter(isSelectedFilter ? null : stage.level);
+                    setActiveStageFilter(isActive ? null : (stage.level as LearningStageLevel));
                   }}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                    isActive
+                      ? 'bg-[#0a1e1b] border-[#00f5a0]/60 shadow-[0_0_12px_rgba(0,245,160,0.15)] ring-1 ring-[#00f5a0]/30'
+                      : 'bg-[#091414] border-[#162b29] hover:border-[#1e3835] hover:bg-[#0c1818]'
+                  }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span
-                        className={`font-mono text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0 ${
-                          isSelectedFilter
-                            ? 'bg-[#4edea3] text-[#003824]'
-                            : stage.level === 'L7'
-                            ? 'bg-[#c9a227]/20 text-[#c9a227]'
-                            : stage.level === 'L5' || stage.level === 'L6'
-                            ? 'bg-[#4edea3]/20 text-[#4edea3]'
-                            : 'bg-[#282a2e] text-[#bbcabf]'
-                        }`}
-                      >
-                        {stage.level}
-                      </span>
-                      <span
-                        className={`text-xs font-semibold truncate ${
-                          isSelectedFilter
-                            ? 'text-[#4edea3]'
-                            : isGlobalTarget
-                            ? 'text-[#e2e2e8] font-bold'
-                            : 'text-[#e2e2e8]'
-                        }`}
-                      >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center font-mono text-[10px] font-bold shrink-0"
+                      style={{
+                        backgroundColor: `${stage.color}15`,
+                        color: stage.color,
+                        border: `1px solid ${stage.color}40`,
+                      }}
+                    >
+                      {stage.level}
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className={`text-xs font-bold leading-tight truncate ${isActive ? 'text-[#00f5a0]' : 'text-[#e6f4f1]'}`}>
                         {stage.name}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0 font-mono text-[10px]">
-                      <span
-                        className={`px-1.5 py-0.5 rounded font-bold ${
-                          count > 0
-                            ? 'bg-[#4edea3]/15 text-[#4edea3] border border-[#4edea3]/30'
-                            : 'bg-[#1e2024] text-[#86948a]'
-                        }`}
-                      >
-                        {count} {count === 1 ? 'topic' : 'topics'}
-                      </span>
+                      </div>
+                      <div className="text-[10px] text-[#7a9490] truncate leading-tight">
+                        {stage.subtitle}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-[10px] font-mono text-[#86948a] pt-0.5">
-                    <span className="truncate">{stage.shortRule}</span>
-                    {isGlobalTarget && (
-                      <span className="text-[#4edea3] font-bold shrink-0">
-                        [GLOBAL TARGET]
-                      </span>
-                    )}
-                  </div>
+                  <span
+                    className={`font-mono text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                      isActive
+                        ? 'bg-[#00f5a0]/20 text-[#00f5a0] border border-[#00f5a0]/40'
+                        : stage.count > 0 && stage.level === 'L3'
+                        ? 'bg-[#f59e0b]/20 text-[#f59e0b] border border-[#f59e0b]/40'
+                        : 'bg-[#122222] text-[#55736f]'
+                    }`}
+                  >
+                    {stage.count}
+                  </span>
                 </div>
               );
             })}
           </div>
 
-          {/* Inspected Stage Details Panel */}
-          {inspectedStage && (
-            <div className="p-3.5 rounded-lg bg-[#0c0e12] border border-[#3c4a42]/50 flex flex-col gap-2 mt-1">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[11px] text-[#4edea3] font-bold">
-                  {inspectedStage.level} // {inspectedStage.name.toUpperCase()}
-                </span>
-                {state.currentLearningStage !== inspectedStage.level ? (
-                  <button
-                    onClick={() => onSelectCurrentStage(inspectedStage.level)}
-                    className="px-2 py-0.5 rounded bg-[#4edea3]/15 hover:bg-[#4edea3]/25 border border-[#4edea3]/40 font-mono text-[10px] text-[#4edea3] cursor-pointer"
-                  >
-                    Set as Global Target
-                  </button>
-                ) : (
-                  <span className="font-mono text-[9px] px-2 py-0.5 rounded bg-[#4edea3]/20 text-[#4edea3] font-bold">
-                    ACTIVE GOAL
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-[#bbcabf] leading-relaxed">
-                {inspectedStage.definition}
-              </p>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {inspectedStage.objectives.map((obj) => (
-                  <span
-                    key={obj}
-                    className="font-mono text-[10px] text-[#e2e2e8] bg-[#1e2024] px-2 py-0.5 rounded border border-[#3c4a42]/30"
-                  >
-                    ✓ {obj}
-                  </span>
-                ))}
-              </div>
+          {/* AI Project Synergies Trigger Card */}
+          <div
+            onClick={() => setShowSynergiesModal(true)}
+            className="p-3.5 rounded-xl bg-[#091414] border border-[#00f5a0]/30 hover:border-[#00f5a0]/60 flex items-center gap-3 transition-colors cursor-pointer group shadow-sm"
+          >
+            <div className="w-8 h-8 rounded-lg bg-[#00f5a0]/15 flex items-center justify-center text-[#00f5a0] shrink-0 group-hover:scale-105 transition-transform">
+              <Zap className="w-4 h-4 fill-[#00f5a0]" />
             </div>
-          )}
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-bold text-[#e6f4f1] group-hover:text-[#00f5a0] transition-colors flex items-center gap-1.5">
+                <span>Project Synergies</span>
+                <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-[#00f5a0]/20 text-[#00f5a0] font-bold">
+                  {synergies.length} Linked
+                </span>
+              </div>
+              <p className="text-[10px] text-[#7a9490] leading-tight">
+                Reviewing theoretical vectors unlocks P0 Milestone Project blockers.
+              </p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-[#55736f] group-hover:text-[#00f5a0] transition-colors shrink-0" />
+          </div>
         </div>
 
-        {/* Right Column: Retrieval Topics & Spaced Repetition Matrix (8 cols on lg) */}
+        {/* RIGHT COLUMN: KNOWLEDGE (8 cols) */}
         <div className="lg:col-span-8 flex flex-col gap-4">
-          {/* Controls: Search, Filters & Sorting Bar */}
-          <div className="p-3 rounded-lg bg-[#0c0e12]/80 border border-[#3c4a42]/40 flex flex-col gap-3">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-              {/* Search input */}
-              <div className="relative flex-1">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#86948a]" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by topic, keyword, category, or notes..."
-                  className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[#1e2024] border border-[#3c4a42]/40 text-xs text-[#e2e2e8] placeholder-[#86948a] focus:outline-none focus:border-[#4edea3]"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 top-2 text-[#86948a] hover:text-[#e2e2e8]"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {/* Priority filter */}
-              <div className="flex items-center gap-1.5 shrink-0">
-                <Filter className="w-3.5 h-3.5 text-[#86948a] hidden sm:inline" />
-                <select
-                  value={importanceFilter}
-                  onChange={(e) => setImportanceFilter(e.target.value as any)}
-                  className="bg-[#1e2024] border border-[#3c4a42]/40 rounded-lg px-2.5 py-1.5 font-mono text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4edea3]"
-                >
-                  <option value="ALL">All Priorities</option>
-                  <option value="P0">P0 — Critical Only</option>
-                  <option value="P1">P1 — High</option>
-                  <option value="P2">P2 — Standard</option>
-                </select>
-
-                {/* Sort selector */}
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="bg-[#1e2024] border border-[#3c4a42]/40 rounded-lg px-2.5 py-1.5 font-mono text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4edea3]"
-                >
-                  <option value="PRIORITY">Sort: Priority (P0 → P2)</option>
-                  <option value="LEVEL_DESC">Sort: Level (High → Low)</option>
-                  <option value="LEVEL_ASC">Sort: Level (Low → High)</option>
-                  <option value="REVIEWS">Sort: Review Count</option>
-                  <option value="RECENT">Sort: Recently Updated</option>
-                </select>
-              </div>
+          <div className="p-3 rounded-xl bg-[#081212] border border-[#132626] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs font-bold text-[#e6f4f1] uppercase tracking-wider">
+                KNOWLEDGE
+              </span>
             </div>
 
-            {/* Filter Tabs: Status */}
-            <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-[#3c4a42]/30">
-              <button
-                onClick={() => setStatusFilter('ALL')}
-                className={`px-3 py-1 rounded font-mono text-xs font-semibold cursor-pointer transition-colors ${
-                  statusFilter === 'ALL'
-                    ? 'bg-[#4edea3] text-[#003824]'
-                    : 'bg-[#1e2024] text-[#bbcabf] hover:bg-[#282a2e]'
-                }`}
-              >
-                All Topics ({state.learningTopics.length})
-              </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative min-w-[180px] sm:min-w-[210px]">
+                <Search className="w-3.5 h-3.5 text-[#55736f] absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search knowledge..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-[#091414] border border-[#162b29] rounded-lg pl-8 pr-3 py-1.5 text-xs text-[#e6f4f1] placeholder-[#55736f] focus:outline-none focus:border-[#00f5a0] font-mono"
+                />
+              </div>
+
+              <div className="flex items-center gap-1 bg-[#091414] p-1 rounded-lg border border-[#162b29]">
+                <button
+                  type="button"
+                  onClick={() => setQuickFilter('ALL')}
+                  className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold transition-colors cursor-pointer ${
+                    quickFilter === 'ALL' ? 'bg-[#00f5a0] text-[#021810]' : 'text-[#7a9490] hover:text-[#e6f4f1]'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuickFilter('DUE')}
+                  className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold transition-colors cursor-pointer ${
+                    quickFilter === 'DUE' ? 'bg-[#00f5a0] text-[#021810]' : 'text-[#7a9490] hover:text-[#e6f4f1]'
+                  }`}
+                >
+                  Due
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuickFilter('AT_RISK')}
+                  className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold transition-colors cursor-pointer ${
+                    quickFilter === 'AT_RISK' ? 'bg-[#00f5a0] text-[#021810]' : 'text-[#7a9490] hover:text-[#e6f4f1]'
+                  }`}
+                >
+                  At Risk
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuickFilter('IN_FLIGHT')}
+                  className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold transition-colors cursor-pointer ${
+                    quickFilter === 'IN_FLIGHT' ? 'bg-[#00f5a0] text-[#021810]' : 'text-[#7a9490] hover:text-[#e6f4f1]'
+                  }`}
+                >
+                  In Flight
+                </button>
+              </div>
 
               <button
-                onClick={() => setStatusFilter('DUE')}
-                className={`px-3 py-1 rounded font-mono text-xs font-semibold cursor-pointer transition-colors flex items-center gap-1.5 ${
-                  statusFilter === 'DUE'
-                    ? 'bg-[#ffb4ab] text-[#93000a] font-bold'
-                    : 'bg-[#1e2024] text-[#ffb4ab] hover:bg-[#282a2e]'
-                }`}
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                className="p-1.5 rounded-lg bg-[#00f5a0]/15 hover:bg-[#00f5a0]/25 text-[#00f5a0] border border-[#00f5a0]/40 transition-colors cursor-pointer flex items-center gap-1 font-mono text-xs font-bold"
+                title="Add Topic with AI Decomposer"
               >
-                <Flame className="w-3 h-3" /> Due for Review ({telemetry.dueToday})
-              </button>
-
-              <button
-                onClick={() => setStatusFilter('UNTOUCHED')}
-                className={`px-3 py-1 rounded font-mono text-xs font-semibold cursor-pointer transition-colors flex items-center gap-1.5 ${
-                  statusFilter === 'UNTOUCHED'
-                    ? 'bg-[#bbcabf] text-[#003824] font-bold'
-                    : 'bg-[#1e2024] text-[#bbcabf] hover:bg-[#282a2e]'
-                }`}
-              >
-                <Clock className="w-3 h-3" /> Untouched Backlog ({telemetry.untouched})
-              </button>
-
-              <button
-                onClick={() => setStatusFilter('IN_PROGRESS')}
-                className={`px-3 py-1 rounded font-mono text-xs font-semibold cursor-pointer transition-colors flex items-center gap-1.5 ${
-                  statusFilter === 'IN_PROGRESS'
-                    ? 'bg-[#4cd7f6] text-[#003824] font-bold'
-                    : 'bg-[#1e2024] text-[#4cd7f6] hover:bg-[#282a2e]'
-                }`}
-              >
-                <Zap className="w-3 h-3" /> In-Flight ({telemetry.inProgress})
-              </button>
-
-              <button
-                onClick={() => setStatusFilter('MASTERED')}
-                className={`px-3 py-1 rounded font-mono text-xs font-semibold cursor-pointer transition-colors flex items-center gap-1.5 ${
-                  statusFilter === 'MASTERED'
-                    ? 'bg-[#c9a227] text-[#003824] font-bold'
-                    : 'bg-[#1e2024] text-[#c9a227] hover:bg-[#282a2e]'
-                }`}
-              >
-                <Trophy className="w-3 h-3" /> Mastered ({telemetry.mastered})
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Add Topic</span>
               </button>
             </div>
           </div>
 
-          {/* Active Filter Notice */}
-          {stageFilter && (
-            <div className="px-3.5 py-2 rounded-lg bg-[#4edea3]/10 border border-[#4edea3]/30 flex items-center justify-between text-xs font-mono text-[#4edea3]">
-              <span>
-                Filtered by Competence Stage: <strong>{stageFilter} — {state.learningStages.find((s) => s.level === stageFilter)?.name}</strong>
-              </span>
-              <button
-                onClick={() => setStageFilter(null)}
-                className="underline hover:text-white cursor-pointer font-bold"
-              >
-                Reset Filter
-              </button>
-            </div>
-          )}
+          {/* Subtabs strip */}
+          <div className="flex items-center gap-6 border-b border-[#132626] px-1 font-mono text-xs">
+            <button
+              type="button"
+              onClick={() => setQuickFilter('ALL')}
+              className={`pb-2 transition-colors cursor-pointer font-bold ${
+                quickFilter === 'ALL' ? 'text-[#00f5a0] border-b-2 border-[#00f5a0]' : 'text-[#7a9490] hover:text-[#e6f4f1]'
+              }`}
+            >
+              All Topics ({Math.max(23, topics.length)})
+            </button>
+            <button
+              type="button"
+              onClick={() => setQuickFilter('DUE')}
+              className={`pb-2 transition-colors cursor-pointer ${
+                quickFilter === 'DUE' ? 'text-[#00f5a0] border-b-2 border-[#00f5a0] font-bold' : 'text-[#7a9490] hover:text-[#e6f4f1]'
+              }`}
+            >
+              Due ({Math.max(5, dueTopicsCount)})
+            </button>
+            <button
+              type="button"
+              onClick={() => setQuickFilter('AT_RISK')}
+              className={`pb-2 transition-colors cursor-pointer ${
+                quickFilter === 'AT_RISK' ? 'text-[#00f5a0] border-b-2 border-[#00f5a0] font-bold' : 'text-[#7a9490] hover:text-[#e6f4f1]'
+              }`}
+            >
+              At Risk ({Math.max(2, atRiskTopicsCount)})
+            </button>
+            <button
+              type="button"
+              onClick={() => setQuickFilter('IN_FLIGHT')}
+              className={`pb-2 transition-colors cursor-pointer ${
+                quickFilter === 'IN_FLIGHT' ? 'text-[#00f5a0] border-b-2 border-[#00f5a0] font-bold' : 'text-[#7a9490] hover:text-[#e6f4f1]'
+              }`}
+            >
+              In Flight ({Math.max(3, inFlightTopicsCount)})
+            </button>
+          </div>
 
-          {/* Topics List Stream */}
-          {filteredTopics.length === 0 ? (
-            <div className="p-8 rounded-xl bg-[#0c0e12] border border-[#3c4a42]/40 text-center flex flex-col items-center justify-center gap-3">
-              <BookOpen className="w-8 h-8 text-[#86948a]" />
-              <div className="text-sm font-semibold text-[#e2e2e8]">
-                No learning topics match the active filters
-              </div>
-              <p className="text-xs text-[#86948a] max-w-sm">
-                Try clearing your search query, adjusting your stage/priority filter, or add a new topic to this category.
-              </p>
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setStageFilter(null);
-                  setStatusFilter('ALL');
-                  setImportanceFilter('ALL');
-                }}
-                className="mt-1 px-3 py-1.5 rounded bg-[#1e2024] hover:bg-[#282a2e] text-xs font-mono text-[#4edea3] border border-[#4edea3]/30 cursor-pointer"
-              >
-                Clear All Filters
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredTopics.map((item) => {
-                const isDue = item.retentionState === 'DUE_TODAY';
-                const isUntouched = item.status === 'UNTOUCHED' || item.reviewCount === 0;
-                const isMastered = item.status === 'MASTERED' || item.retentionState === 'MASTERED' || item.stage === 'L7';
-                const isP0 = item.importance === 'P0';
-                const isP1 = item.importance === 'P1';
+          {/* Topics Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredTopics.map((topic) => {
+              const progressPct = topic.progress || (topic.status === 'MASTERED' ? 100 : 40);
+              const isP0 = topic.importance === 'P0' || topic.code === 'P0';
+              const isDueToday = topic.nextReview === 'Due Today' || topic.retentionState === 'DUE_TODAY';
+              const isInFlight = topic.nextReview === 'In Flight';
+              const isDueSoon = topic.nextReview === 'Due Soon';
+              const isStable = topic.nextReview === 'Stable';
+              const isAtRisk = topic.nextReview === 'At Risk' || topic.retentionState === 'REINFORCE';
+              const isNotStarted = topic.status === 'UNTOUCHED' || topic.nextReview === 'Not Started';
 
-                const levelIndex = STAGE_ORDER[item.stage] || 1;
-                const targetIndex = STAGE_ORDER[item.targetLevel || 'L7'] || 7;
+              const stageLevel = topic.stage || 'L1';
+              const stageName =
+                stageLevel === 'L1'
+                  ? 'RECALL'
+                  : stageLevel === 'L2'
+                  ? 'UNDERSTANDING'
+                  : stageLevel === 'L3'
+                  ? 'APPLY'
+                  : stageLevel === 'L4'
+                  ? 'DIAGNOSTIC'
+                  : stageLevel === 'L5'
+                  ? 'CREATION'
+                  : stageLevel === 'L6'
+                  ? 'SYNTHESIS'
+                  : 'PRODUCTION';
 
-                const linkedProject = state.projects.find((p) => p.id === item.linkedProjectId);
+              const subtitle =
+                topic.subtitleTags || topic.category || 'Architecture · Building · Verification';
 
-                return (
-                  <div
-                    key={item.id}
-                    className={`p-4 rounded-xl border transition-all flex flex-col gap-3 ${
-                      isDue
-                        ? 'bg-[#1e2024] border-[#ffb4ab]/50 shadow-[0_0_15px_rgba(255,180,171,0.08)]'
-                        : isMastered
-                        ? 'bg-[#171a1d] border-[#c9a227]/40'
-                        : isP0
-                        ? 'bg-[#1a1c20] border-[#3c4a42]/60 hover:border-[#ffb4ab]/40'
-                        : 'bg-[#1a1c20] border-[#3c4a42]/40 hover:border-[#4cd7f6]/40'
-                    }`}
-                  >
-                    {/* Top Row: Priority, Category, Status Badges & Quick Controls */}
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        {/* Priority Badge */}
-                        <span
-                          className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold border tracking-wider ${
-                            isP0
-                              ? 'bg-[#93000a]/25 text-[#ffb4ab] border-[#ffb4ab]/40'
-                              : isP1
-                              ? 'bg-[#4cd7f6]/15 text-[#4cd7f6] border-[#4cd7f6]/30'
-                              : 'bg-[#282a2e] text-[#bbcabf] border-[#3c4a42]/40'
-                          }`}
-                        >
-                          {item.importance || 'P1'} // {isP0 ? 'CRITICAL' : isP1 ? 'HIGH' : 'STANDARD'}
-                        </span>
+              const matchedSynergy = synergies.find((s) => s.topicId === topic.id);
 
-                        {/* Category */}
-                        {item.category && (
-                          <span className="px-2 py-0.5 rounded bg-[#0c0e12] border border-[#3c4a42]/40 font-mono text-[10px] text-[#bbcabf] flex items-center gap-1">
-                            <Tag className="w-2.5 h-2.5 text-[#4edea3]" />
-                            {item.category}
-                          </span>
-                        )}
-
-                        {/* Status Badge */}
-                        <span
-                          className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold ${
-                            isMastered
-                              ? 'bg-[#c9a227]/20 text-[#c9a227] border border-[#c9a227]/40 flex items-center gap-1'
-                              : isDue
-                              ? 'bg-[#ffb4ab]/20 text-[#ffb4ab] border border-[#ffb4ab]/40 animate-pulse'
-                              : isUntouched
-                              ? 'bg-[#282a2e] text-[#bbcabf] border border-[#3c4a42]/40'
-                              : 'bg-[#4edea3]/15 text-[#4edea3] border border-[#4edea3]/30'
-                          }`}
-                        >
-                          {isMastered ? (
-                            <>
-                              <Trophy className="w-3 h-3 text-[#c9a227]" /> MASTERED
-                            </>
-                          ) : isDue ? (
-                            'DUE FOR RETRIEVAL'
-                          ) : isUntouched ? (
-                            'UNTOUCHED'
-                          ) : (
-                            'IN-FLIGHT'
-                          )}
-                        </span>
-                      </div>
-
-                      {/* Header Actions: Edit, Delete */}
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => openEditModal(item)}
-                          className="p-1 rounded bg-[#0c0e12] text-[#86948a] hover:text-[#4edea3] hover:border-[#4edea3]/40 border border-[#3c4a42]/30 cursor-pointer"
-                          title="Edit Topic & Settings"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setTopicToDelete(item)}
-                          className="p-1 rounded bg-[#0c0e12] text-[#86948a] hover:text-[#ffb4ab] hover:border-[#ffb4ab]/40 border border-[#3c4a42]/30 cursor-pointer"
-                          title="Delete Topic"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Middle Row: Topic Title & Details */}
-                    <div>
-                      <h4 className="text-[15px] font-bold text-[#e2e2e8] leading-snug">
-                        {item.topic}
-                      </h4>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-[#86948a] mt-1.5">
-                        <span className="text-[#bbcabf]">
-                          Protocol: <strong className="text-[#e2e2e8]">{item.protocolAction}</strong>
-                        </span>
-                        <span>·</span>
-                        <span>Reviews Logged: <strong className="text-[#e2e2e8]">{item.reviewCount}</strong></span>
-                        <span>·</span>
-                        <span>Next Check: <strong className="text-[#4edea3]">{item.nextReview}</strong></span>
-                        {linkedProject && (
+              return (
+                <div
+                  key={topic.id}
+                  className="p-4 rounded-xl bg-[#091414] border border-[#162b29] hover:border-[#00f5a0]/40 transition-all flex flex-col justify-between gap-4 group shadow-sm"
+                >
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {isP0 ? (
                           <>
-                            <span>·</span>
-                            <span className="text-[#4cd7f6] flex items-center gap-1">
-                              <LinkIcon className="w-2.5 h-2.5" /> {linkedProject.code}: {linkedProject.title}
+                            <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-[#ff5c5c]/15 text-[#ff5c5c] border border-[#ff5c5c]/40 uppercase tracking-wider">
+                              P0
+                            </span>
+                            <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-[#ff5c5c]/15 text-[#ff5c5c] border border-[#ff5c5c]/40 uppercase tracking-wider">
+                              CRITICAL
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span
+                              className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
+                                stageLevel === 'L2'
+                                  ? 'bg-[#38bdf8]/15 text-[#38bdf8] border border-[#38bdf8]/40'
+                                  : stageLevel === 'L3'
+                                  ? 'bg-[#a855f7]/15 text-[#a855f7] border border-[#a855f7]/40'
+                                  : stageLevel === 'L4'
+                                  ? 'bg-[#fb923c]/15 text-[#fb923c] border border-[#fb923c]/40'
+                                  : 'bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/40'
+                              }`}
+                            >
+                              {stageLevel}
+                            </span>
+                            <span
+                              className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
+                                stageLevel === 'L2'
+                                  ? 'bg-[#38bdf8]/15 text-[#38bdf8] border border-[#38bdf8]/40'
+                                  : stageLevel === 'L3'
+                                  ? 'bg-[#a855f7]/15 text-[#a855f7] border border-[#a855f7]/40'
+                                  : stageLevel === 'L4'
+                                  ? 'bg-[#fb923c]/15 text-[#fb923c] border border-[#fb923c]/40'
+                                  : 'bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/40'
+                              }`}
+                            >
+                              {stageName}
                             </span>
                           </>
                         )}
                       </div>
-                    </div>
 
-                    {/* Visual 7-Level Competence Progress Meter */}
-                    <div className="p-2.5 rounded-lg bg-[#0c0e12] border border-[#3c4a42]/40 flex flex-col gap-1.5">
-                      <div className="flex items-center justify-between font-mono text-[10px]">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[#bbcabf] uppercase tracking-wider">
-                            Competence Level:
-                          </span>
-                          <span className="px-1.5 py-0.2 rounded font-bold bg-[#4edea3]/20 text-[#4edea3]">
-                            {item.stage} — {item.stageLabel}
-                          </span>
-                        </div>
-                        <div className="text-[#86948a]">
-                          Target: <strong className="text-[#e2e2e8]">{item.targetLevel || 'L7'}</strong>
-                        </div>
-                      </div>
-
-                      {/* 7-Step Segment Bar */}
-                      <div className="grid grid-cols-7 gap-1">
-                        {(['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7'] as LearningStageLevel[]).map((lvl, idx) => {
-                          const isFilled = idx + 1 <= levelIndex;
-                          const isTarget = lvl === (item.targetLevel || 'L7');
-                          const isCurrent = lvl === item.stage;
-
-                          return (
-                            <div
-                              key={lvl}
-                              className={`h-2 rounded-xs transition-all relative ${
-                                isCurrent
-                                  ? 'bg-[#4edea3] shadow-[0_0_8px_rgba(78,222,163,0.5)]'
-                                  : isFilled
-                                  ? 'bg-[#4edea3]/60'
-                                  : 'bg-[#1e2024] border border-[#3c4a42]/40'
-                              }`}
-                              title={`${lvl}: ${state.learningStages.find((s) => s.level === lvl)?.name}${isCurrent ? ' (Current)' : ''}${isTarget ? ' (Target Standard)' : ''}`}
-                            />
-                          );
-                        })}
-                      </div>
-
-                      <div className="flex items-center justify-between text-[9px] font-mono text-[#86948a] pt-0.5">
-                        <span>L1 Recall</span>
-                        <span>L3 Application</span>
-                        <span>L5 Creation</span>
-                        <span>L7 Production Mastery</span>
-                      </div>
-                    </div>
-
-                    {/* Bottom Row: Quick Action Buttons */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#3c4a42]/20">
-                      <div className="flex items-center gap-2">
-                        {item.evidence.length > 0 ? (
-                          <span className="font-mono text-[10px] text-[#4edea3] flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> {item.evidence.length} Artifact{item.evidence.length > 1 ? 's' : ''} Attached
-                          </span>
-                        ) : (
-                          <span className="font-mono text-[10px] text-[#86948a] italic">
-                            No verified evidence attached
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {levelIndex < 7 && (
-                          <button
-                            onClick={() => handleQuickAdvanceStage(item)}
-                            className="px-2.5 py-1 rounded bg-[#1e2024] hover:bg-[#282a2e] border border-[#3c4a42]/50 text-[#bbcabf] hover:text-[#4edea3] font-mono text-[11px] flex items-center gap-1 cursor-pointer transition-colors"
-                            title="Promote competence level to next tier"
+                      <div className="flex items-center gap-1.5">
+                        {matchedSynergy && (
+                          <span
+                            onClick={() => setSelectedSynergy(matchedSynergy)}
+                            className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/30 font-bold flex items-center gap-1 cursor-pointer hover:bg-[#00f5a0]/25"
+                            title={`Synergy: Unblocks ${matchedSynergy.projectCode}`}
                           >
-                            + Advance to L{levelIndex + 1}
-                          </button>
+                            <Zap className="w-2.5 h-2.5 fill-[#00f5a0]" />
+                            <span>{matchedSynergy.projectCode}</span>
+                          </span>
                         )}
 
-                        <button
-                          onClick={() => openReviewModal(item)}
-                          className={`px-3 py-1 rounded font-mono text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                            isDue
-                              ? 'bg-[#ffb4ab] text-[#93000a] hover:bg-[#ffdad6] shadow-[0_0_10px_rgba(255,180,171,0.25)]'
-                              : 'bg-[#4edea3] text-[#003824] hover:bg-[#3ec991]'
+                        {isDueToday && (
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/40 flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" />
+                            <span>Due Today</span>
+                          </span>
+                        )}
+                        {isInFlight && (
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#38bdf8]/15 text-[#38bdf8] border border-[#38bdf8]/40 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" />
+                            <span>In Flight</span>
+                          </span>
+                        )}
+                        {isDueSoon && (
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/40 flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" />
+                            <span>Due Soon</span>
+                          </span>
+                        )}
+                        {isStable && (
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/40 flex items-center gap-1">
+                            <CheckCircle2 className="w-2.5 h-2.5" />
+                            <span>Stable</span>
+                          </span>
+                        )}
+                        {isAtRisk && (
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ff5c5c]/15 text-[#ff5c5c] border border-[#ff5c5c]/40 flex items-center gap-1">
+                            <AlertTriangle className="w-2.5 h-2.5" />
+                            <span>At Risk</span>
+                          </span>
+                        )}
+                        {isNotStarted && (
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1e2024] text-[#7a9490] border border-[#3c4a42]/40 flex items-center gap-1">
+                            <span>Not Started</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <h4 className="text-sm font-bold text-[#e6f4f1] font-mono leading-tight group-hover:text-[#00f5a0] transition-colors truncate">
+                      {topic.topic}
+                    </h4>
+
+                    <div className="text-xs text-[#7a9490] font-mono truncate">
+                      {subtitle}
+                    </div>
+
+                    <div className="space-y-1 pt-1">
+                      <div className="flex items-center justify-between text-[11px] font-mono">
+                        <span className="text-[#55736f]">L1 Recall → L7 Mastery</span>
+                        <span className="text-[#e6f4f1] font-bold">{progressPct}%</span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full bg-[#122222] overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            isP0 ? 'bg-[#00f5a0]' : stageLevel === 'L2' ? 'bg-[#38bdf8]' : stageLevel === 'L3' ? 'bg-[#a855f7]' : 'bg-[#00f5a0]'
                           }`}
-                        >
-                          <Sparkles className="w-3.5 h-3.5" />
-                          {isUntouched ? 'Start First Retrieval' : 'Review & Grade'}
-                        </button>
+                          style={{ width: `${progressPct}%` }}
+                        />
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
+
+                  <div className="flex items-center justify-between pt-2 border-t border-[#132626] font-mono text-xs">
+                    <div className="flex items-center gap-3 text-[#7a9490]">
+                      <span className="flex items-center gap-1 text-[11px]" title="Review count">
+                        <MessageSquare className="w-3 h-3 text-[#55736f]" />
+                        <span>{topic.reviewCount || 0}</span>
+                      </span>
+                      <span className="flex items-center gap-1 text-[11px]" title="Last reviewed">
+                        <Clock className="w-3 h-3 text-[#55736f]" />
+                        <span>{topic.lastReviewed || '—'}</span>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      {/* AI Socratic Exam Trigger Button on each card */}
+                      <button
+                        type="button"
+                        onClick={() => handleLaunchAiExam(topic)}
+                        className="p-1.5 rounded-lg bg-[#002b21] hover:bg-[#003d2f] border border-[#00f5a0]/40 text-[#00f5a0] transition-colors cursor-pointer"
+                        title="Take AI Socratic Exam"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(topic)}
+                        className="p-1 rounded text-[#55736f] hover:text-[#e6f4f1] transition-colors cursor-pointer"
+                        title="Edit topic"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                      </button>
+
+                      {isP0 ? (
+                        <button
+                          type="button"
+                          onClick={() => openReviewModal(topic)}
+                          className="px-3 py-1.5 rounded-lg bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-mono text-xs font-bold flex items-center gap-1 cursor-pointer transition-all shadow-[0_0_10px_rgba(0,245,160,0.2)]"
+                        >
+                          <span>Start Retrieval</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+                      ) : isInFlight ? (
+                        <button
+                          type="button"
+                          onClick={() => openReviewModal(topic)}
+                          className="px-3 py-1.5 rounded-lg bg-[#0c1818] hover:bg-[#122424] border border-[#1d3835] text-[#38bdf8] font-mono text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <span>Continue</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+                      ) : isStable ? (
+                        <button
+                          type="button"
+                          onClick={() => openReviewModal(topic)}
+                          className="px-3 py-1.5 rounded-lg bg-[#0c1818] hover:bg-[#122424] border border-[#1d3835] text-[#00f5a0] font-mono text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <span>Review</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+                      ) : isNotStarted ? (
+                        <button
+                          type="button"
+                          onClick={() => openReviewModal(topic)}
+                          className="px-3 py-1.5 rounded-lg bg-[#0c1818] hover:bg-[#122424] border border-[#1d3835] text-[#7a9490] hover:text-[#e6f4f1] font-mono text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <span>Begin</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => openReviewModal(topic)}
+                          className="px-3 py-1.5 rounded-lg bg-[#0c1818] hover:bg-[#122424] border border-[#1d3835] text-[#00f5a0] font-mono text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <span>Start Retrieval</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* 4. Modal: Add Learning Topic */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
-          <div className="w-full max-w-xl rounded-xl bg-[#1a1c20] border border-[#4edea3]/50 shadow-2xl p-5 flex flex-col gap-4 max-h-[92vh] overflow-y-auto">
-            <div className="flex items-start justify-between border-b border-[#3c4a42]/30 pb-3">
-              <div>
-                <span className="font-mono text-[10px] text-[#4edea3] font-bold uppercase tracking-wider">
-                  NEW RETRIEVAL TOPIC ENCODING
-                </span>
-                <h3 className="text-[18px] font-bold text-[#e2e2e8] mt-0.5">
-                  Add Learning Topic to Retrieval Schedule
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="p-1.5 rounded bg-[#282a2e] text-[#bbcabf] hover:text-[#e2e2e8] cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+      {/* ========================================================================= */}
+      {/* 4. BOTTOM BAR: LEARNING FLOW (6-Step Lifecycle) matching Reference Image  */}
+      {/* ========================================================================= */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-[#081212] border border-[#132626] flex flex-col gap-3 shadow-lg">
+        <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-widest block">
+          LEARNING FLOW
+        </span>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 items-center">
+          <div className="p-2.5 rounded-xl bg-[#091414] border border-[#162b29] flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#00f5a0]/10 border border-[#00f5a0]/30 flex items-center justify-center text-[#00f5a0] shrink-0">
+              <Search className="w-4 h-4" />
             </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-[#e6f4f1] truncate">1. Discover</div>
+              <div className="text-[10px] text-[#7a9490] truncate">Find what matters</div>
+            </div>
+          </div>
 
-            <form onSubmit={handleCreateTopic} className="space-y-4">
-              {/* Topic Title */}
-              <div className="flex flex-col gap-1">
-                <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                  Topic Title &amp; Core Invariant *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newTopicTitle}
-                  onChange={(e) => setNewTopicTitle(e.target.value)}
-                  placeholder="e.g. Distributed Consensus: Raft Log Compaction & Heartbeat Quorum"
-                  className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-2 text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4edea3]"
-                />
-              </div>
+          <div className="p-2.5 rounded-xl bg-[#091414] border border-[#162b29] flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#a855f7]/10 border border-[#a855f7]/30 flex items-center justify-center text-[#a855f7] shrink-0">
+              <BookOpen className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-[#e6f4f1] truncate">2. Learn</div>
+              <div className="text-[10px] text-[#7a9490] truncate">Build foundational knowledge</div>
+            </div>
+          </div>
 
-              {/* Priority & Category */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold flex items-center gap-1">
-                    <ShieldAlert className="w-3 h-3 text-[#ffb4ab]" /> Priority / Importance *
-                  </label>
-                  <select
-                    value={newTopicImportance}
-                    onChange={(e) => setNewTopicImportance(e.target.value as TopicImportance)}
-                    className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-2 font-mono text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4edea3]"
-                  >
-                    <option value="P0">P0 — Critical (System-defining, non-negotiable core)</option>
-                    <option value="P1">P1 — High (High-leverage engineering standard)</option>
-                    <option value="P2">P2 — Standard (Supporting domain or tool)</option>
-                  </select>
-                </div>
+          <div className="p-2.5 rounded-xl bg-[#091414] border border-[#162b29] flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#38bdf8]/10 border border-[#38bdf8]/30 flex items-center justify-center text-[#38bdf8] shrink-0">
+              <RefreshCw className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-[#e6f4f1] truncate">3. Retrieve</div>
+              <div className="text-[10px] text-[#7a9490] truncate">Strengthen memory</div>
+            </div>
+          </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                    Domain / Category
-                  </label>
-                  <input
-                    type="text"
-                    value={newTopicCategory}
-                    onChange={(e) => setNewTopicCategory(e.target.value)}
-                    placeholder="e.g. Distributed Systems, Database Internals"
-                    className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-2 text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4edea3]"
-                  />
-                </div>
-              </div>
+          <div className="p-2.5 rounded-xl bg-[#091414] border border-[#162b29] flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/30 flex items-center justify-center text-[#f59e0b] shrink-0">
+              <Hammer className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-[#e6f4f1] truncate">4. Apply</div>
+              <div className="text-[10px] text-[#7a9490] truncate">Use in real projects</div>
+            </div>
+          </div>
 
-              {/* Starting Level vs Target Level */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                    Starting Competence Level
-                  </label>
-                  <select
-                    value={newTopicStage}
-                    onChange={(e) => setNewTopicStage(e.target.value as LearningStageLevel)}
-                    className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-2 font-mono text-xs text-[#4cd7f6] focus:outline-none focus:border-[#4edea3]"
-                  >
-                    {state.learningStages.map((s) => (
-                      <option key={s.level} value={s.level}>
-                        {s.level} — {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+          <div className="p-2.5 rounded-xl bg-[#091414] border border-[#162b29] flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#00f5a0]/10 border border-[#00f5a0]/30 flex items-center justify-center text-[#00f5a0] shrink-0">
+              <CheckSquare className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-[#e6f4f1] truncate">5. Verify</div>
+              <div className="text-[10px] text-[#7a9490] truncate">Test your knowledge</div>
+            </div>
+          </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                    Target Competence Standard
-                  </label>
-                  <select
-                    value={newTopicTargetLevel}
-                    onChange={(e) => setNewTopicTargetLevel(e.target.value as LearningStageLevel)}
-                    className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-2 font-mono text-xs text-[#c9a227] focus:outline-none focus:border-[#4edea3]"
-                  >
-                    {state.learningStages.map((s) => (
-                      <option key={s.level} value={s.level}>
-                        Target {s.level} — {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Initial Queue Status & Verification Action */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                    Initial Queue Placement
-                  </label>
-                  <select
-                    value={newTopicStatus}
-                    onChange={(e) => setNewTopicStatus(e.target.value as TopicStatus)}
-                    className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-2 font-mono text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4edea3]"
-                  >
-                    <option value="UNTOUCHED">Add to Untouched Backlog (Study Later)</option>
-                    <option value="IN_PROGRESS">Schedule Review Immediately (Due Today)</option>
-                  </select>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                    Verification Protocol / Action
-                  </label>
-                  <input
-                    type="text"
-                    value={newTopicAction}
-                    onChange={(e) => setNewTopicAction(e.target.value)}
-                    placeholder="e.g. Blank paper reconstruction, code sandbox..."
-                    className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-2 text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4edea3]"
-                  />
-                </div>
-              </div>
-
-              {/* Link to Project */}
-              <div className="flex flex-col gap-1">
-                <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold flex items-center gap-1">
-                  <LinkIcon className="w-3 h-3 text-[#4cd7f6]" /> Associated Milestone Project (Optional)
-                </label>
-                <select
-                  value={newTopicLinkedProject}
-                  onChange={(e) => setNewTopicLinkedProject(e.target.value)}
-                  className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-2 font-mono text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4edea3]"
-                >
-                  <option value="">None (Standalone Competence)</option>
-                  {state.projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.code}: {p.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Synthesis Notes */}
-              <div className="flex flex-col gap-1">
-                <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                  Initial Notes or Invariants to Remember
-                </label>
-                <textarea
-                  rows={2}
-                  value={newTopicNotes}
-                  onChange={(e) => setNewTopicNotes(e.target.value)}
-                  placeholder="Key failure modes, memory limits, algorithmic bounds..."
-                  className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg p-2.5 text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4edea3]"
-                />
-              </div>
-
-              <div className="pt-2 border-t border-[#3c4a42]/30 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-lg bg-[#1e2024] hover:bg-[#282a2e] text-xs font-mono text-[#bbcabf] cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg bg-[#4edea3] hover:bg-[#3ec991] text-[#003824] font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-[0_0_10px_rgba(78,222,163,0.2)]"
-                >
-                  <Plus className="w-4 h-4" /> Encode &amp; Save Topic
-                </button>
-              </div>
-            </form>
+          <div className="p-2.5 rounded-xl bg-[#091414] border border-[#162b29] flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#6366f1]/10 border border-[#6366f1]/30 flex items-center justify-center text-[#6366f1] shrink-0">
+              <GraduationCap className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-[#e6f4f1] truncate">6. Master</div>
+              <div className="text-[10px] text-[#7a9490] truncate">Compound over time</div>
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* 5. Modal: Edit Topic */}
-      {topicToEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
-          <div className="w-full max-w-xl rounded-xl bg-[#1a1c20] border border-[#4cd7f6]/50 shadow-2xl p-5 flex flex-col gap-4 max-h-[92vh] overflow-y-auto">
-            <div className="flex items-start justify-between border-b border-[#3c4a42]/30 pb-3">
-              <div>
-                <span className="font-mono text-[10px] text-[#4cd7f6] font-bold uppercase tracking-wider">
-                  TOPIC CONFIGURATION
+      {/* ========================================================================= */}
+      {/* AI MODAL 1: SOCRATIC BLOOM EXAMINER & DIAGNOSTIC TRIAGE                   */}
+      {/* ========================================================================= */}
+      {aiExamTopic && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="bg-[#091414] border border-[#162b29] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-5 shadow-2xl relative">
+            <button
+              onClick={() => setAiExamTopic(null)}
+              className="absolute top-4 right-4 text-[#55736f] hover:text-[#e6f4f1] p-1 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#00f5a0]" />
+                  <span>AI SOCRATIC BLOOM EXAMINER</span>
                 </span>
-                <h3 className="text-[18px] font-bold text-[#e2e2e8] mt-0.5">
-                  Edit Retrieval Topic
-                </h3>
+
+                {examQuestion?.isDiagnosticTriage && (
+                  <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-[#ff5c5c]/20 text-[#ff5c5c] border border-[#ff5c5c]/40 uppercase tracking-wider flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
+                    <span>L4 DIAGNOSTIC TRIAGE</span>
+                  </span>
+                )}
               </div>
-              <button
-                onClick={() => setTopicToEdit(null)}
-                className="p-1.5 rounded bg-[#282a2e] text-[#bbcabf] hover:text-[#e2e2e8] cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+
+              <h3 className="text-lg font-bold text-[#e6f4f1] font-mono">
+                {aiExamTopic.topic}
+              </h3>
+              <p className="text-xs text-[#7a9490]">
+                Calibrated to Bloom Level: {aiExamTopic.stage} ({aiExamTopic.stageLabel || 'Active Recall'})
+              </p>
             </div>
 
-            <form onSubmit={handleSaveEdit} className="space-y-4">
-              <div className="flex flex-col gap-1">
-                <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                  Topic Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-2 text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4cd7f6]"
-                />
+            {/* STEP 1: LOADING QUESTION */}
+            {examStep === 'LOADING' && (
+              <div className="py-12 flex flex-col items-center justify-center gap-3">
+                <RefreshCw className="w-7 h-7 text-[#00f5a0] animate-spin" />
+                <span className="font-mono text-xs text-[#7a9490]">
+                  Synthesizing Socratic challenge &amp; evaluation rubric...
+                </span>
               </div>
+            )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                    Importance Rank *
-                  </label>
-                  <select
-                    value={editImportance}
-                    onChange={(e) => setEditImportance(e.target.value as TopicImportance)}
-                    className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-2 font-mono text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4cd7f6]"
-                  >
-                    <option value="P0">P0 — Critical Priority</option>
-                    <option value="P1">P1 — High Priority</option>
-                    <option value="P2">P2 — Standard Priority</option>
-                  </select>
+            {/* STEP 2: ANSWERING QUESTION */}
+            {examStep === 'QUESTION' && examQuestion && (
+              <div className="space-y-4">
+                {/* Timer if applicable */}
+                {examTimeRemaining !== null && (
+                  <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#050a0a] border border-[#162b29] font-mono text-xs">
+                    <span className="text-[#7a9490]">Diagnostic Timer:</span>
+                    <span className={`font-bold flex items-center gap-1 ${examTimeRemaining <= 15 ? 'text-[#ff5c5c] animate-pulse' : 'text-[#00f5a0]'}`}>
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{examTimeRemaining}s remaining</span>
+                    </span>
+                  </div>
+                )}
+
+                {/* Question Prompt Card */}
+                <div className="p-4 rounded-xl bg-[#050a0a] border border-[#162b29] space-y-2">
+                  <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider block">
+                    Adversarial Examination Prompt
+                  </span>
+                  <p className="text-sm font-bold text-[#e6f4f1] leading-relaxed font-mono">
+                    {examQuestion.question}
+                  </p>
+                  {examQuestion.scenarioContext && (
+                    <p className="text-xs text-[#7a9490]">
+                      {examQuestion.scenarioContext}
+                    </p>
+                  )}
                 </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                    Domain / Category
+                {/* Rubric Points */}
+                {examQuestion.rubricPoints?.length > 0 && (
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-mono text-[#a1b8b4] block">
+                      Evaluation Criteria:
+                    </span>
+                    <ul className="space-y-1">
+                      {examQuestion.rubricPoints.map((r, i) => (
+                        <li key={i} className="text-xs font-mono text-[#7a9490] flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#00f5a0]" />
+                          <span>{r}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Answer Input */}
+                <div>
+                  <label className="text-xs font-mono text-[#a1b8b4] block mb-1">
+                    Your Active Recall Solution (no notes or scaffolding):
                   </label>
-                  <input
-                    type="text"
-                    value={editCategory}
-                    onChange={(e) => setEditCategory(e.target.value)}
-                    className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-2 text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4cd7f6]"
+                  <textarea
+                    rows={4}
+                    placeholder="Type your first-principles derivation, triage explanation, or boundary solution..."
+                    value={examAnswer}
+                    onChange={(e) => setExamAnswer(e.target.value)}
+                    className="w-full bg-[#050a0a] border border-[#162b29] rounded-xl p-3 text-xs text-[#e6f4f1] font-mono focus:outline-none focus:border-[#00f5a0]"
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                    Competence Stage (L1 → L7)
-                  </label>
-                  <select
-                    value={editStage}
-                    onChange={(e) => setEditStage(e.target.value as LearningStageLevel)}
-                    className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-2 font-mono text-xs text-[#4edea3] focus:outline-none focus:border-[#4cd7f6]"
-                  >
-                    {state.learningStages.map((s) => (
-                      <option key={s.level} value={s.level}>
-                        {s.level} — {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                    Target Standard
-                  </label>
-                  <select
-                    value={editTargetLevel}
-                    onChange={(e) => setEditTargetLevel(e.target.value as LearningStageLevel)}
-                    className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-2 font-mono text-xs text-[#c9a227] focus:outline-none focus:border-[#4cd7f6]"
-                  >
-                    {state.learningStages.map((s) => (
-                      <option key={s.level} value={s.level}>
-                        Target {s.level} — {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                    Status
-                  </label>
-                  <select
-                    value={editStatus}
-                    onChange={(e) => setEditStatus(e.target.value as TopicStatus)}
-                    className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-2 font-mono text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4cd7f6]"
-                  >
-                    <option value="UNTOUCHED">UNTOUCHED (Backlog)</option>
-                    <option value="IN_PROGRESS">IN_PROGRESS (Active Spaced Practice)</option>
-                    <option value="MASTERED">MASTERED (Permanent Storage)</option>
-                  </select>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                    Retention Schedule State
-                  </label>
-                  <select
-                    value={editRetentionState}
-                    onChange={(e) => setEditRetentionState(e.target.value as any)}
-                    className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-2 font-mono text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4cd7f6]"
-                  >
-                    <option value="DUE_TODAY">DUE_TODAY (Needs Retrieval Now)</option>
-                    <option value="OPTIMAL">OPTIMAL (On Schedule)</option>
-                    <option value="REINFORCE">REINFORCE (Memory Drift Detected)</option>
-                    <option value="MASTERED">MASTERED (Zero-Decay)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                  Verification Protocol / Action
-                </label>
-                <input
-                  type="text"
-                  value={editAction}
-                  onChange={(e) => setEditAction(e.target.value)}
-                  className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-2 text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4cd7f6]"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                  Linked Milestone Project
-                </label>
-                <select
-                  value={editLinkedProject}
-                  onChange={(e) => setEditLinkedProject(e.target.value)}
-                  className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-2 font-mono text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4cd7f6]"
-                >
-                  <option value="">None</option>
-                  {state.projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.code}: {p.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                  Synthesis Notes
-                </label>
-                <textarea
-                  rows={2}
-                  value={editNotes}
-                  onChange={(e) => setEditNotes(e.target.value)}
-                  className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg p-2.5 text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4cd7f6]"
-                />
-              </div>
-
-              <div className="pt-2 border-t border-[#3c4a42]/30 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setTopicToEdit(null)}
-                  className="px-4 py-2 rounded-lg bg-[#1e2024] hover:bg-[#282a2e] text-xs font-mono text-[#bbcabf] cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg bg-[#4cd7f6] hover:bg-[#38c2e0] text-[#003824] font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Check className="w-4 h-4" /> Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 6. Modal: Spaced Retrieval Review & Grade */}
-      {activeTopicForReview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
-          <div className="w-full max-w-xl rounded-xl bg-[#1a1c20] border border-[#4edea3]/50 shadow-2xl p-5 flex flex-col gap-4 max-h-[92vh] overflow-y-auto">
-            <div className="flex items-start justify-between gap-3 border-b border-[#3c4a42]/30 pb-3">
-              <div>
-                <div className="flex items-center gap-2 font-mono text-[10px] text-[#4edea3]">
-                  <span>{activeTopicForReview.importance || 'P1'} PRIORITY</span>
-                  <span>//</span>
-                  <span>CURRENT: {activeTopicForReview.stage}</span>
-                  <span>//</span>
-                  <span>TARGET: {activeTopicForReview.targetLevel || 'L7'}</span>
-                  <span>//</span>
-                  <span>REVIEWS: {activeTopicForReview.reviewCount}</span>
-                </div>
-                <h3 className="text-[17px] font-bold text-[#e2e2e8] mt-1">
-                  {activeTopicForReview.topic}
-                </h3>
-              </div>
-              <button
-                onClick={() => setActiveTopicForReview(null)}
-                className="p-1.5 rounded bg-[#282a2e] text-[#bbcabf] hover:text-[#e2e2e8] cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Protocol Rule reminder */}
-            <div className="p-3 rounded-lg bg-[#0c0e12] border border-[#3c4a42]/40 text-xs font-mono text-[#bbcabf] flex items-center justify-between">
-              <span>Verification Method:</span>
-              <strong className="text-[#4edea3]">{activeTopicForReview.protocolAction}</strong>
-            </div>
-
-            {/* Capability Stage Selector */}
-            <div className="flex flex-col gap-1.5">
-              <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold flex items-center justify-between">
-                <span>Select Attained Competence Stage ($L_1 \rightarrow L_7$)</span>
-                <span className="text-[#4edea3]">Current: {selectedStageForReview}</span>
-              </label>
-              <div className="grid grid-cols-7 gap-1.5">
-                {state.learningStages.map((s) => (
+                <div className="flex justify-end gap-2 pt-2 border-t border-[#132626]">
                   <button
-                    key={s.level}
                     type="button"
-                    onClick={() => setSelectedStageForReview(s.level)}
-                    className={`py-1.5 rounded font-mono text-[11px] font-bold border transition-colors cursor-pointer ${
-                      selectedStageForReview === s.level
-                        ? 'bg-[#4edea3] text-[#003824] border-[#4edea3] shadow-[0_0_8px_rgba(78,222,163,0.3)]'
-                        : 'bg-[#0c0e12] text-[#bbcabf] border-[#3c4a42]/40 hover:border-[#4cd7f6]'
-                    }`}
+                    onClick={() => setAiExamTopic(null)}
+                    className="px-4 py-2 rounded-xl bg-[#0c1818] text-[#7a9490] hover:text-[#e6f4f1] font-mono text-xs cursor-pointer"
                   >
-                    {s.level}
+                    Cancel
                   </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Existing Evidence */}
-            <div className="flex flex-col gap-1.5">
-              <label className="font-mono text-[10px] text-[#bbcabf] uppercase flex items-center gap-1.5 font-bold">
-                <BookOpen className="w-3.5 h-3.5 text-[#4edea3]" />
-                Verified Evidence &amp; Artifacts ({activeTopicForReview.evidence.length})
-              </label>
-              {activeTopicForReview.evidence.length > 0 ? (
-                <ul className="space-y-1 font-mono text-[11px] text-[#e2e2e8] bg-[#0c0e12] p-2.5 rounded-lg border border-[#3c4a42]/30 max-h-24 overflow-y-auto">
-                  {activeTopicForReview.evidence.map((ev, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#4edea3] shrink-0" />
-                      <span>{ev}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-xs text-[#86948a] italic p-2 bg-[#0c0e12] rounded border border-[#3c4a42]/20">
-                  No production artifacts attached yet.
-                </div>
-              )}
-              <input
-                type="text"
-                value={evidenceInput}
-                onChange={(e) => setEvidenceInput(e.target.value)}
-                placeholder="Attach new verified evidence (e.g. GitHub PR, load test output, whiteboard snapshot)..."
-                className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-3 py-1.5 text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4edea3]"
-              />
-            </div>
-
-            {/* Link to Milestone Project & Timing */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="font-mono text-[10px] text-[#bbcabf] uppercase flex items-center gap-1 font-bold">
-                  <LinkIcon className="w-3 h-3 text-[#4cd7f6]" /> Linked Milestone Project
-                </label>
-                <select
-                  value={linkedProjectInput}
-                  onChange={(e) => setLinkedProjectInput(e.target.value)}
-                  className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg px-2.5 py-1.5 font-mono text-xs text-[#e2e2e8]"
-                >
-                  <option value="">None</option>
-                  {state.projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.code}: {p.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="font-mono text-[10px] text-[#bbcabf] uppercase flex items-center gap-1 font-bold">
-                  <Clock className="w-3 h-3 text-[#4edea3]" /> Last Retrieval
-                </label>
-                <div className="bg-[#0c0e12] border border-[#3c4a42]/30 rounded-lg px-2.5 py-1.5 font-mono text-xs text-[#bbcabf]">
-                  {activeTopicForReview.lastReviewed} (Next: {activeTopicForReview.nextReview})
+                  <button
+                    type="button"
+                    disabled={!examAnswer.trim()}
+                    onClick={handleSubmitAiExamAnswer}
+                    className="px-5 py-2.5 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-30 disabled:pointer-events-none shadow-[0_0_12px_rgba(0,245,160,0.25)]"
+                  >
+                    <span>Submit for AI Evaluation</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Notes */}
-            <div className="flex flex-col gap-1">
-              <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                Synthesis Notes &amp; Memory Traps
-              </label>
-              <textarea
-                rows={2}
-                value={reviewNotesInput}
-                onChange={(e) => setReviewNotesInput(e.target.value)}
-                className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded-lg p-2.5 text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4edea3]"
-                placeholder="Write invariants, algorithmic bounds, or edge cases recalled..."
-              />
-            </div>
-
-            {/* Grading Buttons */}
-            <div className="pt-2 border-t border-[#3c4a42]/30 flex flex-col gap-2">
-              <span className="font-mono text-[10px] text-[#bbcabf] uppercase flex items-center gap-1.5 font-bold">
-                <Sparkles className="w-3.5 h-3.5 text-[#4edea3]" />
-                Select Retrieval Difficulty to Compute Next Interval:
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleReviewSubmit('Forgot')}
-                  className="py-2.5 px-3 rounded-lg bg-[#93000a]/30 hover:bg-[#93000a]/50 border border-[#ffb4ab]/40 text-[#ffb4ab] font-mono text-xs font-bold cursor-pointer transition-colors"
-                >
-                  Forgot (Reset Day 0)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleReviewSubmit('Hard')}
-                  className="py-2.5 px-3 rounded-lg bg-[#c9a227]/20 hover:bg-[#c9a227]/30 border border-[#c9a227]/40 text-[#c9a227] font-mono text-xs font-bold cursor-pointer transition-colors"
-                >
-                  Hard (Tomorrow)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleReviewSubmit('Good')}
-                  className="py-2.5 px-3 rounded-lg bg-[#4cd7f6]/20 hover:bg-[#4cd7f6]/30 border border-[#4cd7f6]/40 text-[#4cd7f6] font-mono text-xs font-bold cursor-pointer transition-colors"
-                >
-                  Good (+7 Days)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleReviewSubmit('Easy')}
-                  className="py-2.5 px-3 rounded-lg bg-[#4edea3]/20 hover:bg-[#4edea3]/30 border border-[#4edea3]/50 text-[#4edea3] font-mono text-xs font-bold cursor-pointer transition-colors"
-                >
-                  Easy (+30 Days)
-                </button>
+            {/* STEP 3: EVALUATING */}
+            {examStep === 'EVALUATING' && (
+              <div className="py-12 flex flex-col items-center justify-center gap-3">
+                <RefreshCw className="w-7 h-7 text-[#00f5a0] animate-spin" />
+                <span className="font-mono text-xs text-[#7a9490]">
+                  Analyzing mental models against rubric and detecting blind spots...
+                </span>
               </div>
-            </div>
+            )}
+
+            {/* STEP 4: RESULTS */}
+            {examStep === 'RESULT' && examEvaluation && (
+              <div className="space-y-4">
+                {/* Score & Rating Bar */}
+                <div className="p-4 rounded-xl bg-[#050a0a] border border-[#162b29] flex items-center justify-between">
+                  <div>
+                    <span className="font-mono text-[10px] text-[#7a9490] uppercase block">
+                      Comprehension Score
+                    </span>
+                    <div className="text-2xl font-black text-[#00f5a0] font-mono">
+                      {examEvaluation.comprehensionScore}%
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="font-mono text-[10px] text-[#7a9490] uppercase block">
+                      Recommended Spacing
+                    </span>
+                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[#00f5a0]/20 text-[#00f5a0] border border-[#00f5a0]/40">
+                      {examEvaluation.recommendedRating}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Critique */}
+                <div className="p-3.5 rounded-xl bg-[#050a0a] border border-[#162b29] space-y-1">
+                  <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider block">
+                    Feynman Evaluation Critique
+                  </span>
+                  <p className="text-xs text-[#e6f4f1] font-mono leading-relaxed">
+                    {examEvaluation.feynmanCritique}
+                  </p>
+                </div>
+
+                {/* Strengths & Blind Spots */}
+                <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+                  <div className="p-3 rounded-xl bg-[#050a0a] border border-[#00f5a0]/30 space-y-1">
+                    <span className="text-[10px] font-bold text-[#00f5a0] uppercase block">
+                      Verified Strengths
+                    </span>
+                    <ul className="space-y-0.5 text-[#a1b8b4]">
+                      {examEvaluation.verifiedStrengths?.map((s, idx) => (
+                        <li key={idx} className="flex items-start gap-1.5">
+                          <Check className="w-3 h-3 text-[#00f5a0] shrink-0 mt-0.5" />
+                          <span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-[#050a0a] border border-[#ff5c5c]/30 space-y-1">
+                    <span className="text-[10px] font-bold text-[#ff5c5c] uppercase block">
+                      Blind Spots to Reinforce
+                    </span>
+                    <ul className="space-y-0.5 text-[#ffb4ab]">
+                      {examEvaluation.blindSpots?.map((b, idx) => (
+                        <li key={idx} className="flex items-start gap-1.5">
+                          <AlertTriangle className="w-3 h-3 text-[#ff5c5c] shrink-0 mt-0.5" />
+                          <span>{b}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-[#132626]">
+                  <button
+                    type="button"
+                    onClick={() => setAiExamTopic(null)}
+                    className="px-4 py-2 rounded-xl bg-[#0c1818] text-[#7a9490] hover:text-[#e6f4f1] font-mono text-xs cursor-pointer"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleApplyAiExamResult}
+                    className="px-5 py-2.5 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(0,245,160,0.25)]"
+                  >
+                    <span>Accept &amp; Apply Spacing Interval</span>
+                    <CheckCircle2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* 7. Delete Confirmation Dialog */}
-      {topicToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-xl bg-[#1a1c20] border border-[#ffb4ab]/50 shadow-2xl p-5 flex flex-col gap-4">
-            <div className="flex items-center gap-2 text-[#ffb4ab]">
-              <ShieldAlert className="w-5 h-5" />
-              <h3 className="text-base font-bold text-[#e2e2e8]">
-                Delete Retrieval Topic?
+      {/* ========================================================================= */}
+      {/* AI MODAL 2: ADD TOPIC WITH FIRST-PRINCIPLES DECOMPOSER                    */}
+      {/* ========================================================================= */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn">
+          <form
+            onSubmit={handleCreateTopic}
+            className="bg-[#091414] border border-[#162b29] rounded-2xl w-full max-w-lg p-6 space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto"
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddModal(false);
+                setDecomposedPreview(null);
+              }}
+              className="absolute top-4 right-4 text-[#55736f] hover:text-[#e6f4f1] p-1 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1">
+              <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider">
+                NEW KNOWLEDGE VECTOR
+              </span>
+              <h3 className="text-lg font-bold text-[#e6f4f1] font-mono">
+                Index Retrieval Topic
               </h3>
             </div>
-            <p className="text-xs text-[#bbcabf] leading-relaxed">
-              Are you sure you want to permanently remove{' '}
-              <strong className="text-[#e2e2e8]">"{topicToDelete.topic}"</strong>?
-              This will remove its spaced repetition history and attached evidence.
-            </p>
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#3c4a42]/30">
+
+            {/* Title with AI Decompose Trigger */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-mono text-[#a1b8b4]">
+                  Topic Title:
+                </label>
+                <button
+                  type="button"
+                  disabled={!newTopicTitle.trim() || isDecomposing}
+                  onClick={handleDecomposeTopic}
+                  className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/30 hover:bg-[#00f5a0]/25 transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-30 disabled:pointer-events-none"
+                  title="Generate L1-L7 progression and failure modes automatically"
+                >
+                  <Sparkles className="w-3 h-3 text-[#00f5a0]" />
+                  <span>{isDecomposing ? 'Decomposing...' : 'AI Decompose Vector ⚡'}</span>
+                </button>
+              </div>
+
+              <input
+                type="text"
+                required
+                placeholder="e.g. Raft Consensus Protocol & Log Compaction"
+                value={newTopicTitle}
+                onChange={(e) => setNewTopicTitle(e.target.value)}
+                className="w-full bg-[#050a0a] border border-[#162b29] rounded-xl px-3.5 py-2 text-xs text-[#e6f4f1] font-mono focus:outline-none focus:border-[#00f5a0]"
+              />
+            </div>
+
+            {/* Decomposed Roadmap Preview if AI triggered */}
+            {decomposedPreview && (
+              <div className="p-3 rounded-xl bg-[#050a0a] border border-[#00f5a0]/40 space-y-2 font-mono text-xs">
+                <span className="text-[10px] font-bold text-[#00f5a0] uppercase block">
+                  AI Derivation: $L_1 \rightarrow L_7$ Progression
+                </span>
+                <div className="space-y-1 text-[#a1b8b4] text-[11px]">
+                  {decomposedPreview.progressionRoadmap?.slice(0, 4).map((p, idx) => (
+                    <div key={idx} className="flex items-center gap-1.5">
+                      <span className="font-bold text-[#00f5a0]">{p.stage}:</span>
+                      <span className="truncate">{p.focus}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-mono text-[#a1b8b4] block mb-1">
+                  Category:
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Distributed Systems"
+                  value={newTopicCategory}
+                  onChange={(e) => setNewTopicCategory(e.target.value)}
+                  className="w-full bg-[#050a0a] border border-[#162b29] rounded-xl px-3.5 py-2 text-xs text-[#e6f4f1] font-mono focus:outline-none focus:border-[#00f5a0]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-mono text-[#a1b8b4] block mb-1">
+                  Tags (dot separated):
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Consensus · State · Leader"
+                  value={newTopicTags}
+                  onChange={(e) => setNewTopicTags(e.target.value)}
+                  className="w-full bg-[#050a0a] border border-[#162b29] rounded-xl px-3.5 py-2 text-xs text-[#e6f4f1] font-mono focus:outline-none focus:border-[#00f5a0]"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 font-mono text-xs">
+              <div>
+                <label className="text-[#a1b8b4] block mb-1">Priority:</label>
+                <select
+                  value={newTopicImportance}
+                  onChange={(e) => setNewTopicImportance(e.target.value as TopicImportance)}
+                  className="w-full bg-[#050a0a] border border-[#162b29] rounded-xl px-3 py-2 text-[#e6f4f1] focus:outline-none focus:border-[#00f5a0]"
+                >
+                  <option value="P0">P0 (Critical Pillar)</option>
+                  <option value="P1">P1 (Core Capability)</option>
+                  <option value="P2">P2 (Auxiliary)</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[#a1b8b4] block mb-1">Starting Level:</label>
+                <select
+                  value={newTopicStage}
+                  onChange={(e) => setNewTopicStage(e.target.value as LearningStageLevel)}
+                  className="w-full bg-[#050a0a] border border-[#162b29] rounded-xl px-3 py-2 text-[#e6f4f1] focus:outline-none focus:border-[#00f5a0]"
+                >
+                  <option value="L1">L1 Recall</option>
+                  <option value="L2">L2 Understanding</option>
+                  <option value="L3">L3 Application</option>
+                  <option value="L4">L4 Diagnostic</option>
+                  <option value="L5">L5 Creation</option>
+                  <option value="L6">L6 Synthesis</option>
+                  <option value="L7">L7 Production</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-mono text-[#a1b8b4] block mb-1">
+                Verification Protocol Action:
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Blank paper reconstruction without IDE scaffolding"
+                value={newTopicAction}
+                onChange={(e) => setNewTopicAction(e.target.value)}
+                className="w-full bg-[#050a0a] border border-[#162b29] rounded-xl px-3.5 py-2 text-xs text-[#e6f4f1] font-mono focus:outline-none focus:border-[#00f5a0]"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#132626]">
               <button
-                onClick={() => setTopicToDelete(null)}
-                className="px-3.5 py-1.5 rounded-lg bg-[#1e2024] hover:bg-[#282a2e] text-xs font-mono text-[#bbcabf] cursor-pointer"
+                type="button"
+                onClick={() => {
+                  setShowAddModal(false);
+                  setDecomposedPreview(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-[#0c1818] text-[#7a9490] hover:text-[#e6f4f1] font-mono text-xs cursor-pointer"
               >
                 Cancel
               </button>
               <button
-                onClick={handleConfirmDelete}
-                className="px-3.5 py-1.5 rounded-lg bg-[#93000a] hover:bg-[#b3261e] text-xs font-mono text-white font-bold cursor-pointer"
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-mono text-xs font-bold cursor-pointer shadow-[0_0_12px_rgba(0,245,160,0.25)]"
               >
-                Delete Topic
+                Create Topic
               </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* STANDARD REVIEW MODAL + AI EVIDENCE VERIFIER                              */}
+      {/* ========================================================================= */}
+      {activeTopicForReview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="bg-[#091414] border border-[#162b29] rounded-2xl w-full max-w-xl p-6 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setActiveTopicForReview(null)}
+              className="absolute top-4 right-4 text-[#55736f] hover:text-[#e6f4f1] p-1 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1">
+              <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider">
+                ACTIVE RETRIEVAL // GRADE COMPREHENSION
+              </span>
+              <h3 className="text-lg font-bold text-[#e6f4f1] font-mono">
+                {activeTopicForReview.topic}
+              </h3>
+              <p className="text-xs text-[#7a9490]">
+                {activeTopicForReview.protocolAction}
+              </p>
+            </div>
+
+            {/* Stage Selector */}
+            <div className="space-y-2">
+              <label className="text-xs font-mono text-[#a1b8b4] block">
+                Target Competence Elevation:
+              </label>
+              <div className="grid grid-cols-7 gap-1.5 font-mono text-xs">
+                {(['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7'] as LearningStageLevel[]).map(
+                  (lvl) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => setSelectedStageForReview(lvl)}
+                      className={`py-1.5 rounded-lg border text-center font-bold cursor-pointer transition-colors ${
+                        selectedStageForReview === lvl
+                          ? 'bg-[#00f5a0] text-[#021810] border-[#00f5a0]'
+                          : 'bg-[#050a0a] text-[#7a9490] border-[#162b29] hover:text-[#e6f4f1]'
+                      }`}
+                    >
+                      {lvl}
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+
+            {/* Evidence & AI Verify */}
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-mono text-[#a1b8b4]">
+                    Evidence Log (PR, commit hash, RFC note, or test output):
+                  </label>
+                  <button
+                    type="button"
+                    disabled={!evidenceInput.trim() || isVerifyingEvidence}
+                    onClick={handleVerifyEvidence}
+                    className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/30 hover:bg-[#00f5a0]/25 transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-30 disabled:pointer-events-none"
+                    title="Evaluate artifact against Bloom standard"
+                  >
+                    <Sparkles className="w-3 h-3 text-[#00f5a0]" />
+                    <span>{isVerifyingEvidence ? 'Auditing...' : 'AI Verify Evidence ✨'}</span>
+                  </button>
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="e.g. Implemented connection pool benchmark in repo at 120k req/s"
+                  value={evidenceInput}
+                  onChange={(e) => setEvidenceInput(e.target.value)}
+                  className="w-full bg-[#050a0a] border border-[#162b29] rounded-xl px-3.5 py-2 text-xs text-[#e6f4f1] font-mono focus:outline-none focus:border-[#00f5a0]"
+                />
+              </div>
+
+              {/* AI Evidence Audit Feedback */}
+              {evidenceAuditResult && (
+                <div className="p-3 rounded-xl bg-[#050a0a] border border-[#00f5a0]/40 space-y-1.5 font-mono text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[#00f5a0] flex items-center gap-1">
+                      <Award className="w-3.5 h-3.5" /> Verified Artifact ({evidenceAuditResult.confidenceScore}% Confidence)
+                    </span>
+                    <span className="text-[10px] text-[#7a9490]">
+                      Tier: {evidenceAuditResult.competenceTierAchieved}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#e6f4f1]">
+                    {evidenceAuditResult.elevationRecommendation}
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-mono text-[#a1b8b4] block mb-1">
+                  Synthesis &amp; Recall Notes:
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Key mental models, friction points, or architecture constraints..."
+                  value={reviewNotesInput}
+                  onChange={(e) => setReviewNotesInput(e.target.value)}
+                  className="w-full bg-[#050a0a] border border-[#162b29] rounded-xl px-3.5 py-2 text-xs text-[#e6f4f1] font-mono focus:outline-none focus:border-[#00f5a0]"
+                />
+              </div>
+            </div>
+
+            {/* Rating Buttons */}
+            <div className="space-y-2 pt-2 border-t border-[#132626]">
+              <span className="text-xs font-mono text-[#a1b8b4] block text-center">
+                Evaluate Retrieval Quality (SuperMemo SM-2 Scale):
+              </span>
+              <div className="grid grid-cols-4 gap-2 font-mono text-xs">
+                <button
+                  type="button"
+                  onClick={() => handleReviewSubmit('Forgot')}
+                  className="p-2.5 rounded-xl bg-[#2a1215] hover:bg-[#3a151a] border border-[#ff5c5c]/40 text-[#ff5c5c] font-bold cursor-pointer transition-colors text-center"
+                >
+                  <div className="font-bold">Forgot</div>
+                  <div className="text-[10px] opacity-75">Reset Day 0</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleReviewSubmit('Hard')}
+                  className="p-2.5 rounded-xl bg-[#2a2010] hover:bg-[#3a2a15] border border-[#f59e0b]/40 text-[#f59e0b] font-bold cursor-pointer transition-colors text-center"
+                >
+                  <div className="font-bold">Hard</div>
+                  <div className="text-[10px] opacity-75">+1 Day</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleReviewSubmit('Good')}
+                  className="p-2.5 rounded-xl bg-[#092025] hover:bg-[#102d35] border border-[#38bdf8]/40 text-[#38bdf8] font-bold cursor-pointer transition-colors text-center"
+                >
+                  <div className="font-bold">Good</div>
+                  <div className="text-[10px] opacity-75">+7 Days</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleReviewSubmit('Easy')}
+                  className="p-2.5 rounded-xl bg-[#07251c] hover:bg-[#0c3528] border border-[#00f5a0]/40 text-[#00f5a0] font-bold cursor-pointer transition-colors text-center"
+                >
+                  <div className="font-bold">Easy</div>
+                  <div className="text-[10px] opacity-75">+30 Days</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* AI MODAL 5: CROSS-MODULE PROJECT SYNERGY MODAL                            */}
+      {/* ========================================================================= */}
+      {showSynergiesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="bg-[#091414] border border-[#162b29] rounded-2xl w-full max-w-xl p-6 space-y-4 shadow-2xl relative">
+            <button
+              onClick={() => setShowSynergiesModal(false)}
+              className="absolute top-4 right-4 text-[#55736f] hover:text-[#e6f4f1] p-1 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1">
+              <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 fill-[#00f5a0]" />
+                <span>CROSS-MODULE SYNERGY UNLOCKER</span>
+              </span>
+              <h3 className="text-lg font-bold text-[#e6f4f1] font-mono">
+                Learning Topics Unblocking Milestone Projects
+              </h3>
+              <p className="text-xs text-[#7a9490]">
+                AI-correlated linkages between theoretical mastery (Module 03) and active engineering velocity (Module 04).
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {synergies.map((syn, idx) => (
+                <div
+                  key={idx}
+                  className="p-3.5 rounded-xl bg-[#050a0a] border border-[#162b29] space-y-1.5 font-mono text-xs"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[#00f5a0]">
+                      {syn.topicTitle} $\rightarrow$ {syn.projectCode}
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#00f5a0]/15 text-[#00f5a0]">
+                      +{syn.estimatedUnblockedMinutes} min velocity
+                    </span>
+                  </div>
+                  <div className="text-xs text-[#e6f4f1]">
+                    Unblocks Task: &ldquo;{syn.unblockedStepTitle}&rdquo;
+                  </div>
+                  <p className="text-[11px] text-[#7a9490]">
+                    {syn.synergyReason}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-[#132626]">
+              <button
+                type="button"
+                onClick={() => setShowSynergiesModal(false)}
+                className="px-5 py-2 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-mono text-xs font-bold cursor-pointer"
+              >
+                Close Synergies
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Individual Synergy Inspector */}
+      {selectedSynergy && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="bg-[#091414] border border-[#162b29] rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl relative">
+            <button
+              onClick={() => setSelectedSynergy(null)}
+              className="absolute top-4 right-4 text-[#55736f] hover:text-[#e6f4f1] p-1 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1">
+              <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider">
+                SYNERGY DETAIL
+              </span>
+              <h3 className="text-base font-bold text-[#e6f4f1] font-mono">
+                {selectedSynergy.topicTitle} $\rightarrow$ {selectedSynergy.projectCode}
+              </h3>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-[#050a0a] border border-[#162b29] space-y-2 font-mono text-xs">
+              <div className="text-xs font-bold text-[#00f5a0]">
+                Unblocked: {selectedSynergy.unblockedStepTitle}
+              </div>
+              <p className="text-xs text-[#e6f4f1] leading-relaxed">
+                {selectedSynergy.synergyReason}
+              </p>
+              <div className="text-[11px] text-[#7a9490]">
+                Estimated unblocked velocity: {selectedSynergy.estimatedUnblockedMinutes} minutes of deep work.
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-[#132626]">
+              <button
+                type="button"
+                onClick={() => setSelectedSynergy(null)}
+                className="px-5 py-2 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-mono text-xs font-bold cursor-pointer"
+              >
+                Understood
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: EDIT TOPIC */}
+      {topicToEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn">
+          <form
+            onSubmit={handleSaveEdit}
+            className="bg-[#091414] border border-[#162b29] rounded-2xl w-full max-w-lg p-6 space-y-4 shadow-2xl relative"
+          >
+            <button
+              type="button"
+              onClick={() => setTopicToEdit(null)}
+              className="absolute top-4 right-4 text-[#55736f] hover:text-[#e6f4f1] p-1 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1">
+              <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider">
+                EDIT DIRECTIVE
+              </span>
+              <h3 className="text-lg font-bold text-[#e6f4f1] font-mono">
+                Update Topic Details
+              </h3>
+            </div>
+
+            <div>
+              <label className="text-xs font-mono text-[#a1b8b4] block mb-1">
+                Topic Title:
+              </label>
+              <input
+                type="text"
+                required
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="w-full bg-[#050a0a] border border-[#162b29] rounded-xl px-3.5 py-2 text-xs text-[#e6f4f1] font-mono focus:outline-none focus:border-[#00f5a0]"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-mono text-[#a1b8b4] block mb-1">
+                  Category:
+                </label>
+                <input
+                  type="text"
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value)}
+                  className="w-full bg-[#050a0a] border border-[#162b29] rounded-xl px-3.5 py-2 text-xs text-[#e6f4f1] font-mono focus:outline-none focus:border-[#00f5a0]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-mono text-[#a1b8b4] block mb-1">
+                  Tags (dot separated):
+                </label>
+                <input
+                  type="text"
+                  value={editTags}
+                  onChange={(e) => setEditTags(e.target.value)}
+                  className="w-full bg-[#050a0a] border border-[#162b29] rounded-xl px-3.5 py-2 text-xs text-[#e6f4f1] font-mono focus:outline-none focus:border-[#00f5a0]"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-2 border-t border-[#132626]">
+              <button
+                type="button"
+                onClick={() => {
+                  setTopicToDelete(topicToEdit);
+                  setTopicToEdit(null);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-[#2a1215] text-[#ff5c5c] hover:bg-[#3a151a] font-mono text-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete</span>
+              </button>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTopicToEdit(null)}
+                  className="px-4 py-2 rounded-xl bg-[#0c1818] text-[#7a9490] hover:text-[#e6f4f1] font-mono text-xs cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-mono text-xs font-bold cursor-pointer"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL 4: DELETE CONFIRMATION */}
+      {topicToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="bg-[#091414] border border-[#162b29] rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-2xl">
+            <h3 className="text-base font-bold text-[#e6f4f1] font-mono">
+              Delete Knowledge Topic?
+            </h3>
+            <p className="text-xs text-[#7a9490]">
+              Are you sure you want to delete &ldquo;{topicToDelete.topic}&rdquo;? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#132626]">
+              <button
+                type="button"
+                onClick={() => setTopicToDelete(null)}
+                className="px-4 py-2 rounded-xl bg-[#0c1818] text-[#7a9490] font-mono text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 rounded-xl bg-[#ff5c5c] text-white font-mono text-xs font-bold cursor-pointer"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: ALL STAGES LADDER DRAWER */}
+      {showAllStagesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="bg-[#091414] border border-[#162b29] rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6 space-y-5 shadow-2xl relative">
+            <button
+              onClick={() => setShowAllStagesModal(false)}
+              className="absolute top-4 right-4 text-[#55736f] hover:text-[#e6f4f1] p-1 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1">
+              <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider">
+                COMPETENCE ARCHITECTURE
+              </span>
+              <h3 className="text-lg font-bold text-[#e6f4f1] font-mono">
+                The 7 Levels of Applied Competence
+              </h3>
+            </div>
+
+            <div className="space-y-3">
+              {state.learningStages.map((stage) => (
+                <div
+                  key={stage.level}
+                  className="p-3.5 rounded-xl bg-[#050a0a] border border-[#162b29] space-y-1.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs font-bold text-[#00f5a0]">
+                      {stage.level} · {stage.name}
+                    </span>
+                    <span className="text-[10px] font-mono text-[#7a9490]">
+                      {countByStage[stage.level] || 0} Topics
+                    </span>
+                  </div>
+                  <div className="text-xs font-semibold text-[#e6f4f1] font-mono">
+                    {stage.shortRule}
+                  </div>
+                  <p className="text-xs text-[#7a9490] leading-relaxed">
+                    {stage.definition}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

@@ -148,6 +148,8 @@ export interface LearningTopic {
   importance: TopicImportance;
   status: TopicStatus;
   category?: string;
+  subtitleTags?: string;
+  progress?: number;
   targetLevel?: LearningStageLevel;
   stage: LearningStageLevel;
   stageLabel: string;
@@ -162,6 +164,54 @@ export interface LearningTopic {
   reviewCount: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface LearningExamQuestion {
+  question: string;
+  bloomLevel: LearningStageLevel;
+  scenarioContext?: string;
+  rubricPoints: string[];
+  timeLimitSeconds?: number;
+  isDiagnosticTriage?: boolean;
+}
+
+export interface LearningExamEvaluation {
+  comprehensionScore: number;
+  recommendedRating: 'Forgot' | 'Hard' | 'Good' | 'Easy';
+  recommendedStage: LearningStageLevel;
+  blindSpots: string[];
+  verifiedStrengths: string[];
+  feynmanCritique: string;
+  confidencePct: number;
+}
+
+export interface DecomposedLearningTopic {
+  subtitleTags: string;
+  protocolAction: string;
+  progressionRoadmap: { stage: LearningStageLevel; focus: string }[];
+  failureModes: string[];
+  blankPaperChallenge: string;
+  suggestedProjectLink?: string;
+}
+
+export interface VerifiedEvidenceAudit {
+  verified: boolean;
+  confidenceScore: number;
+  competenceTierAchieved: LearningStageLevel;
+  artifactSummary: string;
+  unverifiedAssumptions: string[];
+  elevationRecommendation: string;
+}
+
+export interface LearningProjectSynergy {
+  topicId: string;
+  topicTitle: string;
+  projectId: string;
+  projectCode: string;
+  projectTitle: string;
+  unblockedStepTitle: string;
+  synergyReason: string;
+  estimatedUnblockedMinutes: number;
 }
 
 export type SDLCPhase =

@@ -45,6 +45,7 @@ import {
 import { posRepository } from '../storage/repository';
 import { Sidebar } from '../components/layout/Sidebar';
 import { ExecutiveHeader } from '../components/layout/ExecutiveHeader';
+import { ExecutiveRightSidebar } from '../components/layout/ExecutiveRightSidebar';
 import { HorizonSection } from '../components/dashboard/HorizonSection';
 import { NorthStarSection } from '../components/dashboard/NorthStarSection';
 import { CapabilityStack } from '../components/dashboard/CapabilityStack';
@@ -1253,7 +1254,7 @@ export const DashboardScreen: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-[#111318] text-[#e2e2e8] flex flex-col ${androidPreviewMode ? 'max-w-[430px] mx-auto border-x border-[#3c4a42]/40 shadow-2xl' : ''}`}>
+    <div className={`min-h-screen bg-[#050a0a] text-[#e6f4f1] flex flex-col ${androidPreviewMode ? 'max-w-[430px] mx-auto border-x border-[#162b29] shadow-2xl' : ''}`}>
       {/* Top Header */}
       <ExecutiveHeader
         onSelectSection={handleSelectSection}
@@ -1282,27 +1283,39 @@ export const DashboardScreen: React.FC = () => {
         version={state.version}
       />
 
+      {/* Right Executive Telemetry Sidebar (Hidden in Mobile Preview) */}
+      {!androidPreviewMode && (
+        <ExecutiveRightSidebar
+          activeSection={activeSection}
+          state={state}
+          onNavigateSection={handleSelectSection}
+          onOpenMorningKickoff={() => setMorningKickoffOpen(true)}
+          onReviewTopic={handleReviewTopic}
+          onUpdateLearningTopic={handleUpdateLearningTopic}
+        />
+      )}
+
       {/* Main Content Area - Renders exclusively one tab view at a time */}
-      <main className={`flex-1 transition-all pt-18 pb-16 px-4 md:px-8 ${androidPreviewMode ? 'lg:pl-4' : 'lg:pl-72'}`}>
+      <main className={`flex-1 transition-all pt-18 pb-16 px-4 md:px-6 ${androidPreviewMode ? 'lg:pl-4 xl:pr-4' : 'lg:pl-64 xl:pr-84'}`}>
         <div className="max-w-7xl mx-auto space-y-6">
 
           {/* Morning Kickoff Banner (Shows when today's flight plan has not been activated) */}
           {!todayHasKickoff && (
-            <div className="p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-[#211612] via-[#16171d] to-[#121c17] border border-[#ffb4ab]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg animate-fadeIn">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0d0f0c] border border-[#d97706]/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-[#d97706]/5 animate-fadeIn">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-[#ffb4ab]/20 border border-[#ffb4ab]/40 flex items-center justify-center text-[#ffb4ab] shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-[#f59e0b]/15 border border-[#f59e0b]/40 flex items-center justify-center text-[#f59e0b] shrink-0">
                   <Sunrise className="w-5 h-5 animate-pulse" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] text-[#ffb4ab] uppercase font-bold tracking-wider">
+                    <span className="font-mono text-xs font-bold text-[#f59e0b] tracking-wider block uppercase">
                       MORNING STANDUP PROTOCOL PENDING
                     </span>
-                    <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-[#ffb4ab]/10 text-[#ffb4ab]">
+                    <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/30">
                       {todayDateStr}
                     </span>
                   </div>
-                  <p className="text-xs text-[#e2e2e8] mt-0.5">
+                  <p className="text-xs text-[#a3b8b4] font-medium mt-0.5">
                     {state.todayPrimaryIntent
                       ? `Anchor: "${state.todayPrimaryIntent}"`
                       : "Review yesterday's deferred items, calibrate today's 4 vectors, and queue your first 90-min deep work block."}
@@ -1312,25 +1325,25 @@ export const DashboardScreen: React.FC = () => {
 
               <button
                 onClick={() => setMorningKickoffOpen(true)}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#ffb4ab] to-[#4edea3] hover:opacity-95 text-[#1a0e0b] font-mono text-xs font-black flex items-center gap-2 cursor-pointer shadow-md shadow-[#ffb4ab]/20 shrink-0 transition-transform hover:scale-[1.02]"
+                className="px-4 py-2 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-mono text-xs font-black flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(0,245,160,0.3)] shrink-0 transition-transform hover:scale-[1.02]"
               >
                 <Sunrise className="w-3.5 h-3.5" />
-                <span>Launch Morning Kickoff</span>
+                <span>Launch Kickoff</span>
               </button>
             </div>
           )}
 
           {/* Today's Winning Condition Compact Banner (When already kicked off) */}
           {todayHasKickoff && state.todayPrimaryIntent && (
-            <div className="px-4 py-2.5 rounded-xl bg-[#14161c] border border-[#3c4a42]/30 flex flex-wrap items-center justify-between gap-2 text-xs font-mono animate-fadeIn">
+            <div className="px-4 py-2.5 rounded-xl bg-[#091414] border border-[#162b29] flex flex-wrap items-center justify-between gap-2 text-xs font-mono animate-fadeIn">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="w-2 h-2 rounded-full bg-[#4edea3] animate-pulse shrink-0" />
-                <span className="text-[#bbcabf] shrink-0">TODAY&apos;S WINNING CONDITION:</span>
-                <span className="text-[#e2e2e8] font-bold truncate">&ldquo;{state.todayPrimaryIntent}&rdquo;</span>
+                <span className="w-2 h-2 rounded-full bg-[#00f5a0] animate-pulse shrink-0" />
+                <span className="text-[#7a9490] shrink-0">TODAY&apos;S WINNING CONDITION:</span>
+                <span className="text-[#e6f4f1] font-bold truncate">&ldquo;{state.todayPrimaryIntent}&rdquo;</span>
               </div>
               <button
                 onClick={() => setMorningKickoffOpen(true)}
-                className="text-[10px] text-[#ffb4ab] hover:underline cursor-pointer ml-auto"
+                className="text-[10px] text-[#00f5a0] hover:underline cursor-pointer ml-auto"
               >
                 Re-calibrate Kickoff ↺
               </button>
@@ -1338,16 +1351,16 @@ export const DashboardScreen: React.FC = () => {
           )}
 
           {/* Single Tab Control & Breadcrumb Bar */}
-          <div className="p-4 rounded-xl bg-[#1a1c20]/90 border border-[#3c4a42]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-4 rounded-xl bg-[#081010] border border-[#162b29] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#4edea3]/10 border border-[#4edea3]/30 flex items-center justify-center text-[#4edea3]">
+              <div className="w-10 h-10 rounded-lg bg-[#00f5a0]/10 border border-[#00f5a0]/30 flex items-center justify-center text-[#00f5a0]">
                 <Compass className="w-5 h-5" />
               </div>
               <div>
-                <span className="font-mono text-[10px] text-[#4edea3] tracking-widest uppercase block font-bold">
+                <span className="font-mono text-[10px] text-[#00f5a0] tracking-widest uppercase block font-bold">
                   ACTIVE TERMINAL VIEW (ONE TAB AT A TIME)
                 </span>
-                <h1 className="font-mono text-base md:text-lg font-bold text-[#e2e2e8]">
+                <h1 className="font-mono text-base md:text-lg font-bold text-[#e6f4f1]">
                   {getSectionTitle(activeSection)}
                 </h1>
               </div>
@@ -1358,21 +1371,21 @@ export const DashboardScreen: React.FC = () => {
               <button
                 onClick={handlePrevTab}
                 disabled={currentModuleIndex <= 0}
-                className="px-3 py-1.5 rounded bg-[#111318] hover:bg-[#282a2e] border border-[#3c4a42]/40 text-[#bbcabf] hover:text-[#e2e2e8] disabled:opacity-30 disabled:pointer-events-none cursor-pointer flex items-center gap-1.5 font-mono text-xs"
+                className="px-3 py-1.5 rounded-lg bg-[#0c1818] hover:bg-[#122424] border border-[#1d3835] text-[#7a9490] hover:text-[#e6f4f1] disabled:opacity-30 disabled:pointer-events-none cursor-pointer flex items-center gap-1.5 font-mono text-xs transition-colors"
                 title="Navigate to Previous Tab"
               >
                 <ChevronLeft className="w-4 h-4" />
                 <span className="hidden sm:inline">PREV TAB</span>
               </button>
 
-              <span className="font-mono text-xs text-[#4edea3] px-2 py-1 bg-[#4edea3]/10 rounded border border-[#4edea3]/30 font-bold">
+              <span className="font-mono text-xs text-[#00f5a0] px-2.5 py-1 bg-[#00f5a0]/10 rounded-lg border border-[#00f5a0]/30 font-bold">
                 {currentModuleIndex >= 0 ? `MOD 0${currentModuleIndex + 1} / 09` : 'VAULT VIEW'}
               </span>
 
               <button
                 onClick={handleNextTab}
                 disabled={currentModuleIndex >= CORE_MODULE_ORDER.length - 1}
-                className="px-3 py-1.5 rounded bg-[#111318] hover:bg-[#282a2e] border border-[#3c4a42]/40 text-[#bbcabf] hover:text-[#e2e2e8] disabled:opacity-30 disabled:pointer-events-none cursor-pointer flex items-center gap-1.5 font-mono text-xs"
+                className="px-3 py-1.5 rounded-lg bg-[#0c1818] hover:bg-[#122424] border border-[#1d3835] text-[#7a9490] hover:text-[#e6f4f1] disabled:opacity-30 disabled:pointer-events-none cursor-pointer flex items-center gap-1.5 font-mono text-xs transition-colors"
                 title="Navigate to Next Tab"
               >
                 <span className="hidden sm:inline">NEXT TAB</span>
@@ -1401,11 +1414,11 @@ export const DashboardScreen: React.FC = () => {
                   onClick={() => handleSelectSection(tab.id as NavigationSection)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium whitespace-nowrap cursor-pointer transition-all flex items-center gap-1.5 border ${
                     isActive
-                      ? 'bg-[#4edea3]/15 text-[#4edea3] border-[#4edea3]/40 font-bold shadow-sm ring-1 ring-[#4edea3]/20'
-                      : 'bg-[#1a1c20]/70 text-[#bbcabf] hover:text-[#e2e2e8] hover:bg-[#1a1c20] border-[#3c4a42]/30'
+                      ? 'bg-[#00f5a0]/15 text-[#00f5a0] border-[#00f5a0]/50 font-bold shadow-[0_0_12px_rgba(0,245,160,0.15)]'
+                      : 'bg-[#091414] text-[#7a9490] hover:text-[#e6f4f1] hover:bg-[#0c1818] border-[#162b29]'
                   }`}
                 >
-                  <span className={isActive ? 'text-[#4edea3]' : 'text-[#bbcabf]'}>{tab.icon}</span>
+                  <span className={isActive ? 'text-[#00f5a0]' : 'text-[#7a9490]'}>{tab.icon}</span>
                   <span>{tab.label}</span>
                 </button>
               );
@@ -1422,7 +1435,9 @@ export const DashboardScreen: React.FC = () => {
       {/* Floating Action Button for Quick Directive (Mobile or Desktop) */}
       <button
         onClick={() => setQuickCreateOpen(true)}
-        className="fixed bottom-6 right-6 z-40 p-3.5 rounded-full bg-[#4edea3] hover:bg-[#4edea3]/90 text-[#003822] shadow-xl hover:shadow-[#4edea3]/20 transition-all cursor-pointer flex items-center gap-2 group font-mono text-xs font-bold"
+        className={`fixed bottom-6 z-40 p-3.5 rounded-full bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] shadow-xl hover:shadow-[#00f5a0]/25 transition-all cursor-pointer flex items-center gap-2 group font-mono text-xs font-bold ${
+          androidPreviewMode ? 'right-6' : 'right-6 xl:right-86'
+        }`}
         aria-label="Create Directive"
       >
         <Plus className="w-5 h-5 transition-transform group-hover:rotate-90" />

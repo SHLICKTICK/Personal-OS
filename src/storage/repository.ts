@@ -77,10 +77,17 @@ export class LocalStoragePOSRepository implements IPOSRepository {
 
       const activeFocusTimer = parsed.activeFocusTimer || SEED_POS_STATE.activeFocusTimer;
 
+      const existingTopics = Array.isArray(parsed.learningTopics) ? parsed.learningTopics : SEED_POS_STATE.learningTopics;
+      const hasAiEng = existingTopics.some((t) => t.id === 'lt-ai-eng' || t.topic.toLowerCase().includes('ai engineering'));
+      const mergedTopics = hasAiEng
+        ? existingTopics
+        : [...SEED_POS_STATE.learningTopics.filter((st) => st.id.startsWith('lt-')), ...existingTopics];
+
       return {
         ...SEED_POS_STATE,
         ...parsed,
         goals: enrichedGoals,
+        learningTopics: mergedTopics,
         activeCommercialExperiment,
         businessExperimentSteps: mergedSteps,
         dailyPerformanceLogs,
