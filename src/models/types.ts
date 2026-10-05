@@ -453,9 +453,21 @@ export interface AuditLogEntry {
   detail: string;
 }
 
+export interface MorningKickoffRecord {
+  id: string;
+  date: string;
+  kickedOffAt: string;
+  primaryIntent: string;
+  targetDeepWorkMinutes: number;
+  deployedDirectiveIds: string[];
+  deferredCarriedOverCount: number;
+}
+
 export interface POSState {
   version: string;
   operatorName: string;
+  todayPrimaryIntent?: string;
+  morningKickoffs?: MorningKickoffRecord[];
   creedStages: { id: string; label: string; active: boolean; highlight?: boolean }[];
   activeCreedStageId: string;
   horizonTitle: string;

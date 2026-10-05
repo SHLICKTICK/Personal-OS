@@ -137,6 +137,7 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [showEodModal, setShowEodModal] = useState(false);
   const [showLogsDrawer, setShowLogsDrawer] = useState(false);
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [slotCustomizerSlot, setSlotCustomizerSlot] = useState<1 | 2 | 3 | 4 | null>(null);
   const [eodNotes, setEodNotes] = useState('');
   const [eodDate, setEodDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -2153,6 +2154,64 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                           "{log.operatorNotes}"
                         </div>
                       )}
+
+                      {/* Expandable Directive Breakdown */}
+                      <div className="pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
+                          className="text-[10px] text-[#4edea3] hover:underline font-mono font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>{expandedLogId === log.id ? 'Hide Goal Details ▴' : 'Inspect Completed & Missed Goals ▾'}</span>
+                        </button>
+
+                        {expandedLogId === log.id && (
+                          <div className="mt-2 p-2.5 rounded-lg bg-[#0c0e12] border border-[#3c4a42]/30 space-y-2 animate-fadeIn">
+                            {/* Completed */}
+                            {log.completedDirectives && log.completedDirectives.length > 0 && (
+                              <div className="space-y-1">
+                                <span className="text-[10px] text-[#4edea3] font-bold uppercase tracking-wider block">
+                                  ✓ Verified Completed ({log.completedDirectives.length})
+                                </span>
+                                {log.completedDirectives.map((cd, idx) => (
+                                  <div key={idx} className="flex items-center gap-2 text-[11px] text-[#e2e2e8]">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-[#4edea3] shrink-0" />
+                                    <span className="font-mono text-[9px] px-1 py-0.2 rounded bg-[#16181d] text-[#bbcabf] border border-[#3c4a42]/30 shrink-0">
+                                      {cd.sourceRef || cd.sourceType}
+                                    </span>
+                                    <span className="truncate">{cd.title}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Missed */}
+                            {log.missedDirectives && log.missedDirectives.length > 0 && (
+                              <div className="space-y-1 pt-1.5 border-t border-[#3c4a42]/20">
+                                <span className="text-[10px] text-[#ffb4ab] font-bold uppercase tracking-wider block">
+                                  ✕ Deferred / Missed ({log.missedDirectives.length})
+                                </span>
+                                {log.missedDirectives.map((md, idx) => (
+                                  <div key={idx} className="flex items-center gap-2 text-[11px] text-[#bbcabf]">
+                                    <XCircle className="w-3.5 h-3.5 text-[#ffb4ab] shrink-0" />
+                                    <span className="font-mono text-[9px] px-1 py-0.2 rounded bg-[#16181d] text-[#86948a] border border-[#3c4a42]/30 shrink-0">
+                                      {md.sourceRef || md.sourceType}
+                                    </span>
+                                    <span className="truncate">{md.title}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {(!log.completedDirectives || log.completedDirectives.length === 0) &&
+                              (!log.missedDirectives || log.missedDirectives.length === 0) && (
+                                <span className="text-[10px] text-[#bbcabf] italic">
+                                  All {log.completedCount} directives verified in audit ledger.
+                                </span>
+                              )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

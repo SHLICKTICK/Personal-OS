@@ -15,6 +15,7 @@ import {
   Command,
   X,
   Sparkles,
+  Sunrise,
 } from 'lucide-react';
 import { NavigationSection } from '../../models/types';
 
@@ -25,6 +26,7 @@ interface SidebarProps {
   onOpenCommandPalette: () => void;
   onOpenSettings: () => void;
   onOpenOnboarding?: () => void;
+  onOpenMorningKickoff?: () => void;
   mobileOpen: boolean;
   onCloseMobile: () => void;
   version: string;
@@ -44,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenCommandPalette,
   onOpenSettings,
   onOpenOnboarding,
+  onOpenMorningKickoff,
   mobileOpen,
   onCloseMobile,
   version,
@@ -161,6 +164,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
             ⌘K
           </kbd>
         </button>
+
+        {onOpenMorningKickoff && (
+          <button
+            onClick={() => {
+              onOpenMorningKickoff();
+              onCloseMobile();
+            }}
+            className="w-full flex items-center justify-between px-3 py-2 rounded text-[#ffb4ab] hover:text-[#e2e2e8] hover:bg-[#ffb4ab]/10 border border-[#ffb4ab]/40 transition-colors font-mono text-[12px] cursor-pointer shadow-xs"
+          >
+            <span className="flex items-center gap-2">
+              <Sunrise className="w-4 h-4 text-[#ffb4ab]" />
+              <span className="font-bold">Day Kickoff</span>
+            </span>
+            <span className="font-mono text-[10px] text-[#ffb4ab] font-bold">READY</span>
+          </button>
+        )}
 
         {onOpenOnboarding && (
           <button

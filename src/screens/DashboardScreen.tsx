@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Compass,
   Brain,
@@ -12,6 +12,8 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Sunrise,
+  Flame,
 } from 'lucide-react';
 import {
   ActiveFocusTimer,
@@ -31,6 +33,7 @@ import {
   LearningStageLevel,
   LearningTopic,
   Liability,
+  MorningKickoffRecord,
   NavigationSection,
   POSState,
   Principle,
@@ -54,6 +57,7 @@ import { SignOffSection } from '../components/dashboard/SignOffSection';
 import { QuickCreateModal } from '../components/modals/QuickCreateModal';
 import { CommandPaletteModal } from '../components/modals/CommandPaletteModal';
 import { OnboardingModal } from '../components/modals/OnboardingModal';
+import { MorningKickoffModal } from '../components/modals/MorningKickoffModal';
 
 const CORE_MODULE_ORDER: NavigationSection[] = [
   'north-star',
@@ -86,6 +90,118 @@ export const DashboardScreen: React.FC = () => {
       return false;
     }
   });
+
+  const [morningKickoffOpen, setMorningKickoffOpen] = useState(false);
+  const todayDateStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const todayHasKickoff = useMemo(() => {
+    return Boolean(state.morningKickoffs?.some((k) => k.date === todayDateStr));
+  }, [state.morningKickoffs, todayDateStr]);
+
+  const handleDeployKickoff = (payload: {
+    primaryIntent: string;
+    targetDeepWorkMinutes: number;
+    startTimerNow: boolean;
+    slot1: { title: string; sourceRef?: string; metric?: string };
+    slot2: { title: string; sourceRef?: string; metric?: string };
+    slot3: { title: string; sourceRef?: string; metric?: string };
+    slot4: { title: string; sourceRef?: string; metric?: string };
+    navigateToSection?: NavigationSection;
+  }) => {
+    const kickoffId = `kickoff-${Date.now()}`;
+    const newKickoff: MorningKickoffRecord = {
+      id: kickoffId,
+      date: todayDateStr,
+      kickedOffAt: new Date().toISOString(),
+      primaryIntent: payload.primaryIntent,
+      targetDeepWorkMinutes: payload.targetDeepWorkMinutes,
+      deployedDirectiveIds: ['g-slot-1', 'g-slot-2', 'g-slot-3', 'g-slot-4'],
+      deferredCarriedOverCount: 0,
+    };
+
+    updateState((prev) => {
+      const nonTodayGoals = prev.goals.filter((g) => g.horizon !== 'Today');
+      const newTodayGoals: Goal[] = [
+        {
+          id: `g-slot-1-${Date.now()}`,
+          title: payload.slot1.title,
+          targetMetric: payload.slot1.metric || 'Milestone SDLC Phase: Implementation',
+          category: 'Engineering',
+          horizon: 'Today',
+          progress: 0,
+          status: 'ACTIVE',
+          sourceType: 'MILESTONE_PROJECT',
+          sourceRefCode: payload.slot1.sourceRef || 'PRJ-02',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: `g-slot-2-${Date.now()}`,
+          title: payload.slot2.title,
+          targetMetric: payload.slot2.metric || 'Milestone SDLC Phase: Verification & DoD Gate',
+          category: 'Engineering',
+          horizon: 'Today',
+          progress: 0,
+          status: 'ACTIVE',
+          sourceType: 'MILESTONE_PROJECT',
+          sourceRefCode: payload.slot2.sourceRef || 'PRJ-02',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: `g-slot-3-${Date.now()}`,
+          title: payload.slot3.title,
+          targetMetric: payload.slot3.metric || 'Commercial Velocity Loop',
+          category: 'Commercial',
+          horizon: 'Today',
+          progress: 0,
+          status: 'ACTIVE',
+          sourceType: 'FINANCIAL_OS',
+          sourceRefCode: payload.slot3.sourceRef || 'FIN-OS',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: `g-slot-4-${Date.now()}`,
+          title: payload.slot4.title,
+          targetMetric: payload.slot4.metric || 'Feynman Spaced Recall',
+          category: 'Cognitive',
+          horizon: 'Today',
+          progress: 0,
+          status: 'ACTIVE',
+          sourceType: 'LEARNING_ENGINE',
+          sourceRefCode: payload.slot4.sourceRef || 'LEARN-ENG',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ];
+
+      let updatedActiveTimer: ActiveFocusTimer | undefined = prev.activeFocusTimer;
+      if (payload.startTimerNow) {
+        updatedActiveTimer = {
+          isRunning: true,
+          mode: 'deep1',
+          totalDurationSeconds: 90 * 60,
+          targetEndTime: new Date(Date.now() + 90 * 60 * 1000).toISOString(),
+          remainingSeconds: 90 * 60,
+          linkedDirectiveId: newTodayGoals[0].id,
+          linkedDirectiveTitle: newTodayGoals[0].title,
+          startedAt: new Date().toISOString(),
+        };
+      }
+
+      return {
+        ...prev,
+        todayPrimaryIntent: payload.primaryIntent,
+        morningKickoffs: [newKickoff, ...(prev.morningKickoffs || [])],
+        goals: [...nonTodayGoals, ...newTodayGoals],
+        activeFocusTimer: updatedActiveTimer,
+      };
+    });
+
+    if (payload.navigateToSection) {
+      handleSelectSection(payload.navigateToSection);
+    }
+  };
 
   const handleCompleteOnboarding = (data: {
     operatorName: string;
@@ -1144,6 +1260,7 @@ export const DashboardScreen: React.FC = () => {
         onOpenQuickCreate={() => setQuickCreateOpen(true)}
         onOpenCommandPalette={() => setCommandPaletteOpen(true)}
         onOpenOnboarding={() => setOnboardingOpen(true)}
+        onOpenMorningKickoff={() => setMorningKickoffOpen(true)}
         onToggleMobileMenu={() => setMobileMenuOpen((prev) => !prev)}
         androidPreviewMode={androidPreviewMode}
         onToggleAndroidPreview={() => setAndroidPreviewMode((prev) => !prev)}
@@ -1159,6 +1276,7 @@ export const DashboardScreen: React.FC = () => {
         onOpenCommandPalette={() => setCommandPaletteOpen(true)}
         onOpenSettings={() => setCommandPaletteOpen(true)}
         onOpenOnboarding={() => setOnboardingOpen(true)}
+        onOpenMorningKickoff={() => setMorningKickoffOpen(true)}
         mobileOpen={mobileMenuOpen}
         onCloseMobile={() => setMobileMenuOpen(false)}
         version={state.version}
@@ -1167,6 +1285,57 @@ export const DashboardScreen: React.FC = () => {
       {/* Main Content Area - Renders exclusively one tab view at a time */}
       <main className={`flex-1 transition-all pt-18 pb-16 px-4 md:px-8 ${androidPreviewMode ? 'lg:pl-4' : 'lg:pl-72'}`}>
         <div className="max-w-7xl mx-auto space-y-6">
+
+          {/* Morning Kickoff Banner (Shows when today's flight plan has not been activated) */}
+          {!todayHasKickoff && (
+            <div className="p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-[#211612] via-[#16171d] to-[#121c17] border border-[#ffb4ab]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg animate-fadeIn">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-[#ffb4ab]/20 border border-[#ffb4ab]/40 flex items-center justify-center text-[#ffb4ab] shrink-0">
+                  <Sunrise className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] text-[#ffb4ab] uppercase font-bold tracking-wider">
+                      MORNING STANDUP PROTOCOL PENDING
+                    </span>
+                    <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-[#ffb4ab]/10 text-[#ffb4ab]">
+                      {todayDateStr}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#e2e2e8] mt-0.5">
+                    {state.todayPrimaryIntent
+                      ? `Anchor: "${state.todayPrimaryIntent}"`
+                      : "Review yesterday's deferred items, calibrate today's 4 vectors, and queue your first 90-min deep work block."}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setMorningKickoffOpen(true)}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#ffb4ab] to-[#4edea3] hover:opacity-95 text-[#1a0e0b] font-mono text-xs font-black flex items-center gap-2 cursor-pointer shadow-md shadow-[#ffb4ab]/20 shrink-0 transition-transform hover:scale-[1.02]"
+              >
+                <Sunrise className="w-3.5 h-3.5" />
+                <span>Launch Morning Kickoff</span>
+              </button>
+            </div>
+          )}
+
+          {/* Today's Winning Condition Compact Banner (When already kicked off) */}
+          {todayHasKickoff && state.todayPrimaryIntent && (
+            <div className="px-4 py-2.5 rounded-xl bg-[#14161c] border border-[#3c4a42]/30 flex flex-wrap items-center justify-between gap-2 text-xs font-mono animate-fadeIn">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-2 h-2 rounded-full bg-[#4edea3] animate-pulse shrink-0" />
+                <span className="text-[#bbcabf] shrink-0">TODAY&apos;S WINNING CONDITION:</span>
+                <span className="text-[#e2e2e8] font-bold truncate">&ldquo;{state.todayPrimaryIntent}&rdquo;</span>
+              </div>
+              <button
+                onClick={() => setMorningKickoffOpen(true)}
+                className="text-[10px] text-[#ffb4ab] hover:underline cursor-pointer ml-auto"
+              >
+                Re-calibrate Kickoff ↺
+              </button>
+            </div>
+          )}
 
           {/* Single Tab Control & Breadcrumb Bar */}
           <div className="p-4 rounded-xl bg-[#1a1c20]/90 border border-[#3c4a42]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1291,6 +1460,14 @@ export const DashboardScreen: React.FC = () => {
         onClose={() => setOnboardingOpen(false)}
         state={state}
         onCompleteOnboarding={handleCompleteOnboarding}
+      />
+
+      {/* Morning Kickoff Protocol Modal */}
+      <MorningKickoffModal
+        isOpen={morningKickoffOpen}
+        onClose={() => setMorningKickoffOpen(false)}
+        state={state}
+        onDeployKickoff={handleDeployKickoff}
       />
     </div>
   );

@@ -7,6 +7,7 @@ import {
   Monitor,
   Command,
   Sparkles,
+  Sunrise,
 } from 'lucide-react';
 import { NavigationSection } from '../../models/types';
 
@@ -20,6 +21,7 @@ interface ExecutiveHeaderProps {
   onOpenQuickCreate: () => void;
   onOpenCommandPalette: () => void;
   onOpenOnboarding?: () => void;
+  onOpenMorningKickoff?: () => void;
   onToggleMobileMenu: () => void;
   androidPreviewMode: boolean;
   onToggleAndroidPreview: () => void;
@@ -34,6 +36,7 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
   onOpenQuickCreate,
   onOpenCommandPalette,
   onOpenOnboarding,
+  onOpenMorningKickoff,
   onToggleMobileMenu,
   androidPreviewMode,
   onToggleAndroidPreview,
@@ -100,6 +103,18 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
             ⌘N
           </kbd>
         </button>
+
+        {/* Morning Kickoff Standup */}
+        {onOpenMorningKickoff && (
+          <button
+            onClick={onOpenMorningKickoff}
+            className="px-2.5 py-1.5 rounded-lg bg-[#ffb4ab]/15 hover:bg-[#ffb4ab]/25 border border-[#ffb4ab]/40 text-[#ffb4ab] font-mono text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs"
+            title="Launch Morning Kickoff Standup (Activate Today's Flight Plan)"
+          >
+            <Sunrise className="w-3.5 h-3.5 text-[#ffb4ab]" />
+            <span className="hidden sm:inline">Day Kickoff</span>
+          </button>
+        )}
 
         {/* Setup Flow & Tour */}
         {onOpenOnboarding && (
