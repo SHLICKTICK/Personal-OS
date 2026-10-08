@@ -265,7 +265,7 @@ export interface Project {
   code: string;
   title: string;
   objective: string;
-  status: 'COMPLETED' | 'IN PROGRESS' | 'QUEUED';
+  status: 'COMPLETED' | 'IN PROGRESS' | 'QUEUED' | 'READY';
   phaseTag: 'FOUNDATION' | 'ACTIVE' | 'PLANNED' | 'FUTURE' | 'LONG TERM';
   spanText: string;
   startDate?: string;

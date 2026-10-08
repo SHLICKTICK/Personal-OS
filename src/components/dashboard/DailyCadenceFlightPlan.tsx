@@ -1,34 +1,38 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Timer,
-  Sun,
-  Rocket,
   Play,
   Pause,
   RotateCcw,
-  CheckSquare,
-  Square,
-  ClipboardCheck,
+  Target,
+  Clock,
+  Calendar,
+  Flame,
+  Star,
+  Activity,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
+  Layers,
+  Box,
+  Check,
   Plus,
   Trash2,
-  Gauge,
-  Flame,
   Zap,
-  BarChart3,
-  Calendar,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  Sparkles,
-  ArrowRight,
-  Star,
+  Rocket,
+  Brain,
   Award,
-  BookOpen,
-  Layers,
-  Activity,
-  History,
+  Shield,
+  ChevronRight,
+  X,
+  Maximize2,
   Volume2,
   VolumeX,
+  ExternalLink,
+  Filter,
+  Search,
+  SlidersHorizontal,
+  Info,
+  Compass,
 } from 'lucide-react';
 import {
   ActiveFocusTimer,
@@ -40,6 +44,26 @@ import {
   Review,
   RoadmapItem,
 } from '../../models/types';
+import { WireframeSphere } from '../common/WireframeSphere';
+
+interface PortfolioProject {
+  code: string;
+  title: string;
+  timeline: string;
+  description?: string;
+  stage?: string;
+  progress?: number;
+  color?: string;
+  milestone?: string;
+}
+
+interface PortfolioLane {
+  id: string;
+  title: string;
+  count: number;
+  highlight?: boolean;
+  projects: PortfolioProject[];
+}
 
 interface DailyCadenceFlightPlanProps {
   state: POSState;
@@ -55,7 +79,7 @@ interface DailyCadenceFlightPlanProps {
   onToggleGoalAndSyncSource?: (goal: Goal) => void;
 }
 
-// Tactical Web Audio synthesizer for focus cues (no external network dependencies)
+// Tactical Web Audio synthesizer for focus cues (zero network dependencies)
 const playTacticalChime = (type: 'complete' | 'start') => {
   try {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -68,9 +92,9 @@ const playTacticalChime = (type: 'complete' | 'start') => {
 
     if (type === 'complete') {
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15); // A5
-      osc.frequency.setValueAtTime(1174.66, ctx.currentTime + 0.35); // D6
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
+      osc.frequency.setValueAtTime(1174.66, ctx.currentTime + 0.35);
       gain.gain.setValueAtTime(0.25, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
       osc.start();
@@ -85,7 +109,7 @@ const playTacticalChime = (type: 'complete' | 'start') => {
       osc.stop(ctx.currentTime + 0.35);
     }
   } catch {
-    // Ignored in restricted environments
+    // Audio context unavailable
   }
 };
 
@@ -102,1239 +126,1639 @@ export const DailyCadenceFlightPlan: React.FC<DailyCadenceFlightPlanProps> = ({
   onNavigateToSection,
   onToggleGoalAndSyncSource,
 }) => {
-  const [subView, setSubView] = useState<'scoreboard' | 'timer' | 'cadence' | 'sessions' | 'reviews'>('scoreboard');
-  const [cadenceTab, setCadenceTab] = useState<'901590' | 'schedule'>('901590');
+  // Timer State (90-min standard deep work block)
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [timerSecondsLeft, setTimerSecondsLeft] = useState(90 * 60);
+  const [currentBlockIndex, setCurrentBlockIndex] = useState<1 | 2 | 3>(1); // 1 = Deep Block 1, 2 = Break, 3 = Deep Block 2
+  const [activeGoalFocus, setActiveGoalFocus] = useState<string>('Personal Automation Engine — Connect command execution layer');
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  // Filters & Search
+  const [queueFilter, setQueueFilter] = useState<'ALL' | 'PROJECT' | 'FINANCIAL' | 'LEARNING'>('ALL');
+  const [queueSearch, setQueueSearch] = useState('');
 
-  // Today's goals from North Star
-  const todayDirectives = useMemo(() => {
-    return state.goals.filter((g) => g.horizon === 'Today');
-  }, [state.goals]);
+  // Full-screen focus overlay modal
+  const [isFocusOverlayOpen, setIsFocusOverlayOpen] = useState(false);
 
-  // Focus sessions
-  const focusSessions = useMemo(() => {
-    return state.focusSessions || [];
-  }, [state.focusSessions]);
+  // View Modals & Drawers
+  const [showQueueModal, setShowQueueModal] = useState(false);
+  const [showRecentSessionsModal, setShowRecentSessionsModal] = useState(false);
+  const [showPortfolioModal, setShowPortfolioModal] = useState(false);
+  const [selectedPortfolioProject, setSelectedPortfolioProject] = useState<PortfolioProject | null>(null);
+  const [showLogSessionModal, setShowLogSessionModal] = useState(false);
+  const [showAddDirectiveModal, setShowAddDirectiveModal] = useState(false);
 
-  // Today's logged focus sessions
-  const todaySessions = useMemo(() => {
-    return focusSessions.filter((s) => s.date === todayStr);
-  }, [focusSessions, todayStr]);
+  // Manual Log Session State
+  const [logDirectiveTitle, setLogDirectiveTitle] = useState('Personal Automation Engine');
+  const [logDurationMinutes, setLogDurationMinutes] = useState(90);
+  const [logFocusRating, setLogFocusRating] = useState<number>(5);
+  const [logDistractions, setLogDistractions] = useState<number>(0);
+  const [logNotes, setLogNotes] = useState('90-minute deep work block completed with zero distractions.');
 
-  // Today's deep work minutes logged
-  const todayMinutesLogged = useMemo(() => {
-    const fromSessions = todaySessions.reduce((acc, s) => acc + s.durationMinutes, 0);
-    // Also include today's reviews if any
-    const todayReviews = (state.reviews || []).filter((r) => r.date === todayStr);
-    const fromReviews = todayReviews.reduce((acc, r) => acc + (r.deepWorkMinutesLogged || 0), 0);
-    return Math.max(fromSessions, fromReviews);
-  }, [todaySessions, state.reviews, todayStr]);
+  // New Directive Form State
+  const [newDirectiveTitle, setNewDirectiveTitle] = useState('');
+  const [newDirectiveCategory, setNewDirectiveCategory] = useState<'PROJECT' | 'FINANCIAL' | 'LEARNING'>('PROJECT');
+  const [newDirectiveDuration, setNewDirectiveDuration] = useState(90);
+  const [newDirectiveSubtitle, setNewDirectiveSubtitle] = useState('');
 
-  const TARGET_DAILY_MINUTES = 180; // 3.0h standard 90-15-90 protocol
-  const todayProgressPercent = Math.min(100, Math.round((todayMinutesLogged / TARGET_DAILY_MINUTES) * 100));
+  // Selected project for focus target
+  const [activeProjectCode, setActiveProjectCode] = useState('P01');
 
-  // 90-min blocks completed today
-  const completed90MinBlocks = useMemo(() => {
-    return state.deepWorkBlocks.filter((b) => b.completedToday && b.durationMinutes >= 90).length;
-  }, [state.deepWorkBlocks]);
-
-  // 7-Day Velocity Data
-  const last7DaysData = useMemo(() => {
-    const days: { dateStr: string; label: string; minutes: number; sessionCount: number; isToday: boolean }[] = [];
-    const now = new Date();
-
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const dStr = d.toISOString().split('T')[0];
-      const dayName = i === 0 ? 'TODAY' : d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-
-      const daySessions = focusSessions.filter((s) => s.date === dStr);
-      const minutesFromSessions = daySessions.reduce((acc, s) => acc + s.durationMinutes, 0);
-      const dayReviews = (state.reviews || []).filter((r) => r.date === dStr);
-      const minutesFromReviews = dayReviews.reduce((acc, r) => acc + (r.deepWorkMinutesLogged || 0), 0);
-
-      const totalMins = Math.max(minutesFromSessions, minutesFromReviews);
-
-      days.push({
-        dateStr: dStr,
-        label: dayName,
-        minutes: totalMins,
-        sessionCount: daySessions.length,
-        isToday: i === 0,
-      });
-    }
-    return days;
-  }, [focusSessions, state.reviews]);
-
-  // Total weekly deep work hours
-  const weeklyTotalMinutes = useMemo(() => {
-    return last7DaysData.reduce((acc, d) => acc + d.minutes, 0);
-  }, [last7DaysData]);
-
-  const weeklyTotalHours = (weeklyTotalMinutes / 60).toFixed(1);
-
-  // Consecutive streak of hitting >= 90 min deep work
-  const streakDays = useMemo(() => {
-    let streak = 0;
-    // Count backward from today (or yesterday if today is still in progress)
-    const sortedDates = [...new Set(focusSessions.map((s) => s.date))].sort().reverse();
-    if (todayMinutesLogged >= 90) {
-      streak = 1;
-    }
-    for (const d of sortedDates) {
-      if (d === todayStr) continue;
-      const dayMins = focusSessions.filter((s) => s.date === d).reduce((acc, s) => acc + s.durationMinutes, 0);
-      if (dayMins >= 90) {
-        streak++;
-      } else {
-        break;
-      }
-    }
-    return Math.max(streak, 4); // calibrated with seed history
-  }, [focusSessions, todayStr, todayMinutesLogged]);
-
-  // Average focus quality rating
-  const averageFocusRating = useMemo(() => {
-    const rated = focusSessions.filter((s) => s.focusRating && s.focusRating > 0);
-    if (rated.length === 0) return 5.0;
-    const sum = rated.reduce((acc, s) => acc + (s.focusRating || 5), 0);
-    return (sum / rated.length).toFixed(1);
-  }, [focusSessions]);
-
-  // Total zero-distraction sessions
-  const zeroDistractionCount = useMemo(() => {
-    return focusSessions.filter((s) => s.distractionCount === 0).length;
-  }, [focusSessions]);
-
-  // ----------------------------------------------------
-  // Persistent 90-15-90 Deep Work Timer Engine
-  // ----------------------------------------------------
-  const initialTimer = state.activeFocusTimer || {
-    isRunning: false,
-    mode: 'deep1',
-    totalDurationSeconds: 90 * 60,
-    targetEndTime: null,
-    remainingSeconds: 90 * 60,
-    linkedDirectiveId: todayDirectives[0]?.id || undefined,
-    linkedDirectiveTitle: todayDirectives[0]?.title || undefined,
-  };
-
-  const [timerMode, setTimerMode] = useState<'deep1' | 'rest' | 'deep2' | 'custom'>(initialTimer.mode);
-  const [timerRunning, setTimerRunning] = useState(initialTimer.isRunning);
-  const [timerSeconds, setTimerSeconds] = useState(initialTimer.remainingSeconds);
-  const [totalSeconds, setTotalSeconds] = useState(initialTimer.totalDurationSeconds || 90 * 60);
-  const [selectedDirectiveId, setSelectedDirectiveId] = useState<string>(
-    initialTimer.linkedDirectiveId || todayDirectives[0]?.id || ''
-  );
-  const [showLogModal, setShowLogModal] = useState(false);
-
-  // Quick Session Log Modal state
-  const [logMinutes, setLogMinutes] = useState(90);
-  const [logRating, setLogRating] = useState(5);
-  const [logDistractions, setLogDistractions] = useState(0);
-  const [logNotes, setLogNotes] = useState('');
-  const [logSyncDirective, setLogSyncDirective] = useState(true);
-
-  // Resume or calibrate timer on load based on targetEndTime
-  useEffect(() => {
-    if (state.activeFocusTimer?.isRunning && state.activeFocusTimer.targetEndTime) {
-      const targetMs = new Date(state.activeFocusTimer.targetEndTime).getTime();
-      const nowMs = Date.now();
-      const diffSec = Math.max(0, Math.round((targetMs - nowMs) / 1000));
-      if (diffSec > 0) {
-        setTimerSeconds(diffSec);
-        setTimerRunning(true);
-      } else {
-        setTimerSeconds(0);
-        setTimerRunning(false);
-        if (soundEnabled) playTacticalChime('complete');
-      }
-    }
-  }, []);
-
-  // Interval loop
+  // Focus Timer Tick Effect
   useEffect(() => {
     let interval: any = null;
-    if (timerRunning) {
+    if (timerRunning && timerSecondsLeft > 0) {
       interval = setInterval(() => {
-        setTimerSeconds((prev) => {
+        setTimerSecondsLeft((prev) => {
           if (prev <= 1) {
-            setTimerRunning(false);
             if (soundEnabled) playTacticalChime('complete');
-            if (onUpdateActiveTimer) {
-              onUpdateActiveTimer(undefined);
+            setTimerRunning(false);
+            // Auto log session
+            if (onAddFocusSession) {
+              const now = new Date();
+              const hours = String(now.getHours()).padStart(2, '0');
+              const minutes = String(now.getMinutes()).padStart(2, '0');
+              onAddFocusSession({
+                date: now.toISOString().split('T')[0],
+                startTime: `${hours}:${minutes}`,
+                endTime: `${hours}:${minutes}`,
+                durationMinutes: currentBlockIndex === 2 ? 15 : 90,
+                mode: currentBlockIndex === 1 ? 'deep1' : currentBlockIndex === 2 ? 'rest' : 'deep2',
+                linkedDirectiveTitle: activeGoalFocus,
+                focusRating: 5,
+                distractionCount: 0,
+                notes: '90-minute deep work block completed with zero distractions.',
+              });
             }
-            // Auto open session review logger
-            setLogMinutes(Math.round(totalSeconds / 60));
-            setShowLogModal(true);
             return 0;
           }
           return prev - 1;
         });
       }, 1000);
+    } else {
+      clearInterval(interval);
     }
     return () => clearInterval(interval);
-  }, [timerRunning, totalSeconds, soundEnabled, onUpdateActiveTimer]);
+  }, [timerRunning, timerSecondsLeft, activeGoalFocus, currentBlockIndex, onAddFocusSession, soundEnabled]);
 
   const handleStartTimer = () => {
-    if (soundEnabled) playTacticalChime('start');
-    const targetEnd = new Date(Date.now() + timerSeconds * 1000).toISOString();
-    const linkedGoal = todayDirectives.find((g) => g.id === selectedDirectiveId);
+    if (!timerRunning) {
+      if (soundEnabled) playTacticalChime('start');
+      setTimerRunning(true);
+    } else {
+      setTimerRunning(false);
+    }
+  };
+
+  const handleResetTimer = (blockDurationMinutes = 90) => {
+    setTimerRunning(false);
+    setTimerSecondsLeft(blockDurationMinutes * 60);
+  };
+
+  const handleSelectBlock = (blockIndex: 1 | 2 | 3) => {
+    setCurrentBlockIndex(blockIndex);
+    setTimerRunning(false);
+    if (blockIndex === 1) {
+      setTimerSecondsLeft(90 * 60);
+    } else if (blockIndex === 2) {
+      setTimerSecondsLeft(15 * 60);
+    } else {
+      setTimerSecondsLeft(90 * 60);
+    }
+  };
+
+  const formatTimerDigits = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  // Start specific directive from Execution Queue
+  const handleStartDirectiveSession = (goalTitle: string, durationMins: number) => {
+    setActiveGoalFocus(goalTitle);
+    setTimerSecondsLeft(durationMins * 60);
     setTimerRunning(true);
-    if (onUpdateActiveTimer) {
-      onUpdateActiveTimer({
-        isRunning: true,
-        mode: timerMode,
-        totalDurationSeconds: totalSeconds,
-        targetEndTime: targetEnd,
-        remainingSeconds: timerSeconds,
-        linkedDirectiveId: selectedDirectiveId || undefined,
-        linkedDirectiveTitle: linkedGoal?.title || undefined,
-        startedAt: new Date().toISOString(),
-      });
-    }
+    if (soundEnabled) playTacticalChime('start');
   };
 
-  const handlePauseTimer = () => {
-    setTimerRunning(false);
-    const linkedGoal = todayDirectives.find((g) => g.id === selectedDirectiveId);
-    if (onUpdateActiveTimer) {
-      onUpdateActiveTimer({
-        isRunning: false,
-        mode: timerMode,
-        totalDurationSeconds: totalSeconds,
-        targetEndTime: null,
-        remainingSeconds: timerSeconds,
-        linkedDirectiveId: selectedDirectiveId || undefined,
-        linkedDirectiveTitle: linkedGoal?.title || undefined,
-      });
-    }
-  };
-
-  const handleResetTimer = (mode: 'deep1' | 'rest' | 'deep2' | 'custom', customMinutes?: number) => {
-    setTimerRunning(false);
-    setTimerMode(mode);
-    let sec = 90 * 60;
-    if (mode === 'rest') sec = 15 * 60;
-    else if (mode === 'custom' && customMinutes) sec = customMinutes * 60;
-    else if (mode === 'custom') sec = 45 * 60;
-
-    setTimerSeconds(sec);
-    setTotalSeconds(sec);
-    if (onUpdateActiveTimer) {
-      onUpdateActiveTimer(undefined);
-    }
-  };
-
-  const formatTimer = (totalSec: number) => {
-    const m = Math.floor(totalSec / 60);
-    const s = totalSec % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
-  const handleOpenLogModal = () => {
-    const elapsedMinutes = Math.max(15, Math.round((totalSeconds - timerSeconds) / 60)) || 90;
-    setLogMinutes(elapsedMinutes);
-    setShowLogModal(true);
-  };
-
-  const handleSaveFocusSession = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!onAddFocusSession) return;
-
-    const linkedGoal = todayDirectives.find((g) => g.id === selectedDirectiveId);
-    const startTimeStr = new Date(Date.now() - logMinutes * 60 * 1000).toTimeString().slice(0, 5);
-    const endTimeStr = new Date().toTimeString().slice(0, 5);
-
-    onAddFocusSession(
+  // Directives matching Reference Image
+  const executionQueueItems = useMemo(() => {
+    const referenceQueue = [
       {
-        date: todayStr,
-        startTime: startTimeStr,
-        endTime: endTimeStr,
-        durationMinutes: Number(logMinutes),
-        mode: timerMode,
-        linkedDirectiveId: selectedDirectiveId || undefined,
-        linkedDirectiveTitle: linkedGoal?.title || undefined,
-        focusRating: logRating,
-        distractionCount: logDistractions,
-        notes: logNotes.trim() || undefined,
+        num: '01',
+        category: 'PROJECT',
+        catColor: 'cyan',
+        title: 'Connect command execution layer',
+        subtitle: 'Build the core execution engine for personal OS command dashboard.',
+        tags: 'P01 · Automation · L3 → L4',
+        durationMins: 90,
+        completed: false,
       },
-      logSyncDirective
-    );
+      {
+        num: '02',
+        category: 'PROJECT',
+        catColor: 'cyan',
+        title: 'Complete verification suite',
+        subtitle: 'Run integration test suite, audit threat boundaries, and benchmark IPC.',
+        tags: 'P01 · Testing · L3 → L4',
+        durationMins: 60,
+        completed: false,
+      },
+      {
+        num: '03',
+        category: 'FINANCIAL',
+        catColor: 'yellow',
+        title: 'Research 50 prospects',
+        subtitle: 'Build enterprise prospect pipeline and research technical decision-makers.',
+        tags: 'F01 · Outreach · L2 → L3',
+        durationMins: 45,
+        completed: false,
+      },
+      {
+        num: '04',
+        category: 'LEARNING',
+        catColor: 'purple',
+        title: 'AI Engineering — L1 Recall',
+        subtitle: 'Feynman technique: explain event-driven architecture and token limits without notes.',
+        tags: 'L01 · AI/ML · L1 → L2',
+        durationMins: 15,
+        completed: true,
+      },
+    ];
 
-    if (soundEnabled) playTacticalChime('complete');
-    setShowLogModal(false);
-    setLogNotes('');
-    handleResetTimer(timerMode === 'deep1' ? 'rest' : 'deep2');
-  };
+    const todayGoals = state.goals?.filter((g) => g.horizon === 'Today') || [];
+    if (todayGoals.length >= 4) {
+      return todayGoals.slice(0, 4).map((g, idx) => ({
+        num: `0${idx + 1}`,
+        category:
+          g.sourceType === 'FINANCIAL_OS'
+            ? 'FINANCIAL'
+            : g.sourceType === 'LEARNING_ENGINE'
+            ? 'LEARNING'
+            : 'PROJECT',
+        catColor:
+          g.sourceType === 'FINANCIAL_OS'
+            ? 'yellow'
+            : g.sourceType === 'LEARNING_ENGINE'
+            ? 'purple'
+            : 'cyan',
+        title: g.title,
+        subtitle: g.targetMetric || 'Strategic execution directive',
+        tags: g.sourceRefCode || `P0${idx + 1} · Core · L3 → L4`,
+        durationMins: g.estimatedMinutes || (idx === 0 ? 90 : idx === 1 ? 60 : idx === 2 ? 45 : 15),
+        completed: g.status === 'COMPLETED',
+      }));
+    }
 
-  // Review state
-  const [reviewCadence, setReviewCadence] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('DAILY');
-  const [whatBuilt, setWhatBuilt] = useState('');
-  const [whatLearned, setWhatLearned] = useState('');
-  const [whatFailed, setWhatFailed] = useState('');
-  const [nextDirective, setNextDirective] = useState('');
-  const [reviewMinutesLogged, setReviewMinutesLogged] = useState(180);
+    return referenceQueue;
+  }, [state.goals]);
 
-  const handleCreateReview = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!whatBuilt.trim() && !whatLearned.trim()) return;
-    onAddReview({
-      cadence: reviewCadence,
-      date: todayStr,
-      whatWasBuilt: whatBuilt.trim(),
-      whatWasLearned: whatLearned.trim(),
-      whatFailed: whatFailed.trim() || 'None',
-      nextDayDirective: nextDirective.trim() || 'Execute morning 90-minute deep block',
-      deepWorkMinutesLogged: Number(reviewMinutesLogged) || 180,
+  // Filtered execution queue
+  const filteredQueueItems = useMemo(() => {
+    return executionQueueItems.filter((item) => {
+      const matchesFilter =
+        queueFilter === 'ALL' || item.category === queueFilter;
+      const matchesSearch =
+        !queueSearch.trim() ||
+        item.title.toLowerCase().includes(queueSearch.toLowerCase()) ||
+        item.subtitle.toLowerCase().includes(queueSearch.toLowerCase()) ||
+        item.tags.toLowerCase().includes(queueSearch.toLowerCase());
+      return matchesFilter && matchesSearch;
     });
-    setWhatBuilt('');
-    setWhatLearned('');
-    setWhatFailed('');
-    setNextDirective('');
-  };
+  }, [executionQueueItems, queueFilter, queueSearch]);
 
-  const completedCadenceCount = state.deepWorkBlocks.filter((b) => b.completedToday).length;
-  const completedScheduleCount = (state.dailySchedule || []).filter((b) => b.completedToday).length;
+  // Project Portfolio Lanes matching reference image
+  const portfolioLanes: PortfolioLane[] = [
+    {
+      id: 'backlog',
+      title: 'BACKLOG',
+      count: 2,
+      projects: [
+        {
+          code: 'POS',
+          title: 'Cloud Infrastructure',
+          timeline: '2–4 weeks',
+          description: 'Autonomous provisioning and zero-trust perimeter configuration.',
+          stage: 'REQUIREMENTS',
+        },
+        {
+          code: 'P06',
+          title: 'AI Assistant',
+          timeline: '3–8 weeks',
+          description: 'Context-aware workspace orchestration with local embeddings.',
+          stage: 'REQUIREMENTS',
+        },
+      ],
+    },
+    {
+      id: 'ready',
+      title: 'READY',
+      count: 2,
+      projects: [
+        {
+          code: 'P03',
+          title: 'Mobile App',
+          timeline: '6–10 weeks',
+          description: 'React Native companion with offline cache and biometric auth.',
+          stage: 'ARCHITECTURE',
+        },
+        {
+          code: 'P04',
+          title: 'Web Platform',
+          timeline: '3–4 months',
+          description: 'Multi-tenant high-throughput personal dashboard edge node.',
+          stage: 'ARCHITECTURE',
+        },
+      ],
+    },
+    {
+      id: 'active',
+      title: 'ACTIVE',
+      count: 1,
+      highlight: true,
+      projects: [
+        {
+          code: 'P01',
+          title: 'Personal Automation Engine',
+          timeline: '5–7 days',
+          progress: 72,
+          color: '#00f5a0',
+          description: 'Connect command execution layer and automated task scheduler.',
+          stage: 'IMPLEMENTATION',
+          milestone: '6 of 8 milestones completed',
+        },
+      ],
+    },
+    {
+      id: 'verify',
+      title: 'VERIFY',
+      count: 1,
+      projects: [
+        {
+          code: 'P02',
+          title: 'REST APIs',
+          timeline: '3–4 weeks',
+          progress: 42,
+          color: '#38bdf8',
+          description: 'Idempotent RESTful control plane with rate-limiting and audit log.',
+          stage: 'TESTING',
+          milestone: '3 of 7 milestones completed',
+        },
+      ],
+    },
+  ];
+
+  // Recent Sessions list matching reference image
+  const recentSessionsList = useMemo(() => {
+    if (state.focusSessions && state.focusSessions.length > 0) {
+      return state.focusSessions.slice(0, 4).map((s) => ({
+        title: s.linkedDirectiveTitle || 'Strategic Deep Block',
+        duration: `${s.durationMinutes} min`,
+        rating: `${s.focusRating || 5}.0/5`,
+        time: s.startTime || '18:10',
+        iconColor: s.mode === 'deep1' || s.mode === 'deep2' ? '#00f5a0' : '#38bdf8',
+      }));
+    }
+    return [
+      {
+        title: 'Personal Automation Engine',
+        duration: '90 min',
+        rating: '4.8/5',
+        time: '18:10',
+        iconColor: '#00f5a0',
+      },
+      {
+        title: 'TypeScript Architecture',
+        duration: '90 min',
+        rating: '4.5/5',
+        time: '14:00',
+        iconColor: '#00f5a0',
+      },
+      {
+        title: 'API Design & Benchmarking',
+        duration: '90 min',
+        rating: '5.0/5',
+        time: '10:30',
+        iconColor: '#00f5a0',
+      },
+      {
+        title: 'React Fundamentals & State',
+        duration: '60 min',
+        rating: '4.2/5',
+        time: '08:15',
+        iconColor: '#38bdf8',
+      },
+    ];
+  }, [state.focusSessions]);
+
+  // 7-day velocity bars matching reference image
+  const trendBars = [
+    { day: 'Mon', mins: 180, pct: 95, target: 180 },
+    { day: 'Tue', mins: 180, pct: 95, target: 180 },
+    { day: 'Wed', mins: 150, pct: 80, target: 180 },
+    { day: 'Thu', mins: 60, pct: 35, target: 180 },
+    { day: 'Fri', mins: 180, pct: 95, target: 180 },
+    { day: 'Sat', mins: 90, pct: 50, target: 180 },
+    { day: 'Sun', mins: 90, pct: 50, target: 180 },
+  ];
+
+  // Submit manual session log
+  const handleSaveManualSession = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!logDirectiveTitle.trim()) return;
+
+    if (onAddFocusSession) {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      onAddFocusSession({
+        date: now.toISOString().split('T')[0],
+        startTime: `${hours}:${minutes}`,
+        endTime: `${hours}:${minutes}`,
+        durationMinutes: logDurationMinutes,
+        mode: logDurationMinutes >= 90 ? 'deep1' : 'custom',
+        linkedDirectiveTitle: logDirectiveTitle.trim(),
+        focusRating: logFocusRating,
+        distractionCount: logDistractions,
+        notes: logNotes.trim(),
+      });
+    }
+
+    setShowLogSessionModal(false);
+    setLogNotes('Deep work block logged.');
+  };
 
   return (
-    <section id="work-scoreboards" className="space-y-6">
-      {/* Module Executive Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#3c4a42]/30 gap-3">
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-xs px-2.5 py-1 rounded bg-[#4edea3]/10 text-[#4edea3] font-bold border border-[#4edea3]/30 flex items-center gap-1.5 shadow-sm">
-            <Gauge className="w-3.5 h-3.5 text-[#4edea3]" />
-            MOD_07 // EXECUTION
-          </span>
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-[#e2e2e8] uppercase font-mono flex items-center gap-2">
-              WORK SCOREBOARDS & 90-15-90 PROTOCOL
-            </h2>
-            <p className="text-xs text-[#bbcabf] font-mono">
-              The 4DX compelling work scoreboard, persistent 90-15-90 deep focus engine, and operational tactical cadences.
-            </p>
+    <div className="space-y-6 select-none animate-fadeIn" id="work-scoreboard">
+      {/* ========================================================================= */}
+      {/* 1. HERO BANNER: WORK SCOREBOARD & VELOCITY ENGINE matching Reference Image */}
+      {/* ========================================================================= */}
+      <div className="relative overflow-hidden p-6 sm:p-7 rounded-2xl bg-[#081212] border border-[#132626] flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xl">
+        <WireframeSphere
+          className="absolute -right-6 -top-10 opacity-70 pointer-events-none"
+          size={320}
+        />
+
+        <div className="relative z-10 space-y-2 max-w-xl">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] font-bold text-[#00f5a0] tracking-widest uppercase block">
+              WORK SCOREBOARD &amp; VELOCITY ENGINE
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-[#00f5a0]/15 border border-[#00f5a0]/40 text-[9px] font-mono text-[#00f5a0] font-bold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00f5a0] animate-pulse" />
+              90-15-90 LIVE
+            </span>
+          </div>
+
+          <h1 className="text-2xl sm:text-3xl font-black text-[#e6f4f1] tracking-tight font-mono">
+            Discipline today, freedom tomorrow.
+          </h1>
+
+          <p className="text-xs sm:text-sm text-[#7a9490] leading-relaxed max-w-lg">
+            Deep work compounds when blocks are guarded, measured, and reviewed without distraction.
+          </p>
+
+          {/* Quick Metrics / Pills Strip */}
+          <div className="flex flex-wrap items-center gap-2.5 pt-2 font-mono text-xs">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#050a0a] border border-[#162b29] text-[#e6f4f1]">
+              <Target className="w-3.5 h-3.5 text-[#00f5a0]" />
+              <span className="font-bold text-[#00f5a0]">1 / 2</span>
+              <span className="text-[#7a9490]">Blocks Today</span>
+            </div>
+
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#050a0a] border border-[#162b29] text-[#e6f4f1]">
+              <Calendar className="w-3.5 h-3.5 text-[#38bdf8]" />
+              <span className="font-bold text-[#38bdf8]">7.5h</span>
+              <span className="text-[#7a9490]">This Week</span>
+            </div>
+
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#050a0a] border border-[#162b29] text-[#e6f4f1]">
+              <Flame className="w-3.5 h-3.5 text-[#f59e0b] fill-[#f59e0b]" />
+              <span className="font-bold text-[#f59e0b]">5 Days</span>
+              <span className="text-[#7a9490]">Streak</span>
+            </div>
+
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#050a0a] border border-[#162b29] text-[#e6f4f1]">
+              <Star className="w-3.5 h-3.5 text-[#eab308] fill-[#eab308]" />
+              <span className="font-bold text-[#eab308]">4.8 / 5</span>
+              <span className="text-[#7a9490]">Rating</span>
+            </div>
           </div>
         </div>
 
-        {/* View Switcher Sub-tabs */}
-        <div className="flex items-center gap-1 bg-[#0c0e12] p-1 rounded-lg border border-[#3c4a42]/30 overflow-x-auto">
-          {[
-            { id: 'scoreboard', label: 'Work Scoreboard', icon: <BarChart3 className="w-3 h-3" /> },
-            { id: 'timer', label: '90-15-90 Timer', icon: <Timer className="w-3 h-3" /> },
-            { id: 'cadence', label: 'Tactical Cadence', icon: <Calendar className="w-3 h-3" /> },
-            { id: 'sessions', label: `Session Logs (${focusSessions.length})`, icon: <History className="w-3 h-3" /> },
-            { id: 'reviews', label: `Reviews (${state.reviews.length})`, icon: <ClipboardCheck className="w-3 h-3" /> },
-          ].map((tab) => (
+        {/* Hero Actions Right */}
+        <div className="relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={handleStartTimer}
+            className="px-4 py-2.5 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-mono text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-[0_0_15px_rgba(0,245,160,0.3)] hover:scale-105"
+          >
+            {timerRunning ? (
+              <>
+                <Pause className="w-4 h-4 fill-[#021810]" />
+                <span>Pause Session</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4 fill-[#021810]" />
+                <span>Start 90m Block</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsFocusOverlayOpen(true)}
+            className="px-3.5 py-2.5 rounded-xl bg-[#071714] hover:bg-[#00f5a0]/15 border border-[#00f5a0]/40 text-[#00f5a0] font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm hover:scale-105"
+            title="Open Zen Fullscreen Focus Mode"
+          >
+            <Maximize2 className="w-3.5 h-3.5" />
+            <span>Focus Mode</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSoundEnabled((prev) => !prev)}
+            className={`p-2.5 rounded-xl border font-mono text-xs transition-colors cursor-pointer flex items-center justify-center ${
+              soundEnabled
+                ? 'bg-[#091414] border-[#162b29] text-[#00f5a0] hover:border-[#00f5a0]/40'
+                : 'bg-[#091414] border-[#162b29] text-[#55736f] hover:text-[#e6f4f1]'
+            }`}
+            title={soundEnabled ? 'Audio Chimes Enabled' : 'Audio Chimes Muted'}
+          >
+            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowLogSessionModal(true)}
+            className="px-3 py-2.5 rounded-xl bg-[#091414] hover:bg-[#122222] border border-[#162b29] text-[#7a9490] hover:text-[#e6f4f1] font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Log Session</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 2. HERO FOCUS & TIMER PANEL (Current Focus + Timer + Today's Protocol)    */}
+      {/* ========================================================================= */}
+      <div className="rounded-2xl bg-[#081414] border border-[#162b29] p-5 shadow-2xl relative overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch relative z-10">
+          {/* COLUMN 1: CURRENT FOCUS (5 cols) */}
+          <div className="lg:col-span-5 flex flex-col justify-between space-y-3.5 pr-0 lg:pr-2">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#00f5a0]/10 border border-[#00f5a0]/30 flex items-center justify-center text-[#00f5a0] shrink-0">
+                    <Target className="w-5 h-5 text-[#00f5a0]" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider">
+                      CURRENT FOCUS
+                    </span>
+                    <span className="font-mono text-[9px] font-bold px-2 py-0.5 rounded-md bg-[#0e2a2a] text-[#38bdf8] border border-[#38bdf8]/40 tracking-wider">
+                      PROJECT 01
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => onNavigateToSection?.('milestone-projects')}
+                  className="font-mono text-[10px] text-[#7a9490] hover:text-[#00f5a0] flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <span>All Projects</span>
+                  <ExternalLink className="w-3 h-3" />
+                </button>
+              </div>
+
+              <div>
+                <h2 className="text-lg sm:text-xl font-extrabold text-[#e6f4f1] font-mono leading-tight">
+                  Personal Automation Engine
+                </h2>
+                <div className="text-xs font-semibold text-[#a1b8b4] font-mono pt-0.5">
+                  Connect command execution layer
+                </div>
+              </div>
+
+              <p className="text-xs text-[#7a9490] leading-relaxed">
+                Build the core execution engine for the personal OS command dashboard.
+              </p>
+            </div>
+
+            {/* Progress Bar & Milestone Target */}
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center justify-between text-xs font-mono">
+                <span className="text-[#00f5a0] font-bold">72%</span>
+                <span className="text-[#7a9490] flex items-center gap-1 text-[11px]">
+                  <Target className="w-3 h-3 text-[#55736f]" />
+                  <span>6 / 8 milestones</span>
+                </span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-[#122222] overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[#00f5a0] to-[#38bdf8] transition-all duration-500 shadow-[0_0_8px_#00f5a0]"
+                  style={{ width: '72%' }}
+                />
+              </div>
+            </div>
+
+            {/* Tech Tags */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1 font-mono text-[11px]">
+              {['TypeScript', 'Node.js', 'System Design', 'Automation'].map((tech) => (
+                <span
+                  key={tech}
+                  className="px-2.5 py-1 rounded-lg bg-[#071313] border border-[#162b29] text-[#a1b8b4]"
+                >
+                  {tech}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* COLUMN 2: DEEP WORK SESSION (4 cols) */}
+          <div className="lg:col-span-4 rounded-xl bg-[#071313]/90 border border-[#162b29] p-4.5 flex flex-col items-center justify-between text-center gap-3 shadow-inner">
+            <div className="w-full flex items-center justify-between">
+              <span className="font-mono text-[10px] text-[#7a9490] uppercase tracking-widest font-bold">
+                · DEEP WORK SESSION
+              </span>
+
+              {/* Block Switcher Tabs */}
+              <div className="flex items-center gap-1 bg-[#050a0a] p-0.5 rounded-lg border border-[#162b29]">
+                <button
+                  type="button"
+                  onClick={() => handleSelectBlock(1)}
+                  className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-all cursor-pointer ${
+                    currentBlockIndex === 1
+                      ? 'bg-[#00f5a0]/20 text-[#00f5a0] border border-[#00f5a0]/40'
+                      : 'text-[#55736f] hover:text-[#e6f4f1]'
+                  }`}
+                >
+                  Block 1
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectBlock(2)}
+                  className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-all cursor-pointer ${
+                    currentBlockIndex === 2
+                      ? 'bg-[#38bdf8]/20 text-[#38bdf8] border border-[#38bdf8]/40'
+                      : 'text-[#55736f] hover:text-[#e6f4f1]'
+                  }`}
+                >
+                  Break
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectBlock(3)}
+                  className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-all cursor-pointer ${
+                    currentBlockIndex === 3
+                      ? 'bg-[#00f5a0]/20 text-[#00f5a0] border border-[#00f5a0]/40'
+                      : 'text-[#55736f] hover:text-[#e6f4f1]'
+                  }`}
+                >
+                  Block 2
+                </button>
+              </div>
+            </div>
+
+            {/* Timer Display with Play Trigger */}
+            <div className="flex items-center justify-center gap-4 py-1">
+              <button
+                type="button"
+                onClick={handleStartTimer}
+                className="w-13 h-13 rounded-full bg-[#00f5a0]/15 hover:bg-[#00f5a0]/25 border border-[#00f5a0]/50 flex items-center justify-center text-[#00f5a0] shadow-[0_0_15px_rgba(0,245,160,0.25)] hover:scale-105 transition-all cursor-pointer shrink-0"
+                title={timerRunning ? 'Pause Deep Work' : 'Start Deep Work'}
+              >
+                {timerRunning ? (
+                  <Pause className="w-5 h-5 fill-[#00f5a0]" />
+                ) : (
+                  <Play className="w-5 h-5 fill-[#00f5a0] ml-0.5" />
+                )}
+              </button>
+
+              <div className="text-left">
+                <div className="text-4xl sm:text-5xl font-black font-mono text-[#e6f4f1] tracking-tight tabular-nums">
+                  {formatTimerDigits(timerSecondsLeft)}
+                </div>
+                <div className="font-mono text-[10px] font-bold text-[#38bdf8] tracking-widest uppercase flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${timerRunning ? 'bg-[#00f5a0] animate-pulse' : 'bg-[#55736f]'}`} />
+                  <span>
+                    {currentBlockIndex === 2
+                      ? '15-MINUTE REST INTERVAL'
+                      : `BLOCK ${currentBlockIndex === 1 ? '1' : '2'} OF 2`}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Start Deep Work CTA + Reset */}
+            <div className="w-full flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleStartTimer}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-mono font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(0,245,160,0.3)] transition-all hover:scale-[1.02]"
+              >
+                <span>{timerRunning ? 'Pause Deep Work' : 'Start Deep Work'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleResetTimer(currentBlockIndex === 2 ? 15 : 90)}
+                className="p-2.5 rounded-xl bg-[#091414] hover:bg-[#122222] border border-[#162b29] text-[#7a9490] hover:text-[#e6f4f1] cursor-pointer transition-colors"
+                title="Reset timer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Helper toggle: Focus Mode */}
             <button
-              key={tab.id}
-              onClick={() => setSubView(tab.id as any)}
-              className={`px-3 py-1.5 text-xs font-mono rounded cursor-pointer whitespace-nowrap transition-all flex items-center gap-1.5 ${
-                subView === tab.id
-                  ? 'bg-[#4edea3] text-[#003822] font-bold shadow-md'
-                  : 'text-[#bbcabf] hover:text-[#e2e2e8] hover:bg-[#1a1c20]'
-              }`}
+              type="button"
+              onClick={() => setIsFocusOverlayOpen(true)}
+              className="text-[10px] font-mono text-[#55736f] hover:text-[#00f5a0] transition-colors cursor-pointer flex items-center gap-1.5"
             >
-              {tab.icon}
-              {tab.label}
+              <Maximize2 className="w-3 h-3" />
+              <span>Focus Mode · No distractions</span>
             </button>
+          </div>
+
+          {/* COLUMN 3: TODAY'S PROTOCOL (3 cols) */}
+          <div className="lg:col-span-3 rounded-xl bg-[#071313]/50 border border-[#162b29] p-4 flex flex-col justify-between gap-3">
+            <div>
+              <span className="font-mono text-[10px] font-bold text-[#7a9490] uppercase tracking-wider block">
+                TODAY&apos;S PROTOCOL
+              </span>
+              <div className="text-base font-bold text-[#00f5a0] font-mono pt-0.5">
+                90 / 15 / 90
+              </div>
+            </div>
+
+            {/* 3 Steps */}
+            <div className="space-y-2">
+              <div
+                onClick={() => handleSelectBlock(1)}
+                className={`flex items-center justify-between text-xs font-mono p-1.5 rounded-lg cursor-pointer transition-all ${
+                  currentBlockIndex === 1
+                    ? 'bg-[#00f5a0]/15 border border-[#00f5a0]/40 shadow-sm'
+                    : 'bg-[#091414] border border-[#162b29] hover:border-[#00f5a0]/20'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`w-5 h-5 rounded-full font-bold text-[10px] flex items-center justify-center ${
+                      currentBlockIndex === 1 ? 'bg-[#00f5a0] text-[#021810]' : 'bg-[#122222] text-[#00f5a0]'
+                    }`}
+                  >
+                    1
+                  </span>
+                  <span className="text-[#e6f4f1] font-bold">90 min</span>
+                </div>
+                <span className="text-[10px] font-bold text-[#00f5a0]">Deep Work</span>
+              </div>
+
+              <div
+                onClick={() => handleSelectBlock(2)}
+                className={`flex items-center justify-between text-xs font-mono p-1.5 rounded-lg cursor-pointer transition-all ${
+                  currentBlockIndex === 2
+                    ? 'bg-[#38bdf8]/15 border border-[#38bdf8]/40 shadow-sm'
+                    : 'bg-[#091414] border border-[#162b29] hover:border-[#38bdf8]/20'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`w-5 h-5 rounded-full font-bold text-[10px] flex items-center justify-center ${
+                      currentBlockIndex === 2 ? 'bg-[#38bdf8] text-[#021810]' : 'bg-[#122222] text-[#7a9490]'
+                    }`}
+                  >
+                    2
+                  </span>
+                  <span className={currentBlockIndex === 2 ? 'text-[#e6f4f1] font-bold' : 'text-[#7a9490]'}>15 min</span>
+                </div>
+                <span className={`text-[10px] ${currentBlockIndex === 2 ? 'text-[#38bdf8] font-bold' : 'text-[#55736f]'}`}>Break</span>
+              </div>
+
+              <div
+                onClick={() => handleSelectBlock(3)}
+                className={`flex items-center justify-between text-xs font-mono p-1.5 rounded-lg cursor-pointer transition-all ${
+                  currentBlockIndex === 3
+                    ? 'bg-[#00f5a0]/15 border border-[#00f5a0]/40 shadow-sm'
+                    : 'bg-[#091414] border border-[#162b29] hover:border-[#00f5a0]/20'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`w-5 h-5 rounded-full font-bold text-[10px] flex items-center justify-center ${
+                      currentBlockIndex === 3 ? 'bg-[#00f5a0] text-[#021810]' : 'bg-[#122222] text-[#7a9490]'
+                    }`}
+                  >
+                    3
+                  </span>
+                  <span className={currentBlockIndex === 3 ? 'text-[#e6f4f1] font-bold' : 'text-[#7a9490]'}>90 min</span>
+                </div>
+                <span className={`text-[10px] ${currentBlockIndex === 3 ? 'text-[#00f5a0] font-bold' : 'text-[#55736f]'}`}>Deep Work</span>
+              </div>
+            </div>
+
+            <div className="text-[10px] font-mono text-[#55736f] flex items-center justify-between pt-1 border-t border-[#132626]">
+              <div className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-[#55736f]" />
+                <span>1 / 2 completed</span>
+              </div>
+              <span className="text-[#00f5a0] font-bold">50% Target</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3. ROW OF 5 STAT CARDS matching Reference Image                           */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {/* STAT 1: TODAY */}
+        <div className="p-3.5 rounded-xl bg-[#081212] border border-[#162b29] hover:border-[#00f5a0]/40 transition-all space-y-1 shadow-sm group">
+          <div className="w-7 h-7 rounded-lg bg-[#00f5a0]/10 border border-[#00f5a0]/30 flex items-center justify-center text-[#00f5a0] group-hover:scale-110 transition-transform">
+            <Target className="w-3.5 h-3.5" />
+          </div>
+          <span className="font-mono text-[10px] text-[#7a9490] uppercase block pt-1">
+            TODAY
+          </span>
+          <div className="text-xl font-bold font-mono text-[#e6f4f1] group-hover:text-[#00f5a0] transition-colors">
+            1 / 2
+          </div>
+          <span className="text-[10px] font-mono text-[#55736f] block">
+            Blocks Completed
+          </span>
+        </div>
+
+        {/* STAT 2: THIS WEEK */}
+        <div className="p-3.5 rounded-xl bg-[#081212] border border-[#162b29] hover:border-[#38bdf8]/40 transition-all space-y-1 shadow-sm group">
+          <div className="w-7 h-7 rounded-lg bg-[#38bdf8]/10 border border-[#38bdf8]/30 flex items-center justify-center text-[#38bdf8] group-hover:scale-110 transition-transform">
+            <Calendar className="w-3.5 h-3.5" />
+          </div>
+          <span className="font-mono text-[10px] text-[#7a9490] uppercase block pt-1">
+            THIS WEEK
+          </span>
+          <div className="text-xl font-bold font-mono text-[#e6f4f1] group-hover:text-[#38bdf8] transition-colors">
+            7.5 h
+          </div>
+          <span className="text-[10px] font-mono text-[#55736f] block">
+            Focus Time
+          </span>
+        </div>
+
+        {/* STAT 3: STREAK */}
+        <div className="p-3.5 rounded-xl bg-[#081212] border border-[#162b29] hover:border-[#f59e0b]/40 transition-all space-y-1 shadow-sm group">
+          <div className="w-7 h-7 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/30 flex items-center justify-center text-[#f59e0b] group-hover:scale-110 transition-transform">
+            <Flame className="w-3.5 h-3.5 fill-[#f59e0b]" />
+          </div>
+          <span className="font-mono text-[10px] text-[#7a9490] uppercase block pt-1">
+            STREAK
+          </span>
+          <div className="text-xl font-bold font-mono text-[#e6f4f1] group-hover:text-[#f59e0b] transition-colors">
+            5 days
+          </div>
+          <span className="text-[10px] font-mono text-[#55736f] block">
+            Daily Focus
+          </span>
+        </div>
+
+        {/* STAT 4: FOCUS QUALITY */}
+        <div className="p-3.5 rounded-xl bg-[#081212] border border-[#162b29] hover:border-[#eab308]/40 transition-all space-y-1 shadow-sm group">
+          <div className="w-7 h-7 rounded-lg bg-[#eab308]/10 border border-[#eab308]/30 flex items-center justify-center text-[#eab308] group-hover:scale-110 transition-transform">
+            <Star className="w-3.5 h-3.5 fill-[#eab308]" />
+          </div>
+          <span className="font-mono text-[10px] text-[#7a9490] uppercase block pt-1">
+            FOCUS QUALITY
+          </span>
+          <div className="text-xl font-bold font-mono text-[#e6f4f1] group-hover:text-[#eab308] transition-colors">
+            4.8 / 5
+          </div>
+          <span className="text-[10px] font-mono text-[#55736f] block">
+            Avg. Session Rating
+          </span>
+        </div>
+
+        {/* STAT 5: DEEP WORK RATIO */}
+        <div className="p-3.5 rounded-xl bg-[#081212] border border-[#162b29] hover:border-[#00f5a0]/40 transition-all space-y-1 shadow-sm col-span-2 sm:col-span-1 group">
+          <div className="w-7 h-7 rounded-lg bg-[#00f5a0]/10 border border-[#00f5a0]/30 flex items-center justify-center text-[#00f5a0] group-hover:scale-110 transition-transform">
+            <Activity className="w-3.5 h-3.5" />
+          </div>
+          <span className="font-mono text-[10px] text-[#7a9490] uppercase block pt-1">
+            DEEP WORK RATIO
+          </span>
+          <div className="text-xl font-bold font-mono text-[#e6f4f1] group-hover:text-[#00f5a0] transition-colors">
+            92%
+          </div>
+          <span className="text-[10px] font-mono text-[#55736f] block">
+            vs. 70% target
+          </span>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 4. MIDDLE ROW: TODAY'S EXECUTION QUEUE (Left) & ANALYTICS (Right)         */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* LEFT COLUMN: TODAY'S EXECUTION QUEUE (7 cols) */}
+        <div className="lg:col-span-7 flex flex-col justify-between space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs font-bold text-[#e6f4f1] uppercase tracking-wider">
+                TODAY&apos;S EXECUTION QUEUE
+              </span>
+              <span className="font-mono text-xs text-[#7a9490]">
+                {executionQueueItems.length} directives · ~3h 45m
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Category Filter Pills */}
+              <div className="flex items-center gap-1 bg-[#091414] p-0.5 rounded-lg border border-[#162b29]">
+                {(['ALL', 'PROJECT', 'FINANCIAL', 'LEARNING'] as const).map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setQueueFilter(cat)}
+                    className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-all cursor-pointer ${
+                      queueFilter === cat
+                        ? 'bg-[#00f5a0]/20 text-[#00f5a0] border border-[#00f5a0]/40'
+                        : 'text-[#55736f] hover:text-[#e6f4f1]'
+                    }`}
+                  >
+                    {cat === 'ALL' ? 'All' : cat}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowQueueModal(true)}
+                className="font-mono text-xs text-[#00f5a0] hover:underline cursor-pointer flex items-center gap-1 whitespace-nowrap"
+              >
+                <span>View All</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+
+          {/* 4 Directive Cards Stack */}
+          <div className="space-y-2.5">
+            {filteredQueueItems.map((item) => (
+              <div
+                key={item.num}
+                className="p-3.5 rounded-xl bg-[#091414] border border-[#162b29] hover:border-[#00f5a0]/40 transition-all flex items-center justify-between gap-3 group shadow-sm"
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <span className="font-mono text-base font-extrabold text-[#38bdf8] shrink-0">
+                    {item.num}
+                  </span>
+
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`font-mono text-[9px] font-bold px-2 py-0.5 rounded-md border uppercase tracking-wider ${
+                          item.catColor === 'yellow'
+                            ? 'bg-[#2a240e] text-[#f59e0b] border-[#f59e0b]/40'
+                            : item.catColor === 'purple'
+                            ? 'bg-[#24122a] text-[#a855f7] border-[#a855f7]/40'
+                            : 'bg-[#0e2a2a] text-[#38bdf8] border-[#38bdf8]/40'
+                        }`}
+                      >
+                        {item.category}
+                      </span>
+                      <h4 className="text-xs font-bold text-[#e6f4f1] group-hover:text-[#00f5a0] transition-colors truncate">
+                        {item.title}
+                      </h4>
+                    </div>
+
+                    <p className="text-[11px] text-[#7a9490] leading-snug truncate">
+                      {item.subtitle}
+                    </p>
+
+                    <div className="text-[10px] font-mono text-[#55736f]">
+                      {item.tags}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="text-xs font-mono text-[#a1b8b4] flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-[#55736f]" />
+                    <span>{item.durationMins} min</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleStartDirectiveSession(item.title, item.durationMins)}
+                    className="px-3.5 py-1.5 rounded-lg bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-mono text-xs font-bold flex items-center gap-1 cursor-pointer shadow-[0_0_10px_rgba(0,245,160,0.2)] transition-transform hover:scale-105"
+                  >
+                    <span>Start</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: CHARTS & RECENT SESSIONS (5 cols) */}
+        <div className="lg:col-span-5 flex flex-col space-y-4">
+          {/* Card A: 7-DAY FOCUS TREND */}
+          <div className="p-4 rounded-xl bg-[#091414] border border-[#162b29] space-y-3 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-xs font-bold text-[#e6f4f1] uppercase tracking-wider">
+                7-DAY FOCUS TREND
+              </span>
+              <div className="flex items-center gap-3 text-[10px] font-mono">
+                <span className="flex items-center gap-1 text-[#00f5a0]">
+                  <span className="w-2 h-2 rounded-full bg-[#00f5a0]" />
+                  <span>Actual</span>
+                </span>
+                <span className="flex items-center gap-1 text-[#55736f]">
+                  <span className="w-2 h-0.5 border-t border-dashed border-[#7a9490]" />
+                  <span>Target (180m)</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Vertical Bar Columns */}
+            <div className="pt-2">
+              <div className="flex items-end justify-between h-28 gap-2 border-b border-[#132626] pb-1 px-1">
+                {trendBars.map((b) => (
+                  <div key={b.day} className="flex-1 flex flex-col items-center gap-1 h-full justify-end group">
+                    <div className="w-full max-w-[24px] bg-[#122222] rounded-t-sm h-full flex items-end overflow-hidden">
+                      <div
+                        className="w-full bg-[#00f5a0] rounded-t-sm transition-all duration-500 group-hover:bg-[#00f5a0]/80 shadow-[0_0_8px_rgba(0,245,160,0.2)]"
+                        style={{ height: `${b.pct}%` }}
+                        title={`${b.day}: ${b.mins} minutes logged (${b.pct}% target)`}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Day Labels */}
+              <div className="flex items-center justify-between text-[10px] font-mono text-[#7a9490] pt-1.5 px-1">
+                {trendBars.map((b) => (
+                  <span key={b.day} className="flex-1 text-center truncate">
+                    {b.day}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-[10px] font-mono text-[#55736f] pt-1 border-t border-[#132626]">
+              <span>Weekly Velocity: 15.5 hrs</span>
+              <span className="text-[#00f5a0] font-bold">2.2 hrs/day avg</span>
+            </div>
+          </div>
+
+          {/* Card B: RECENT SESSIONS */}
+          <div className="p-4 rounded-xl bg-[#091414] border border-[#162b29] space-y-2.5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-xs font-bold text-[#e6f4f1] uppercase tracking-wider">
+                RECENT SESSIONS
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowRecentSessionsModal(true)}
+                className="font-mono text-[10px] text-[#00f5a0] hover:underline cursor-pointer flex items-center gap-1"
+              >
+                <span>View All</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {recentSessionsList.map((s, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between p-2 rounded-lg bg-[#071313] border border-[#162b29] hover:border-[#00f5a0]/30 transition-colors text-xs font-mono"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className="w-2.5 h-2.5 rounded-sm shrink-0"
+                      style={{ backgroundColor: s.iconColor }}
+                    />
+                    <div className="min-w-0">
+                      <span className="font-bold text-[#e6f4f1] block truncate text-[11px]">
+                        {s.title}
+                      </span>
+                      <span className="text-[10px] text-[#7a9490]">
+                        {s.duration} · Rating: {s.rating}
+                      </span>
+                    </div>
+                  </div>
+
+                  <span className="text-[#55736f] text-[10px] shrink-0">
+                    {s.time}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 5. BOTTOM ROW: PROJECT PORTFOLIO (Left) & PROJECT HEALTH (Right)          */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* LEFT COLUMN: PROJECT PORTFOLIO (8 cols) */}
+        <div className="lg:col-span-8 p-4.5 rounded-2xl bg-[#081212] border border-[#132626] space-y-3.5 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs font-bold text-[#e6f4f1] uppercase tracking-wider">
+                PROJECT PORTFOLIO
+              </span>
+              <span className="font-mono text-xs text-[#7a9490]">
+                6 projects
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigateToSection?.('milestone-projects')}
+              className="font-mono text-xs text-[#00f5a0] hover:underline cursor-pointer flex items-center gap-1"
+            >
+              <span>View All</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+
+          {/* 4 Kanban Status Lanes */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {portfolioLanes.map((lane) => (
+              <div
+                key={lane.id}
+                className={`p-3 rounded-xl border flex flex-col gap-2 ${
+                  lane.highlight
+                    ? 'bg-[#091814] border-[#00f5a0]/40 shadow-[0_0_12px_rgba(0,245,160,0.1)]'
+                    : 'bg-[#091414] border-[#162b29]'
+                }`}
+              >
+                <div className="flex items-center justify-between font-mono text-[10px] font-bold text-[#7a9490] pb-1 border-b border-[#132626]">
+                  <span>
+                    {lane.title} ({lane.count})
+                  </span>
+                  <ChevronRight className="w-3 h-3 text-[#55736f]" />
+                </div>
+
+                <div className="space-y-2">
+                  {lane.projects.map((p, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => {
+                        setSelectedPortfolioProject(p);
+                        setShowPortfolioModal(true);
+                      }}
+                      className="p-2.5 rounded-lg bg-[#071313] border border-[#162b29] hover:border-[#00f5a0]/40 transition-colors cursor-pointer space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/30">
+                          {p.code}
+                        </span>
+                        <span className="text-[10px] font-mono text-[#55736f]">
+                          {p.timeline}
+                        </span>
+                      </div>
+
+                      <div className="text-xs font-bold text-[#e6f4f1] truncate">
+                        {p.title}
+                      </div>
+
+                      {p.progress !== undefined && (
+                        <div className="space-y-1 pt-1">
+                          <div className="flex justify-between text-[10px] font-mono">
+                            <span className="text-[#55736f]">Progress</span>
+                            <span className="text-[#e6f4f1] font-bold">{p.progress}%</span>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-[#122222] overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{ width: `${p.progress}%`, backgroundColor: p.color || '#00f5a0' }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: PROJECT HEALTH (4 cols) */}
+        <div className="lg:col-span-4 p-4.5 rounded-2xl bg-[#081212] border border-[#132626] flex flex-col justify-between space-y-3.5 shadow-lg">
+          <span className="font-mono text-xs font-bold text-[#e6f4f1] uppercase tracking-wider block">
+            PROJECT HEALTH
+          </span>
+
+          <div className="flex items-center justify-around gap-4 py-1">
+            {/* Circular Doughnut Center */}
+            <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                <path
+                  className="text-[#122222]"
+                  strokeWidth="3.5"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                <path
+                  className="text-[#00f5a0]"
+                  strokeDasharray="17, 100"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                <path
+                  className="text-[#38bdf8]"
+                  strokeDashoffset="-17"
+                  strokeDasharray="33, 100"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                <path
+                  className="text-[#1e3b38]"
+                  strokeDashoffset="-50"
+                  strokeDasharray="50, 100"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+              </svg>
+
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-xl font-black text-[#e6f4f1] font-mono leading-none">
+                  6
+                </span>
+                <span className="text-[10px] font-mono text-[#7a9490] uppercase pt-0.5">
+                  Total
+                </span>
+              </div>
+            </div>
+
+            {/* Status Breakdown List */}
+            <div className="space-y-1.5 font-mono text-xs min-w-[110px]">
+              <div className="flex items-center justify-between text-[#a1b8b4]">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#00f5a0]" />
+                  <span>1 Active</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-[#a1b8b4]">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#ff5c5c]" />
+                  <span>0 Blocked</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-[#a1b8b4]">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#38bdf8]" />
+                  <span>2 Ready</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-[#a1b8b4]">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#eab308]" />
+                  <span>0 Completed</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-[#a1b8b4]">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#1e3b38]" />
+                  <span>3 Queued</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-[#132626] text-[10px] font-mono text-[#55736f] text-center">
+            Portfolio distribution verified across 6 active SDLC phases
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 6. BOTTOM "EXECUTION FLOW" LIFECYCLE STRIP matching Reference Image       */}
+      {/* ========================================================================= */}
+      <div className="p-4 rounded-2xl bg-[#081212] border border-[#132626] space-y-3 shadow-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider">
+              EXECUTION FLOW
+            </span>
+            <span className="text-[10px] font-mono text-[#7a9490]">
+              End-to-end disciplined deep work lifecycle
+            </span>
+          </div>
+          <span className="font-mono text-[10px] text-[#55736f]">
+            Cycle standard: 90 / 15 / 90
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-1">
+          {[
+            { step: '1. Directive', desc: 'Define single priority', icon: <Target className="w-3.5 h-3.5 text-[#00f5a0]" /> },
+            { step: '2. Deep Block', desc: '90m zero-distraction', icon: <Clock className="w-3.5 h-3.5 text-[#38bdf8]" /> },
+            { step: '3. Guard', desc: 'Context barrier', icon: <Shield className="w-3.5 h-3.5 text-[#f59e0b]" /> },
+            { step: '4. Verify', desc: 'Test & inspect output', icon: <CheckCircle2 className="w-3.5 h-3.5 text-[#00f5a0]" /> },
+            { step: '5. Log', desc: 'Audit quality & stars', icon: <Star className="w-3.5 h-3.5 text-[#eab308]" /> },
+            { step: '6. Ship', desc: 'Deploy capability', icon: <Rocket className="w-3.5 h-3.5 text-[#38bdf8]" /> },
+          ].map((flow, idx) => (
+            <div
+              key={idx}
+              className="p-2.5 rounded-xl bg-[#091414] border border-[#162b29] hover:border-[#00f5a0]/30 transition-colors space-y-1 text-center flex flex-col items-center justify-center"
+            >
+              <div className="w-7 h-7 rounded-lg bg-[#050a0a] border border-[#162b29] flex items-center justify-center">
+                {flow.icon}
+              </div>
+              <span className="font-mono text-xs font-bold text-[#e6f4f1] block pt-1">
+                {flow.step}
+              </span>
+              <span className="text-[10px] font-mono text-[#7a9490] block leading-tight">
+                {flow.desc}
+              </span>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* ======================================================== */}
-      {/* SUBVIEW 1: WORK SCOREBOARD & VELOCITY METER              */}
-      {/* ======================================================== */}
-      {subView === 'scoreboard' && (
-        <div className="space-y-6 animate-fadeIn">
-          {/* Hero Scoreboard Banner */}
-          <div className="p-5 rounded-xl bg-gradient-to-br from-[#1a1c20] via-[#14171c] to-[#0c0e12] border border-[#4edea3]/30 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-[#4edea3]/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+      {/* ========================================================================= */}
+      {/* MODAL 1: FULL-SCREEN DEEP WORK OVERLAY                                     */}
+      {/* ========================================================================= */}
+      {isFocusOverlayOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl p-6 animate-fadeIn">
+          <div className="w-full max-w-2xl flex flex-col items-center justify-center text-center space-y-6">
+            <button
+              onClick={() => setIsFocusOverlayOpen(false)}
+              className="absolute top-6 right-6 text-[#7a9490] hover:text-[#e6f4f1] p-2 rounded-xl bg-[#091414] border border-[#162b29] cursor-pointer"
+            >
+              <X className="w-6 h-6" />
+            </button>
 
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-              <div className="space-y-2 max-w-xl">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#4edea3]/10 text-[#4edea3] font-bold border border-[#4edea3]/30 uppercase tracking-widest">
-                    4DX COMPELLING SCOREBOARD // LEAD MEASURE
-                  </span>
-                  <span className="font-mono text-xs text-[#bbcabf]">
-                    {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
-                  </span>
-                </div>
-                <h3 className="font-mono text-2xl font-black text-[#e2e2e8] tracking-tight">
-                  TODAY'S DEEP WORK VELOCITY: <span className="text-[#4edea3]">{todayMinutesLogged} MIN</span> / {TARGET_DAILY_MINUTES} MIN
-                </h3>
-                <p className="font-mono text-xs text-[#bbcabf] leading-relaxed">
-                  Cal Newport Standard: Two 90-minute blocks of high-cognition, uninterrupted deep engineering work.
-                  Zero context switching, notifications off, single-task execution.
-                </p>
-              </div>
+            <span className="font-mono text-xs font-bold text-[#00f5a0] tracking-widest uppercase">
+              DEEP WORK · ZERO DISTRACTIONS
+            </span>
 
-              {/* Progress Gauge Pill */}
-              <div className="flex flex-col items-end gap-2 bg-[#111318]/80 p-4 rounded-lg border border-[#3c4a42]/40 min-w-[260px]">
-                <div className="flex items-center justify-between w-full font-mono text-xs">
-                  <span className="text-[#bbcabf]">Protocol Compliance:</span>
-                  <span className={`font-bold ${todayMinutesLogged >= TARGET_DAILY_MINUTES ? 'text-[#4edea3]' : 'text-[#4cd7f6]'}`}>
-                    {todayProgressPercent}% COMPLETE
-                  </span>
-                </div>
-                <div className="w-full h-3 bg-[#1a1c20] rounded-full overflow-hidden p-0.5 border border-[#3c4a42]/30">
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ${
-                      todayMinutesLogged >= TARGET_DAILY_MINUTES
-                        ? 'bg-gradient-to-r from-[#4edea3] to-[#4cd7f6] shadow-[0_0_12px_rgba(78,222,163,0.5)]'
-                        : 'bg-gradient-to-r from-[#4cd7f6] to-[#4edea3]'
-                    }`}
-                    style={{ width: `${todayProgressPercent}%` }}
-                  ></div>
-                </div>
-                <div className="flex items-center justify-between w-full font-mono text-[11px] pt-1">
-                  <span className="text-[#bbcabf]">
-                    {todayMinutesLogged >= TARGET_DAILY_MINUTES ? (
-                      <span className="text-[#4edea3] flex items-center gap-1 font-bold">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> APEX TARGET LOCKED
-                      </span>
-                    ) : (
-                      <span className="text-[#ffb4ab]">
-                        +{TARGET_DAILY_MINUTES - todayMinutesLogged} min to target
-                      </span>
-                    )}
-                  </span>
-                  <button
-                    onClick={() => setSubView('timer')}
-                    className="text-[#4edea3] hover:underline cursor-pointer flex items-center gap-1 font-bold"
-                  >
-                    Open Timer ➔
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#e6f4f1] font-mono">
+              {activeGoalFocus}
+            </h2>
 
-          {/* 4 Core Lead/Lag Metric Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="p-4 rounded-xl bg-[#1a1c20] border border-[#3c4a42]/30 space-y-1">
-              <div className="flex items-center justify-between font-mono text-[11px] text-[#bbcabf]">
-                <span>TODAY'S BLOCKS</span>
-                <Clock className="w-3.5 h-3.5 text-[#4edea3]" />
-              </div>
-              <div className="font-mono text-2xl font-black text-[#e2e2e8]">
-                {completed90MinBlocks} <span className="text-xs text-[#bbcabf] font-normal">/ 2 BLOCKS</span>
-              </div>
-              <p className="font-mono text-[10px] text-[#4edea3]">
-                {completed90MinBlocks >= 2 ? 'Full 90-15-90 achieved' : 'Block 02 pending execution'}
-              </p>
+            <div className="text-7xl sm:text-8xl font-black font-mono text-[#e6f4f1] tracking-tight tabular-nums py-6">
+              {formatTimerDigits(timerSecondsLeft)}
             </div>
 
-            <div className="p-4 rounded-xl bg-[#1a1c20] border border-[#3c4a42]/30 space-y-1">
-              <div className="flex items-center justify-between font-mono text-[11px] text-[#bbcabf]">
-                <span>7-DAY VOLUME</span>
-                <Activity className="w-3.5 h-3.5 text-[#4cd7f6]" />
-              </div>
-              <div className="font-mono text-2xl font-black text-[#4cd7f6]">
-                {weeklyTotalHours} <span className="text-xs text-[#bbcabf] font-normal">HOURS</span>
-              </div>
-              <p className="font-mono text-[10px] text-[#bbcabf]">
-                {weeklyTotalMinutes} min total focus recorded
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-[#1a1c20] border border-[#3c4a42]/30 space-y-1">
-              <div className="flex items-center justify-between font-mono text-[11px] text-[#bbcabf]">
-                <span>EXECUTION STREAK</span>
-                <Flame className="w-3.5 h-3.5 text-[#ffb4ab]" />
-              </div>
-              <div className="font-mono text-2xl font-black text-[#ffb4ab] flex items-center gap-1">
-                {streakDays} <span className="text-xs text-[#bbcabf] font-normal">DAYS</span>
-              </div>
-              <p className="font-mono text-[10px] text-[#4edea3]">
-                Daily deep work habit locked
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-[#1a1c20] border border-[#3c4a42]/30 space-y-1">
-              <div className="flex items-center justify-between font-mono text-[11px] text-[#bbcabf]">
-                <span>COGNITIVE RATING</span>
-                <Star className="w-3.5 h-3.5 text-[#ffd700]" />
-              </div>
-              <div className="font-mono text-2xl font-black text-[#ffd700]">
-                {averageFocusRating} <span className="text-xs text-[#bbcabf] font-normal">/ 5.0</span>
-              </div>
-              <p className="font-mono text-[10px] text-[#bbcabf]">
-                {zeroDistractionCount} zero-distraction sprints
-              </p>
-            </div>
-          </div>
-
-          {/* 7-Day Velocity Bar Visualization */}
-          <div className="p-5 rounded-xl bg-[#1a1c20] border border-[#3c4a42]/30 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#3c4a42]/30">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-[#4edea3]" />
-                <h4 className="font-mono text-xs font-bold text-[#e2e2e8] uppercase tracking-wider">
-                  7-DAY DEEP WORK VELOCITY HISTOGRAM // 180-MIN BASELINE
-                </h4>
-              </div>
-              <div className="flex items-center gap-3 font-mono text-[11px] text-[#bbcabf]">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded bg-[#4edea3]"></span> ≥180m Apex
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded bg-[#4cd7f6]"></span> ≥90m Solid
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded bg-[#ffb4ab]"></span> &lt;90m Drag
-                </span>
-              </div>
-            </div>
-
-            {/* Bars container */}
-            <div className="pt-4 pb-2">
-              <div className="h-44 flex items-end justify-between gap-2 sm:gap-4 relative border-b border-[#3c4a42]/40 pb-1">
-                {/* 180-min Target Baseline Marker Line */}
-                <div
-                  className="absolute w-full border-t border-dashed border-[#4edea3]/40 z-10 pointer-events-none flex items-center justify-end pr-2"
-                  style={{ bottom: `${(180 / 240) * 100}%` }}
-                >
-                  <span className="font-mono text-[9px] text-[#4edea3] bg-[#111318]/90 px-1 rounded -translate-y-2 border border-[#4edea3]/20">
-                    BASELINE: 180 MIN (3.0H)
-                  </span>
-                </div>
-
-                {last7DaysData.map((d) => {
-                  const maxDisplay = 240;
-                  const heightPercent = Math.min(100, Math.round((d.minutes / maxDisplay) * 100));
-                  const isMet = d.minutes >= 180;
-                  const isPartial = d.minutes >= 90 && d.minutes < 180;
-
-                  return (
-                    <div key={d.dateStr} className="flex-1 flex flex-col items-center gap-2 group relative">
-                      {/* Tooltip on hover */}
-                      <div className="absolute -top-12 bg-[#0c0e12] border border-[#3c4a42] rounded px-2 py-1 font-mono text-[10px] text-[#e2e2e8] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none shadow-xl">
-                        {d.dateStr}: <strong>{d.minutes} min</strong> ({d.sessionCount} sessions)
-                      </div>
-
-                      {/* Bar */}
-                      <div className="w-full max-w-[48px] h-36 bg-[#111318] rounded-t flex items-end overflow-hidden p-0.5 border border-[#3c4a42]/20">
-                        <div
-                          className={`w-full rounded-t transition-all duration-500 ${
-                            isMet
-                              ? 'bg-gradient-to-t from-[#4edea3]/70 to-[#4edea3]'
-                              : isPartial
-                              ? 'bg-gradient-to-t from-[#4cd7f6]/70 to-[#4cd7f6]'
-                              : d.minutes > 0
-                              ? 'bg-gradient-to-t from-[#ffb4ab]/70 to-[#ffb4ab]'
-                              : 'bg-transparent'
-                          }`}
-                          style={{ height: `${Math.max(4, heightPercent)}%` }}
-                        ></div>
-                      </div>
-
-                      {/* Day Label */}
-                      <div className="text-center font-mono">
-                        <span
-                          className={`text-[10px] block font-bold ${
-                            d.isToday ? 'text-[#4edea3]' : 'text-[#bbcabf]'
-                          }`}
-                        >
-                          {d.label}
-                        </span>
-                        <span className="text-[10px] text-[#e2e2e8] font-bold block">{d.minutes}m</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Active Directives Quick-Bind Panel */}
-          <div className="p-5 rounded-xl bg-[#1a1c20] border border-[#3c4a42]/30 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#4edea3]" />
-                <h4 className="font-mono text-xs font-bold text-[#e2e2e8] uppercase tracking-wider">
-                  TODAY'S STRATEGIC DIRECTIVES // POWERED BY 90-15-90 SPRINTS
-                </h4>
-              </div>
-              {onNavigateToSection && (
-                <button
-                  onClick={() => onNavigateToSection('north-star')}
-                  className="font-mono text-xs text-[#4edea3] hover:underline cursor-pointer flex items-center gap-1"
-                >
-                  Manage in North Star ➔
-                </button>
-              )}
-            </div>
-            <p className="font-mono text-xs text-[#bbcabf]">
-              Directives synchronized from Milestone Projects (SDLC steps), Financial OS, and Learning Engine.
-              Assign each deep focus block to execute a specific vector.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {todayDirectives.map((goal) => {
-                const isCompleted = goal.status === 'COMPLETED' || goal.progress === 100;
-                return (
-                  <div
-                    key={goal.id}
-                    className={`p-3.5 rounded-lg border transition-all flex flex-col justify-between gap-3 ${
-                      isCompleted
-                        ? 'bg-[#4edea3]/5 border-[#4edea3]/40'
-                        : 'bg-[#111318] border-[#3c4a42]/40 hover:border-[#4edea3]/40'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {goal.slotNumber && (
-                            <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-[#3c4a42]/30 text-[#bbcabf] font-bold">
-                              SLOT {goal.slotNumber}
-                            </span>
-                          )}
-                          <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-[#4edea3]/10 text-[#4edea3] border border-[#4edea3]/20 font-bold uppercase">
-                            {goal.sourceType || goal.category}
-                          </span>
-                          {goal.sourceRefCode && (
-                            <span className="font-mono text-[10px] text-[#4cd7f6]">{goal.sourceRefCode}</span>
-                          )}
-                        </div>
-                        <h5
-                          className={`font-mono text-xs font-bold leading-tight ${
-                            isCompleted ? 'line-through text-[#bbcabf]' : 'text-[#e2e2e8]'
-                          }`}
-                        >
-                          {goal.title}
-                        </h5>
-                      </div>
-
-                      {/* Checkbox with 2-way sync */}
-                      <button
-                        onClick={() => onToggleGoalAndSyncSource && onToggleGoalAndSyncSource(goal)}
-                        className="text-[#4edea3] hover:scale-110 transition-transform cursor-pointer mt-0.5"
-                        title={isCompleted ? 'Mark Active' : 'Mark Completed'}
-                      >
-                        {isCompleted ? (
-                          <CheckSquare className="w-4 h-4 text-[#4edea3]" />
-                        ) : (
-                          <Square className="w-4 h-4 text-[#bbcabf]" />
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-[#3c4a42]/20 font-mono text-[11px]">
-                      <span className="text-[#bbcabf] truncate max-w-[200px]">{goal.targetMetric}</span>
-                      <button
-                        onClick={() => {
-                          setSelectedDirectiveId(goal.id);
-                          setSubView('timer');
-                        }}
-                        className="px-2 py-0.5 rounded bg-[#4edea3]/10 hover:bg-[#4edea3] hover:text-[#003822] text-[#4edea3] font-mono text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap"
-                      >
-                        Focus On This ➔
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleStartTimer}
+                className="px-8 py-3.5 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-mono font-bold text-sm cursor-pointer shadow-[0_0_20px_rgba(0,245,160,0.35)]"
+              >
+                {timerRunning ? 'Pause Session' : 'Resume Session'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleResetTimer(currentBlockIndex === 2 ? 15 : 90)}
+                className="p-3.5 rounded-xl bg-[#091414] text-[#7a9490] hover:text-[#e6f4f1] border border-[#162b29] cursor-pointer"
+                title="Reset timer"
+              >
+                <RotateCcw className="w-5 h-5" />
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* SUBVIEW 2: 90-15-90 FOCUS ENGINE & PERSISTENT CLOCK      */}
-      {/* ======================================================== */}
-      {subView === 'timer' && (
-        <div className="space-y-6 max-w-2xl mx-auto animate-fadeIn">
-          <div className="p-6 rounded-xl bg-[#1a1c20] border border-[#3c4a42]/40 shadow-2xl space-y-6 text-center relative overflow-hidden">
-            {/* Header / Mode Indicator */}
-            <div className="flex items-center justify-between pb-3 border-b border-[#3c4a42]/30">
-              <div className="flex items-center gap-2 text-[#4edea3]">
-                <Timer className="w-5 h-5" />
-                <span className="font-mono text-xs font-bold uppercase tracking-wider">
-                  90-15-90 DEEP WORK PROTOCOL CLOCK
-                </span>
-              </div>
-              <button
-                onClick={() => setSoundEnabled(!soundEnabled)}
-                className="text-[#bbcabf] hover:text-[#e2e2e8] font-mono text-xs flex items-center gap-1 cursor-pointer"
-                title="Toggle tactical audio chimes"
-              >
-                {soundEnabled ? (
-                  <>
-                    <Volume2 className="w-3.5 h-3.5 text-[#4edea3]" />
-                    <span className="text-[10px] text-[#4edea3]">AUDIO ON</span>
-                  </>
-                ) : (
-                  <>
-                    <VolumeX className="w-3.5 h-3.5 text-[#bbcabf]" />
-                    <span className="text-[10px] text-[#bbcabf]">MUTED</span>
-                  </>
-                )}
-              </button>
-            </div>
+      {/* ========================================================================= */}
+      {/* MODAL 2: TODAY'S EXECUTION QUEUE DETAILS                                   */}
+      {/* ========================================================================= */}
+      {showQueueModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="bg-[#091414] border border-[#162b29] rounded-2xl w-full max-w-xl p-6 space-y-4 shadow-2xl relative">
+            <button
+              onClick={() => setShowQueueModal(false)}
+              className="absolute top-4 right-4 text-[#55736f] hover:text-[#e6f4f1] p-1 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
 
-            {/* Protocol Stage Switcher */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {[
-                { id: 'deep1' as const, label: 'Block 01', time: '90m', desc: 'Deep Code / Architecture' },
-                { id: 'rest' as const, label: 'Recovery', time: '15m', desc: 'Cognitive Reset' },
-                { id: 'deep2' as const, label: 'Block 02', time: '90m', desc: 'Implementation / Deploy' },
-                { id: 'custom' as const, label: 'Sprint', time: '45m', desc: 'Rapid Focused Sprint' },
-              ].map((st) => (
-                <button
-                  key={st.id}
-                  onClick={() => handleResetTimer(st.id, st.id === 'custom' ? 45 : undefined)}
-                  className={`p-2.5 rounded-lg font-mono text-xs cursor-pointer border text-left transition-all ${
-                    timerMode === st.id
-                      ? 'bg-[#4edea3] text-[#003822] font-bold border-[#4edea3] shadow-md'
-                      : 'bg-[#111318] text-[#bbcabf] border-[#3c4a42]/40 hover:text-[#e2e2e8] hover:border-[#bbcabf]/50'
-                  }`}
+            <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider block">
+              EXECUTION DISCIPLINE
+            </span>
+            <h3 className="text-base font-bold text-[#e6f4f1] font-mono">
+              Today&apos;s Strategic Directives
+            </h3>
+
+            <div className="space-y-2.5 max-h-96 overflow-y-auto">
+              {executionQueueItems.map((item) => (
+                <div
+                  key={item.num}
+                  className="p-3 rounded-xl bg-[#050a0a] border border-[#162b29] flex items-center justify-between"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold uppercase text-[11px]">{st.label}</span>
-                    <span className="text-[10px] opacity-80">{st.time}</span>
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    <span className="text-xs font-bold text-[#e6f4f1] block truncate">
+                      {item.num} · {item.title}
+                    </span>
+                    <p className="text-[11px] text-[#7a9490] leading-snug">
+                      {item.subtitle}
+                    </p>
+                    <span className="text-[10px] font-mono text-[#55736f]">
+                      {item.tags}
+                    </span>
                   </div>
-                  <div className="text-[10px] opacity-75 truncate mt-0.5">{st.desc}</div>
-                </button>
+                  <div className="flex items-center gap-2 pl-3 shrink-0">
+                    <span className="text-xs font-mono font-bold text-[#00f5a0]">
+                      {item.durationMins}m
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleStartDirectiveSession(item.title, item.durationMins);
+                        setShowQueueModal(false);
+                      }}
+                      className="px-2.5 py-1 rounded bg-[#00f5a0] text-[#021810] text-[10px] font-mono font-bold cursor-pointer"
+                    >
+                      Start
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
 
-            {/* Linked Directive Tag */}
-            <div className="p-3 rounded-lg bg-[#111318] border border-[#3c4a42]/40 text-left space-y-1">
-              <label className="font-mono text-[10px] uppercase text-[#bbcabf] font-bold block">
-                TARGET DIRECTIVE FOR THIS FOCUS BLOCK:
-              </label>
-              <select
-                value={selectedDirectiveId}
-                onChange={(e) => setSelectedDirectiveId(e.target.value)}
-                className="w-full bg-[#1a1c20] border border-[#3c4a42]/50 rounded px-3 py-1.5 font-mono text-xs text-[#e2e2e8] focus:border-[#4edea3] focus:outline-none"
-              >
-                <option value="">-- UNLINKED GENERAL DEEP WORK --</option>
-                {todayDirectives.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    [SLOT {g.slotNumber || 1} // {g.sourceType || g.category}] {g.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Large Digital Clock Display */}
-            <div className="py-6 space-y-2" role="timer" aria-live="off" aria-label="Deep work countdown timer">
-              <div
-                className={`font-mono text-7xl sm:text-8xl font-black tracking-widest transition-colors ${
-                  timerRunning
-                    ? 'text-[#4edea3] drop-shadow-[0_0_25px_rgba(78,222,163,0.3)] animate-pulse'
-                    : 'text-[#e2e2e8]'
-                }`}
-                aria-label={`${Math.floor(timerSeconds / 60)} minutes and ${timerSeconds % 60} seconds remaining`}
-              >
-                {formatTimer(timerSeconds)}
-              </div>
-              <div className="font-mono text-xs text-[#bbcabf] flex items-center justify-center gap-2">
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    timerRunning ? 'bg-[#4edea3] animate-ping' : 'bg-[#3c4a42]'
-                  }`}
-                ></span>
-                {timerRunning
-                  ? 'CLOCK ENGAGED — PERSISTENT ACROSS TABS'
-                  : timerSeconds === 0
-                  ? 'STAGE COMPLETED // RECORD YOUR SESSION'
-                  : 'CLOCK READY // NO DISTRACTIONS'}
-              </div>
-            </div>
-
-            {/* Actions Bar */}
-            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <div className="flex justify-end pt-2 border-t border-[#132626]">
               <button
-                onClick={timerRunning ? handlePauseTimer : handleStartTimer}
-                className="px-6 py-3 rounded-lg bg-[#4edea3] hover:bg-[#4edea3]/90 text-[#003822] font-mono text-sm font-black cursor-pointer transition-all shadow-lg flex items-center gap-2"
-                aria-label={timerRunning ? 'Pause countdown clock' : 'Engage focus countdown clock'}
+                type="button"
+                onClick={() => setShowQueueModal(false)}
+                className="px-5 py-2 rounded-xl bg-[#00f5a0] text-[#021810] font-mono text-xs font-bold cursor-pointer"
               >
-                {timerRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                {timerRunning ? 'PAUSE CLOCK' : 'ENGAGE FOCUS'}
-              </button>
-
-              <button
-                onClick={() => handleResetTimer(timerMode)}
-                className="p-3 rounded-lg bg-[#111318] border border-[#3c4a42]/50 text-[#bbcabf] hover:text-[#e2e2e8] cursor-pointer hover:border-[#bbcabf]/50 transition-colors"
-                title="Reset Stage"
-                aria-label="Reset Stage to default duration"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={handleOpenLogModal}
-                className="px-4 py-3 rounded-lg bg-[#4cd7f6]/10 hover:bg-[#4cd7f6] hover:text-[#002e3b] text-[#4cd7f6] border border-[#4cd7f6]/40 font-mono text-xs font-bold cursor-pointer transition-all flex items-center gap-2"
-              >
-                <CheckSquare className="w-4 h-4" />
-                LOG SESSION TO SCOREBOARD
+                Close Queue
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* SUBVIEW 3: TACTICAL CADENCE (90-15-90 & 24H SCHEDULE)    */}
-      {/* ======================================================== */}
-      {subView === 'cadence' && (
-        <div className="space-y-6 animate-fadeIn">
-          {/* Sub-toggle */}
-          <div className="flex items-center justify-between p-3 rounded-xl bg-[#1a1c20] border border-[#3c4a42]/30">
-            <div className="flex items-center gap-2">
-              <Sun className="w-4 h-4 text-[#4edea3]" />
-              <span className="font-mono text-xs font-bold text-[#e2e2e8] uppercase">
-                TACTICAL CADENCE ARCHITECTURE
-              </span>
-            </div>
-
-            <div className="flex gap-1 bg-[#111318] p-1 rounded border border-[#3c4a42]/40">
-              <button
-                onClick={() => setCadenceTab('901590')}
-                className={`px-3 py-1 text-xs font-mono rounded cursor-pointer transition-colors ${
-                  cadenceTab === '901590'
-                    ? 'bg-[#4edea3] text-[#003822] font-bold'
-                    : 'text-[#bbcabf] hover:text-[#e2e2e8]'
-                }`}
-              >
-                90-15-90 Protocol ({completedCadenceCount}/{state.deepWorkBlocks.length})
-              </button>
-              <button
-                onClick={() => setCadenceTab('schedule')}
-                className={`px-3 py-1 text-xs font-mono rounded cursor-pointer transition-colors ${
-                  cadenceTab === 'schedule'
-                    ? 'bg-[#4edea3] text-[#003822] font-bold'
-                    : 'text-[#bbcabf] hover:text-[#e2e2e8]'
-                }`}
-              >
-                24h Master Schedule ({completedScheduleCount}/{(state.dailySchedule || []).length})
-              </button>
-            </div>
-          </div>
-
-          {/* TAB 1: 90-15-90 Protocol Blocks */}
-          {cadenceTab === '901590' && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {state.deepWorkBlocks.map((block: DailyCadenceBlock) => (
-                  <div
-                    key={block.id}
-                    onClick={() => onToggleCadenceBlock(block.id)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between gap-3 ${
-                      block.completedToday
-                        ? 'bg-[#4edea3]/10 border-[#4edea3]/40 shadow-sm'
-                        : 'bg-[#1a1c20] border-[#3c4a42]/30 hover:border-[#bbcabf]/50'
-                    }`}
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs text-[#4cd7f6] font-bold">{block.code}</span>
-                        <span className="font-mono text-[10px] text-[#4edea3] bg-[#4edea3]/10 px-2 py-0.5 rounded border border-[#4edea3]/20">
-                          {block.durationMinutes} MIN
-                        </span>
-                      </div>
-                      <h4 className="font-mono text-sm font-bold text-[#e2e2e8]">{block.title}</h4>
-                      <p className="font-mono text-xs text-[#bbcabf] leading-relaxed">{block.subtitle}</p>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-[#3c4a42]/20 font-mono text-xs">
-                      <span className={block.completedToday ? 'text-[#4edea3] font-bold' : 'text-[#bbcabf]'}>
-                        {block.completedToday ? 'COMPLETED TODAY' : 'PENDING EXECUTION'}
-                      </span>
-                      {block.completedToday ? (
-                        <CheckSquare className="w-4 h-4 text-[#4edea3]" />
-                      ) : (
-                        <Square className="w-4 h-4 text-[#bbcabf]" />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: 24h Daily Operating Schedule */}
-          {cadenceTab === 'schedule' && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {(state.dailySchedule || []).map((block: DailyCadenceBlock) => (
-                  <div
-                    key={block.id}
-                    onClick={() => onToggleDailyScheduleBlock && onToggleDailyScheduleBlock(block.id)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${
-                      block.completedToday
-                        ? 'bg-[#4edea3]/10 border-[#4edea3]/40'
-                        : 'bg-[#1a1c20] border-[#3c4a42]/30 hover:border-[#bbcabf]/50'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 text-[#4edea3]">
-                        {block.completedToday ? (
-                          <CheckSquare className="w-4 h-4 text-[#4edea3]" />
-                        ) : (
-                          <Square className="w-4 h-4 text-[#bbcabf]" />
-                        )}
-                      </div>
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs text-[#4cd7f6] font-bold">{block.timeRange}</span>
-                          <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-[#3c4a42]/30 text-[#bbcabf] uppercase font-bold">
-                            {block.title}
-                          </span>
-                        </div>
-                        <p className="font-mono text-xs text-[#e2e2e8] font-bold">{block.subtitle}</p>
-                      </div>
-                    </div>
-                    <span className="font-mono text-[10px] text-[#4edea3] bg-[#4edea3]/10 px-2 py-0.5 rounded whitespace-nowrap">
-                      {block.durationMinutes}m
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* SUBVIEW 4: FOCUS SESSION HISTORY & LOGS                  */}
-      {/* ======================================================== */}
-      {subView === 'sessions' && (
-        <div className="space-y-4 animate-fadeIn">
-          <div className="flex items-center justify-between p-3 rounded-xl bg-[#1a1c20] border border-[#3c4a42]/30">
-            <div className="flex items-center gap-2">
-              <History className="w-4 h-4 text-[#4edea3]" />
-              <h3 className="font-mono text-xs font-bold text-[#e2e2e8] uppercase">
-                DEEP WORK FOCUS SESSION AUDIT TRAIL ({focusSessions.length} SESSIONS RECORDED)
-              </h3>
-            </div>
+      {/* ========================================================================= */}
+      {/* MODAL 3: RECENT SESSIONS HISTORY                                          */}
+      {/* ========================================================================= */}
+      {showRecentSessionsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="bg-[#091414] border border-[#162b29] rounded-2xl w-full max-w-lg p-6 space-y-4 shadow-2xl relative">
             <button
-              onClick={() => {
-                setLogMinutes(90);
-                setShowLogModal(true);
-              }}
-              className="px-3 py-1 rounded bg-[#4edea3] hover:bg-[#4edea3]/90 text-[#003822] font-mono text-xs font-bold cursor-pointer flex items-center gap-1.5"
+              onClick={() => setShowRecentSessionsModal(false)}
+              className="absolute top-4 right-4 text-[#55736f] hover:text-[#e6f4f1] p-1 cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" /> Log Manual Session
+              <X className="w-5 h-5" />
             </button>
-          </div>
 
-          <div className="space-y-2">
-            {focusSessions.map((session) => (
-              <div
-                key={session.id}
-                className="p-4 rounded-xl bg-[#1a1c20] border border-[#3c4a42]/30 space-y-2 hover:border-[#4edea3]/30 transition-colors"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-xs font-bold text-[#4cd7f6] bg-[#4cd7f6]/10 px-2 py-0.5 rounded border border-[#4cd7f6]/30 uppercase">
-                      {session.mode.toUpperCase()}
+            <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider block">
+              FOCUS TELEMETRY
+            </span>
+            <h3 className="text-base font-bold text-[#e6f4f1] font-mono">
+              Deep Work Session History
+            </h3>
+
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {recentSessionsList.map((s, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 rounded-xl bg-[#050a0a] border border-[#162b29] flex items-center justify-between font-mono text-xs"
+                >
+                  <div>
+                    <span className="font-bold text-[#e6f4f1] block">
+                      {s.title}
                     </span>
-                    <span className="font-mono text-xs text-[#e2e2e8] font-bold">
-                      {session.durationMinutes} MIN
+                    <span className="text-[10px] text-[#7a9490]">
+                      {s.duration} · Rating: {s.rating}
                     </span>
-                    <span className="font-mono text-xs text-[#bbcabf]">
-                      {session.date} ({session.startTime} – {session.endTime})
-                    </span>
-                    {session.focusRating && (
-                      <span className="font-mono text-xs text-[#ffd700] flex items-center gap-1">
-                        ★ {session.focusRating}/5
-                      </span>
-                    )}
-                    {session.distractionCount !== undefined && (
-                      <span
-                        className={`font-mono text-[10px] px-1.5 py-0.2 rounded ${
-                          session.distractionCount === 0
-                            ? 'bg-[#4edea3]/10 text-[#4edea3]'
-                            : 'bg-[#ffb4ab]/10 text-[#ffb4ab]'
-                        }`}
-                      >
-                        {session.distractionCount} Distractions
-                      </span>
-                    )}
                   </div>
+                  <span className="text-[#55736f] text-xs">
+                    {s.time}
+                  </span>
+                </div>
+              ))}
+            </div>
 
-                  {onDeleteFocusSession && (
-                    <button
-                      onClick={() => onDeleteFocusSession(session.id)}
-                      className="text-[#bbcabf] hover:text-[#ffb4ab] cursor-pointer self-end sm:self-center"
-                      title="Delete Session"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+            <div className="flex justify-end pt-2 border-t border-[#132626]">
+              <button
+                type="button"
+                onClick={() => setShowRecentSessionsModal(false)}
+                className="px-5 py-2 rounded-xl bg-[#00f5a0] text-[#021810] font-mono text-xs font-bold cursor-pointer"
+              >
+                Close History
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 4: MANUAL LOG FOCUS SESSION                                          */}
+      {/* ========================================================================= */}
+      {showLogSessionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="bg-[#091414] border border-[#162b29] rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl relative">
+            <button
+              onClick={() => setShowLogSessionModal(false)}
+              className="absolute top-4 right-4 text-[#55736f] hover:text-[#e6f4f1] p-1 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider block">
+              MANUAL SESSION LOG
+            </span>
+            <h3 className="text-base font-bold text-[#e6f4f1] font-mono">
+              Log Deep Work Block
+            </h3>
+
+            <form onSubmit={handleSaveManualSession} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-mono text-[#a1b8b4] mb-1">
+                  Directive / Goal Title
+                </label>
+                <input
+                  type="text"
+                  value={logDirectiveTitle}
+                  onChange={(e) => setLogDirectiveTitle(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#050a0a] border border-[#162b29] text-[#e6f4f1] font-mono text-xs focus:border-[#00f5a0] focus:outline-none"
+                  placeholder="e.g. Personal Automation Engine"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-mono text-[#a1b8b4] mb-1">
+                    Duration (Minutes)
+                  </label>
+                  <select
+                    value={logDurationMinutes}
+                    onChange={(e) => setLogDurationMinutes(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl bg-[#050a0a] border border-[#162b29] text-[#e6f4f1] font-mono text-xs focus:border-[#00f5a0] focus:outline-none"
+                  >
+                    <option value={15}>15 min (Sprint/Break)</option>
+                    <option value={30}>30 min (Light)</option>
+                    <option value={45}>45 min (Research)</option>
+                    <option value={60}>60 min (Standard)</option>
+                    <option value={90}>90 min (Deep Work Block)</option>
+                    <option value={120}>120 min (Extended)</option>
+                  </select>
                 </div>
 
-                {session.linkedDirectiveTitle && (
-                  <div className="font-mono text-xs text-[#4edea3] flex items-center gap-1 pt-1">
-                    <Sparkles className="w-3 h-3" />
-                    <span>Target Directive: {session.linkedDirectiveTitle}</span>
-                  </div>
-                )}
-
-                {session.notes && (
-                  <p className="font-mono text-xs text-[#bbcabf] pt-1 border-t border-[#3c4a42]/20">
-                    "{session.notes}"
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* SUBVIEW 5: EXECUTION REVIEWS & RETROSPECTIVES            */}
-      {/* ======================================================== */}
-      {subView === 'reviews' && (
-        <div className="space-y-6 animate-fadeIn">
-          <form onSubmit={handleCreateReview} className="p-5 rounded-xl bg-[#1a1c20] border border-[#3c4a42]/30 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-[#3c4a42]/30">
-              <h3 className="font-mono text-xs font-bold text-[#e2e2e8] uppercase tracking-wider flex items-center gap-2">
-                <ClipboardCheck className="w-4 h-4 text-[#4edea3]" />
-                FILE CADENCE EXECUTION REVIEW
-              </h3>
-              <div className="flex gap-1">
-                {(['DAILY', 'WEEKLY', 'MONTHLY'] as const).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setReviewCadence(t)}
-                    className={`px-2.5 py-1 text-xs font-mono uppercase rounded transition-colors ${
-                      reviewCadence === t ? 'bg-[#4edea3] text-[#003822] font-bold' : 'text-[#bbcabf] bg-[#111318]'
-                    }`}
+                <div>
+                  <label className="block text-xs font-mono text-[#a1b8b4] mb-1">
+                    Focus Rating (1–5)
+                  </label>
+                  <select
+                    value={logFocusRating}
+                    onChange={(e) => setLogFocusRating(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl bg-[#050a0a] border border-[#162b29] text-[#e6f4f1] font-mono text-xs focus:border-[#00f5a0] focus:outline-none"
                   >
-                    {t}
-                  </button>
-                ))}
+                    <option value={5}>5.0 — Flow State (Zero Interruption)</option>
+                    <option value={4}>4.0 — High Focus</option>
+                    <option value={3}>3.0 — Moderate Focus</option>
+                    <option value={2}>2.0 — Frequent Distraction</option>
+                    <option value={1}>1.0 — Broken Session</option>
+                  </select>
+                </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input
-                type="text"
-                placeholder="What was built? (Artifacts, commits, PRs)..."
-                value={whatBuilt}
-                onChange={(e) => setWhatBuilt(e.target.value)}
-                className="bg-[#111318] border border-[#3c4a42]/40 rounded px-3 py-2 font-mono text-xs text-[#e2e2e8] focus:border-[#4edea3] focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="What was learned / encoded?..."
-                value={whatLearned}
-                onChange={(e) => setWhatLearned(e.target.value)}
-                className="bg-[#111318] border border-[#3c4a42]/40 rounded px-3 py-2 font-mono text-xs text-[#e2e2e8] focus:border-[#4edea3] focus:outline-none"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <input
-                type="text"
-                placeholder="What failed or experienced drag?..."
-                value={whatFailed}
-                onChange={(e) => setWhatFailed(e.target.value)}
-                className="bg-[#111318] border border-[#3c4a42]/40 rounded px-3 py-2 font-mono text-xs text-[#e2e2e8] focus:border-[#4edea3] focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Next Day Directive..."
-                value={nextDirective}
-                onChange={(e) => setNextDirective(e.target.value)}
-                className="bg-[#111318] border border-[#3c4a42]/40 rounded px-3 py-2 font-mono text-xs text-[#e2e2e8] focus:border-[#4edea3] focus:outline-none"
-              />
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs text-[#bbcabf]">Deep Minutes:</span>
+              <div>
+                <label className="block text-xs font-mono text-[#a1b8b4] mb-1">
+                  Distractions Count
+                </label>
                 <input
                   type="number"
                   min={0}
-                  max={720}
-                  value={reviewMinutesLogged}
-                  onChange={(e) => setReviewMinutesLogged(Number(e.target.value))}
-                  className="w-24 bg-[#111318] border border-[#3c4a42]/40 rounded px-2.5 py-1.5 font-mono text-xs text-[#e2e2e8]"
+                  max={20}
+                  value={logDistractions}
+                  onChange={(e) => setLogDistractions(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl bg-[#050a0a] border border-[#162b29] text-[#e6f4f1] font-mono text-xs focus:border-[#00f5a0] focus:outline-none"
                 />
               </div>
-            </div>
 
-            <button
-              type="submit"
-              className="px-4 py-2 rounded bg-[#4edea3] hover:bg-[#4edea3]/90 text-[#003822] font-mono text-xs font-bold cursor-pointer shadow-md"
-            >
-              RECORD REVIEW IN LOG
-            </button>
-          </form>
-
-          <div className="space-y-3">
-            {state.reviews.map((rev) => (
-              <div key={rev.id} className="p-4 rounded-xl bg-[#1a1c20] border border-[#3c4a42]/30 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-[#4cd7f6] uppercase font-bold">[{rev.cadence}]</span>
-                    <span className="font-mono text-xs text-[#bbcabf]">{rev.date}</span>
-                    <span className="font-mono text-xs text-[#4edea3] bg-[#4edea3]/10 px-2 py-0.5 rounded border border-[#4edea3]/30">
-                      DEEP LOG: {rev.deepWorkMinutesLogged} MIN
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => onDeleteReview(rev.id)}
-                    className="text-[#bbcabf] hover:text-[#ffb4ab] cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono pt-1">
-                  <div>
-                    <span className="text-[#4edea3] font-bold">Built: </span>
-                    <span className="text-[#e2e2e8]">{rev.whatWasBuilt}</span>
-                  </div>
-                  <div>
-                    <span className="text-[#4cd7f6] font-bold">Learned: </span>
-                    <span className="text-[#e2e2e8]">{rev.whatWasLearned}</span>
-                  </div>
-                  {rev.whatFailed && rev.whatFailed !== 'None' && (
-                    <div>
-                      <span className="text-[#ffb4ab] font-bold">Frictions: </span>
-                      <span className="text-[#ffdad6]">{rev.whatFailed}</span>
-                    </div>
-                  )}
-                  <div>
-                    <span className="text-[#bbcabf] font-bold">Directive: </span>
-                    <span className="text-[#e2e2e8]">{rev.nextDayDirective}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* QUICK FOCUS SESSION LOG MODAL                            */}
-      {/* ======================================================== */}
-      {showLogModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#1a1c20] border border-[#4edea3]/40 rounded-xl p-6 max-w-lg w-full space-y-4 shadow-2xl animate-scaleUp">
-            <div className="flex items-center justify-between pb-3 border-b border-[#3c4a42]/30">
-              <div className="flex items-center gap-2">
-                <CheckSquare className="w-5 h-5 text-[#4edea3]" />
-                <h3 className="font-mono text-sm font-bold text-[#e2e2e8] uppercase">
-                  RECORD FOCUS SESSION TO SCOREBOARD
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowLogModal(false)}
-                className="text-[#bbcabf] hover:text-[#e2e2e8] font-mono text-xs cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveFocusSession} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                    MINUTES LOGGED:
-                  </label>
-                  <input
-                    type="number"
-                    min={5}
-                    max={360}
-                    value={logMinutes}
-                    onChange={(e) => setLogMinutes(Number(e.target.value))}
-                    className="w-full bg-[#111318] border border-[#3c4a42]/40 rounded px-3 py-2 font-mono text-xs text-[#e2e2e8]"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                    DISTRACTIONS COUNT:
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={20}
-                    value={logDistractions}
-                    onChange={(e) => setLogDistractions(Number(e.target.value))}
-                    className="w-full bg-[#111318] border border-[#3c4a42]/40 rounded px-3 py-2 font-mono text-xs text-[#e2e2e8]"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                  FOCUS QUALITY RATING (1-5 STARS):
-                </label>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setLogRating(star)}
-                      className={`p-2 rounded font-mono text-xs flex-1 cursor-pointer border ${
-                        logRating >= star
-                          ? 'bg-[#ffd700]/20 text-[#ffd700] border-[#ffd700]/50'
-                          : 'bg-[#111318] text-[#bbcabf] border-[#3c4a42]/40'
-                      }`}
-                    >
-                      ★ {star}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-mono text-[10px] text-[#bbcabf] uppercase font-bold">
-                  SESSION OUTCOME & NOTES:
+              <div>
+                <label className="block text-xs font-mono text-[#a1b8b4] mb-1">
+                  Notes / Artifact Created
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="What code was shipped, PRs opened, or bugs squashed?..."
                   value={logNotes}
                   onChange={(e) => setLogNotes(e.target.value)}
-                  className="w-full bg-[#111318] border border-[#3c4a42]/40 rounded px-3 py-2 font-mono text-xs text-[#e2e2e8] focus:border-[#4edea3] focus:outline-none"
+                  className="w-full px-3 py-2 rounded-xl bg-[#050a0a] border border-[#162b29] text-[#e6f4f1] font-mono text-xs focus:border-[#00f5a0] focus:outline-none"
+                  placeholder="What was built, proved, or unblocked during this session?"
                 />
               </div>
 
-              {selectedDirectiveId && (
-                <div className="p-3 rounded bg-[#111318] border border-[#4edea3]/30 flex items-center justify-between gap-3">
-                  <div className="font-mono text-xs text-[#bbcabf] truncate">
-                    Sync to directive: <strong className="text-[#4edea3]">{todayDirectives.find((g) => g.id === selectedDirectiveId)?.title}</strong>
-                  </div>
-                  <label className="flex items-center gap-1.5 cursor-pointer font-mono text-xs text-[#e2e2e8] whitespace-nowrap">
-                    <input
-                      type="checkbox"
-                      checked={logSyncDirective}
-                      onChange={(e) => setLogSyncDirective(e.target.checked)}
-                      className="accent-[#4edea3]"
-                    />
-                    Mark Complete
-                  </label>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#3c4a42]/30">
+              <div className="flex justify-end gap-2 pt-2 border-t border-[#132626]">
                 <button
                   type="button"
-                  onClick={() => setShowLogModal(false)}
-                  className="px-4 py-2 rounded bg-[#111318] border border-[#3c4a42]/40 text-[#bbcabf] hover:text-[#e2e2e8] font-mono text-xs cursor-pointer"
+                  onClick={() => setShowLogSessionModal(false)}
+                  className="px-4 py-2 rounded-xl bg-[#091414] text-[#7a9490] hover:text-[#e6f4f1] font-mono text-xs cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded bg-[#4edea3] hover:bg-[#4edea3]/90 text-[#003822] font-mono text-xs font-black cursor-pointer shadow-lg"
+                  className="px-5 py-2 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-mono text-xs font-bold cursor-pointer shadow-[0_0_12px_rgba(0,245,160,0.25)]"
                 >
-                  SAVE SESSION TO SCOREBOARD
+                  Save Log
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-    </section>
+
+      {/* ========================================================================= */}
+      {/* MODAL 5: PROJECT PORTFOLIO INSPECTOR                                       */}
+      {/* ========================================================================= */}
+      {showPortfolioModal && selectedPortfolioProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="bg-[#091414] border border-[#162b29] rounded-2xl w-full max-w-lg p-6 space-y-4 shadow-2xl relative">
+            <button
+              onClick={() => {
+                setShowPortfolioModal(false);
+                setSelectedPortfolioProject(null);
+              }}
+              className="absolute top-4 right-4 text-[#55736f] hover:text-[#e6f4f1] p-1 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/30">
+                {selectedPortfolioProject.code}
+              </span>
+              <span className="font-mono text-[10px] text-[#7a9490] uppercase">
+                {selectedPortfolioProject.timeline}
+              </span>
+            </div>
+
+            <h3 className="text-lg font-bold text-[#e6f4f1] font-mono">
+              {selectedPortfolioProject.title}
+            </h3>
+
+            <p className="text-xs text-[#a1b8b4] leading-relaxed">
+              {selectedPortfolioProject.description || 'System initiative tracked in personal operating system repository.'}
+            </p>
+
+            {selectedPortfolioProject.progress !== undefined && (
+              <div className="space-y-1.5 p-3 rounded-xl bg-[#050a0a] border border-[#162b29]">
+                <div className="flex justify-between text-xs font-mono">
+                  <span className="text-[#7a9490]">Milestone Velocity</span>
+                  <span className="text-[#00f5a0] font-bold">{selectedPortfolioProject.progress}%</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-[#122222] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[#00f5a0]"
+                    style={{ width: `${selectedPortfolioProject.progress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-3 border-t border-[#132626]">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveGoalFocus(`${selectedPortfolioProject.code} — ${selectedPortfolioProject.title}`);
+                  setShowPortfolioModal(false);
+                }}
+                className="px-4 py-2 rounded-xl bg-[#071714] border border-[#00f5a0]/40 text-[#00f5a0] font-mono text-xs font-bold hover:bg-[#00f5a0]/20 cursor-pointer"
+              >
+                Set as Active Focus
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPortfolioModal(false);
+                  onNavigateToSection?.('milestone-projects');
+                }}
+                className="px-4 py-2 rounded-xl bg-[#00f5a0] text-[#021810] font-mono text-xs font-bold cursor-pointer"
+              >
+                View Full Project
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };

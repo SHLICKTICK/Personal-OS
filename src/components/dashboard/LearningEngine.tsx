@@ -786,7 +786,7 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
                   </div>
 
                   <span
-                    className={`font-mono text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                    className={`font-mono text-xs font-bold px-2 py-0.5 rounded-md shrink-0 ${
                       isActive
                         ? 'bg-[#00f5a0]/20 text-[#00f5a0] border border-[#00f5a0]/40'
                         : stage.count > 0 && stage.level === 'L3'
@@ -1031,37 +1031,37 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
                         )}
 
                         {isDueToday && (
-                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/40 flex items-center gap-1">
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/40 flex items-center gap-1">
                             <Clock className="w-2.5 h-2.5" />
                             <span>Due Today</span>
                           </span>
                         )}
                         {isInFlight && (
-                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#38bdf8]/15 text-[#38bdf8] border border-[#38bdf8]/40 flex items-center gap-1">
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#38bdf8]/15 text-[#38bdf8] border border-[#38bdf8]/40 flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" />
                             <span>In Flight</span>
                           </span>
                         )}
                         {isDueSoon && (
-                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/40 flex items-center gap-1">
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/40 flex items-center gap-1">
                             <Clock className="w-2.5 h-2.5" />
                             <span>Due Soon</span>
                           </span>
                         )}
                         {isStable && (
-                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/40 flex items-center gap-1">
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/40 flex items-center gap-1">
                             <CheckCircle2 className="w-2.5 h-2.5" />
                             <span>Stable</span>
                           </span>
                         )}
                         {isAtRisk && (
-                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ff5c5c]/15 text-[#ff5c5c] border border-[#ff5c5c]/40 flex items-center gap-1">
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#ff5c5c]/15 text-[#ff5c5c] border border-[#ff5c5c]/40 flex items-center gap-1">
                             <AlertTriangle className="w-2.5 h-2.5" />
                             <span>At Risk</span>
                           </span>
                         )}
                         {isNotStarted && (
-                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1e2024] text-[#7a9490] border border-[#3c4a42]/40 flex items-center gap-1">
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#0e201e] text-[#7a9490] border border-[#162b29] flex items-center gap-1">
                             <span>Not Started</span>
                           </span>
                         )}

@@ -116,51 +116,51 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       const { error, errorInfo, copiedRaw, copiedStack, showDetails } = this.state;
 
       return (
-        <div className="min-h-screen bg-[#0c0e12] text-[#e2e2e8] flex items-center justify-center p-4 sm:p-6 font-mono select-none">
-          <div className="w-full max-w-2xl bg-[#111318] border border-[#ffb4ab]/40 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden">
+        <div className="min-h-screen bg-[#050a0a] text-[#e6f4f1] flex items-center justify-center p-4 sm:p-6 font-mono select-none">
+          <div className="w-full max-w-2xl bg-[#081414] border border-[#ef4444]/40 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden">
             {/* Ambient Background Warning Glow */}
-            <div className="absolute top-0 right-0 w-80 h-80 bg-[#ffb4ab]/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+            <div className="absolute top-0 right-0 w-80 h-80 bg-[#ef4444]/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
 
             {/* Header Badge */}
-            <div className="flex items-center justify-between pb-4 border-b border-[#3c4a42]/40 relative z-10">
+            <div className="flex items-center justify-between pb-4 border-b border-[#162b29] relative z-10">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-lg bg-[#ffb4ab]/15 border border-[#ffb4ab]/30 flex items-center justify-center text-[#ffb4ab]">
+                <div className="w-9 h-9 rounded-xl bg-[#ef4444]/15 border border-[#ef4444]/30 flex items-center justify-center text-[#ef4444]">
                   <ShieldAlert className="w-5 h-5 animate-pulse" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-0.5 rounded bg-[#ffb4ab]/15 text-[#ffb4ab] font-bold border border-[#ffb4ab]/30">
+                    <span className="text-xs px-2 py-0.5 rounded-md bg-[#ef4444]/15 text-[#ef4444] font-bold border border-[#ef4444]/30">
                       SYSTEM_HALT // KERNEL EXCEPTION
                     </span>
-                    <span className="text-[10px] text-[#bbcabf]">RECOVERY PROTOCOL ENGAGED</span>
+                    <span className="text-[10px] text-[#7a9490]">RECOVERY PROTOCOL ENGAGED</span>
                   </div>
-                  <h1 className="text-lg sm:text-xl font-black text-[#e2e2e8] tracking-tight uppercase mt-0.5">
+                  <h1 className="text-lg sm:text-xl font-black text-[#e6f4f1] tracking-tight uppercase mt-0.5">
                     EXECUTIVE OS RUNTIME SAFEGUARD
                   </h1>
                 </div>
               </div>
 
-              <div className="font-mono text-xs text-[#bbcabf] hidden sm:block">
+              <div className="font-mono text-xs text-[#7a9490] hidden sm:block">
                 TIMESTAMP: {new Date().toTimeString().slice(0, 8)}
               </div>
             </div>
 
             {/* Incident Explanation */}
             <div className="space-y-2 relative z-10">
-              <p className="text-xs text-[#bbcabf] leading-relaxed">
+              <p className="text-xs text-[#7a9490] leading-relaxed">
                 An unexpected component rendering fault was captured by the top-level safety barrier.
                 Your personal operating system state has been preserved in memory and storage.
                 Use the emergency export tools below to archive your data prior to system reinitialization.
               </p>
 
               {/* Error Message Box */}
-              <div className="p-3.5 rounded-lg bg-[#1a1c20] border border-[#ffb4ab]/30 flex items-start gap-3">
-                <AlertTriangle className="w-4 h-4 text-[#ffb4ab] shrink-0 mt-0.5" />
+              <div className="p-3.5 rounded-xl bg-[#0b1a19] border border-[#ef4444]/30 flex items-start gap-3">
+                <AlertTriangle className="w-4 h-4 text-[#ef4444] shrink-0 mt-0.5" />
                 <div className="overflow-hidden">
-                  <div className="text-[10px] text-[#ffb4ab] uppercase font-bold tracking-wider">
+                  <div className="text-[10px] text-[#ef4444] uppercase font-bold tracking-wider">
                     CAPTURED FAULT IDENTIFIER:
                   </div>
-                  <div className="text-xs text-[#e2e2e8] font-bold break-words mt-0.5 font-mono">
+                  <div className="text-xs text-[#e6f4f1] font-bold break-words mt-0.5 font-mono">
                     {error?.message || 'Unknown runtime error occurred.'}
                   </div>
                 </div>
@@ -169,16 +169,16 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
             {/* Primary Action Grid: Data Preservation First */}
             <div className="space-y-3 pt-2 relative z-10">
-              <div className="text-[10px] uppercase tracking-wider text-[#86948a] font-bold flex items-center justify-between">
+              <div className="text-[10px] uppercase tracking-wider text-[#7a9490] font-bold flex items-center justify-between">
                 <span>STAGE 1: EMERGENCY DATA ARCHIVAL & RECOVERY</span>
-                <span className="text-[#4edea3]">ZERO DATA LOSS GUARANTEE</span>
+                <span className="text-[#00f5a0]">ZERO DATA LOSS GUARANTEE</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Emergency JSON Export Button */}
                 <button
                   onClick={this.handleExportEmergencyJson}
-                  className="p-3.5 rounded-xl bg-[#4edea3] hover:bg-[#4edea3]/90 text-[#003822] font-mono text-xs font-black cursor-pointer transition-all shadow-lg flex items-center justify-center gap-2 group"
+                  className="p-3.5 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#050a0a] font-mono text-xs font-black cursor-pointer transition-all shadow-lg shadow-[#00f5a0]/20 flex items-center justify-center gap-2 group"
                 >
                   <Download className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
                   DOWNLOAD EMERGENCY JSON
@@ -187,9 +187,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 {/* Copy Raw State to Clipboard */}
                 <button
                   onClick={this.handleCopyRawState}
-                  className="p-3.5 rounded-xl bg-[#1e2024] hover:bg-[#282a2e] text-[#4cd7f6] border border-[#4cd7f6]/40 font-mono text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-2"
+                  className="p-3.5 rounded-xl bg-[#0e201e] hover:bg-[#162b29] text-[#4cd7f6] border border-[#4cd7f6]/40 font-mono text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-2"
                 >
-                  {copiedRaw ? <Check className="w-4 h-4 text-[#4edea3]" /> : <Copy className="w-4 h-4" />}
+                  {copiedRaw ? <Check className="w-4 h-4 text-[#00f5a0]" /> : <Copy className="w-4 h-4" />}
                   {copiedRaw ? 'COPIED TO CLIPBOARD' : 'COPY RAW STATE (CLIPBOARD)'}
                 </button>
               </div>
@@ -198,29 +198,29 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 {/* Hot Reload / Restart */}
                 <button
                   onClick={this.handleReload}
-                  className="p-3 rounded-lg bg-[#1a1c20] hover:bg-[#282a2e] text-[#e2e2e8] border border-[#3c4a42]/50 font-mono text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-2"
+                  className="p-3 rounded-xl bg-[#0b1a19] hover:bg-[#162b29] text-[#e6f4f1] border border-[#162b29] font-mono text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-2"
                 >
-                  <RefreshCw className="w-3.5 h-3.5 text-[#4edea3]" />
+                  <RefreshCw className="w-3.5 h-3.5 text-[#00f5a0]" />
                   RESTART APPLICATION
                 </button>
 
                 {/* Factory Reset Fallback */}
                 <button
                   onClick={this.handleFactoryReset}
-                  className="p-3 rounded-lg bg-[#ffb4ab]/10 hover:bg-[#ffb4ab]/20 text-[#ffb4ab] border border-[#ffb4ab]/30 font-mono text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-2"
+                  className="p-3 rounded-xl bg-[#ef4444]/10 hover:bg-[#ef4444]/20 text-[#ef4444] border border-[#ef4444]/30 font-mono text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-2"
                 >
-                  <RotateCcw className="w-3.5 h-3.5 text-[#ffb4ab]" />
+                  <RotateCcw className="w-3.5 h-3.5 text-[#ef4444]" />
                   RESET TO FACTORY SEED
                 </button>
               </div>
             </div>
 
             {/* Diagnostic Stack Trace (Collapsible) */}
-            <div className="pt-2 border-t border-[#3c4a42]/30 relative z-10">
+            <div className="pt-2 border-t border-[#162b29] relative z-10">
               <div className="flex items-center justify-between">
                 <button
                   onClick={() => this.setState({ showDetails: !showDetails })}
-                  className="text-xs text-[#bbcabf] hover:text-[#e2e2e8] flex items-center gap-1.5 cursor-pointer font-mono"
+                  className="text-xs text-[#7a9490] hover:text-[#e6f4f1] flex items-center gap-1.5 cursor-pointer font-mono"
                 >
                   <Terminal className="w-3.5 h-3.5 text-[#4cd7f6]" />
                   <span>DIAGNOSTIC KERNEL TRACE</span>
@@ -232,17 +232,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                     onClick={this.handleCopyStackTrace}
                     className="text-[10px] text-[#4cd7f6] hover:underline flex items-center gap-1 cursor-pointer"
                   >
-                    {copiedStack ? <Check className="w-3 h-3 text-[#4edea3]" /> : <Copy className="w-3 h-3" />}
+                    {copiedStack ? <Check className="w-3 h-3 text-[#00f5a0]" /> : <Copy className="w-3 h-3" />}
                     {copiedStack ? 'COPIED TRACE' : 'COPY STACK'}
                   </button>
                 )}
               </div>
 
               {showDetails && (
-                <div className="mt-3 p-3 rounded-lg bg-[#0c0e12] border border-[#3c4a42]/40 max-h-48 overflow-y-auto text-[11px] leading-relaxed text-[#ffb4ab] font-mono whitespace-pre-wrap select-text">
+                <div className="mt-3 p-3 rounded-xl bg-[#071010] border border-[#162b29] max-h-48 overflow-y-auto text-[11px] leading-relaxed text-[#ef4444] font-mono whitespace-pre-wrap select-text">
                   {error?.stack || error?.message || 'No stack trace available.'}
                   {errorInfo?.componentStack && (
-                    <div className="mt-2 pt-2 border-t border-[#3c4a42]/30 text-[#bbcabf]">
+                    <div className="mt-2 pt-2 border-t border-[#162b29] text-[#7a9490]">
                       {errorInfo.componentStack}
                     </div>
                   )}

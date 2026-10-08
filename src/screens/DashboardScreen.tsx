@@ -1142,6 +1142,8 @@ export const DashboardScreen: React.FC = () => {
               state={state}
               onUpdateProject={handleUpdateProject}
               onToggleGlobalDoDGate={handleToggleGlobalDoDGate}
+              onAddProject={handleAddProjectDirect}
+              onNavigateToSection={handleSelectSection}
             />
           </div>
         );

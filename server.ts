@@ -714,16 +714,39 @@ Respond ONLY with valid JSON:
     });
   } else {
     const vite = await createViteServer({
+      root: process.cwd(),
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`[PERSONAL OS] Server listening on http://0.0.0.0:${PORT}`);
   });
+
+  server.on('error', (err: any) => {
+    console.error('[PERSONAL OS] Server socket error:', err);
+  });
+
+  const shutdown = () => {
+    console.log('[PERSONAL OS] Shutting down server gracefully...');
+    server.close(() => {
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[PERSONAL OS] Unhandled Rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[PERSONAL OS] Uncaught Exception:', err);
+});
 
 startServer().catch((err) => {
   console.error('[PERSONAL OS] Fatal server startup failure:', err);

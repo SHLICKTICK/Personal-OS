@@ -149,15 +149,15 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
   const getBadgeIcon = (index: number) => {
     switch (index) {
       case 0:
-        return <Terminal className="w-4 h-4 text-[#4edea3]" />;
+        return <Terminal className="w-4 h-4 text-[#00f5a0]" />;
       case 1:
         return <TrendingUp className="w-4 h-4 text-[#4cd7f6]" />;
       case 2:
         return <PiggyBank className="w-4 h-4 text-[#c0c1ff]" />;
       case 3:
-        return <Network className="w-4 h-4 text-[#e2e2e8]" />;
+        return <Network className="w-4 h-4 text-[#e6f4f1]" />;
       default:
-        return <PenTool className="w-4 h-4 text-[#4edea3]" />;
+        return <PenTool className="w-4 h-4 text-[#00f5a0]" />;
     }
   };
 
@@ -299,7 +299,7 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
         slotName: 'SLOT 01 // MILESTONE PROJECT A',
         slotSubtitle: 'SDLC Phase & Step Breakdown',
         defaultDomain: 'MILESTONE_PROJECT' as DirectiveSourceType,
-        accent: '#4edea3',
+        accent: '#00f5a0',
         goal: slot1Goal,
         badgeText: slot1Goal?.sourceRefCode || 'MILESTONE SDLC',
       },
@@ -308,7 +308,7 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
         slotName: 'SLOT 02 // MILESTONE PROJECT B',
         slotSubtitle: 'SDLC Phase & Step Breakdown',
         defaultDomain: 'MILESTONE_PROJECT' as DirectiveSourceType,
-        accent: '#4edea3',
+        accent: '#00f5a0',
         goal: slot2Goal,
         badgeText: slot2Goal?.sourceRefCode || 'MILESTONE SDLC',
       },
@@ -803,7 +803,7 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => onNavigateToSection('capability-stack')}
-                  className="px-2.5 py-1.5 rounded-lg bg-[#111318] hover:bg-[#1a1c20] border border-[#4cd7f6]/40 text-[#4cd7f6] font-mono text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  className="px-2.5 py-1.5 rounded-lg bg-[#0e201e] hover:bg-[#162b29] border border-[#4cd7f6]/40 text-[#4cd7f6] font-mono text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
                   title="View Strategic Horizons and Capability Roadmap in Module 02"
                 >
                   <Calendar className="w-3.5 h-3.5 text-[#4cd7f6]" />
@@ -815,7 +815,7 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
               {/* Custom Directive Add */}
               <button
                 onClick={() => setShowAddGoalForm(!showAddGoalForm)}
-                className="px-2.5 py-1.5 rounded-lg bg-[#111318] hover:bg-[#1a1c20] border border-[#3c4a42]/60 text-[#bbcabf] hover:text-[#4edea3] font-mono text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                className="px-2.5 py-1.5 rounded-lg bg-[#0e201e] hover:bg-[#162b29] border border-[#162b29] text-[#7a9490] hover:text-[#00f5a0] font-mono text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
                 title="Add Custom Directive"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -828,92 +828,92 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
         {selectedHorizon === 'Today' && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 font-mono text-xs relative z-10">
             {/* Card 1: Today's Performance Score */}
-            <div className="p-3 rounded-lg bg-[#0c0e12]/85 border border-[#4edea3]/40 flex flex-col justify-between shadow-sm">
-              <div className="flex items-center justify-between text-[10px] text-[#bbcabf] uppercase">
+            <div className="p-3 rounded-xl bg-[#081414] border border-[#00f5a0]/40 flex flex-col justify-between shadow-sm">
+              <div className="flex items-center justify-between text-[10px] text-[#7a9490] uppercase">
                 <span>Daily Execution Score</span>
-                <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold ${
                   todayScorePercentage >= 100
-                    ? 'bg-[#4edea3]/20 text-[#4edea3] border border-[#4edea3]/40'
+                    ? 'bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/40'
                     : todayScorePercentage >= 75
-                    ? 'bg-[#4cd7f6]/20 text-[#4cd7f6] border border-[#4cd7f6]/40'
-                    : 'bg-[#ffb4ab]/20 text-[#ffb4ab] border border-[#ffb4ab]/40'
+                    ? 'bg-[#4cd7f6]/15 text-[#4cd7f6] border border-[#4cd7f6]/40'
+                    : 'bg-[#ef4444]/15 text-[#ef4444] border border-[#ef4444]/40'
                 }`}>
                   {currentGrade}
                 </span>
               </div>
               <div className="mt-1 flex items-baseline justify-between">
-                <span className="text-xl font-black text-[#e2e2e8] tabular-nums">
+                <span className="text-xl font-black text-[#e6f4f1] tabular-nums">
                   {todayScorePercentage}%
                 </span>
-                <span className="text-xs text-[#4edea3] font-bold">
+                <span className="text-xs text-[#00f5a0] font-bold">
                   {todayCompletedCount}/{totalDailySlots} Slots
                 </span>
               </div>
-              <div className="w-full bg-[#181a1e] h-1.5 rounded-full overflow-hidden mt-1.5">
+              <div className="w-full bg-[#071010] h-1.5 rounded-full overflow-hidden mt-1.5 border border-[#162b29]">
                 <div
-                  className="h-full bg-gradient-to-r from-[#4cd7f6] to-[#4edea3] transition-all duration-300"
+                  className="h-full bg-gradient-to-r from-[#4cd7f6] to-[#00f5a0] transition-all duration-300"
                   style={{ width: `${Math.max(4, todayScorePercentage)}%` }}
                 />
               </div>
             </div>
 
             {/* Card 2: Execution Streak */}
-            <div className="p-3 rounded-lg bg-[#0c0e12]/85 border border-[#3c4a42]/40 flex flex-col justify-between">
-              <div className="flex items-center justify-between text-[10px] text-[#bbcabf] uppercase">
+            <div className="p-3 rounded-xl bg-[#081414] border border-[#162b29] flex flex-col justify-between">
+              <div className="flex items-center justify-between text-[10px] text-[#7a9490] uppercase">
                 <span>Active Streak</span>
-                <Flame className="w-3.5 h-3.5 text-[#ffb4ab]" />
+                <Flame className="w-3.5 h-3.5 text-[#f59e0b]" />
               </div>
               <div className="mt-1 flex items-baseline justify-between">
-                <span className="text-xl font-black text-[#ffb4ab] tabular-nums flex items-center gap-1">
+                <span className="text-xl font-black text-[#f59e0b] tabular-nums flex items-center gap-1">
                   <span>{currentStreak}</span>
-                  <span className="text-xs font-normal text-[#bbcabf]">Days</span>
+                  <span className="text-xs font-normal text-[#7a9490]">Days</span>
                 </span>
-                <span className="text-[10px] text-[#bbcabf]">
+                <span className="text-[10px] text-[#7a9490]">
                   &gt;=75% High Execution
                 </span>
               </div>
-              <span className="text-[10px] text-[#bbcabf] mt-1.5 truncate">
+              <span className="text-[10px] text-[#7a9490] mt-1.5 truncate">
                 {currentStreak >= 3 ? 'Apex Momentum Locked' : 'Daily System Compliance'}
               </span>
             </div>
 
             {/* Card 3: Vector Parity Breakdown */}
-            <div className="p-3 rounded-lg bg-[#0c0e12]/85 border border-[#3c4a42]/40 flex flex-col justify-between">
-              <div className="flex items-center justify-between text-[10px] text-[#bbcabf] uppercase">
+            <div className="p-3 rounded-xl bg-[#081414] border border-[#162b29] flex flex-col justify-between">
+              <div className="flex items-center justify-between text-[10px] text-[#7a9490] uppercase">
                 <span>Vector Parity Matrix</span>
                 <Layers className="w-3.5 h-3.5 text-[#4cd7f6]" />
               </div>
               <div className="grid grid-cols-3 gap-1 mt-1 text-[11px] text-center">
-                <div className="p-1 rounded bg-[#111318] border border-[#4edea3]/30">
-                  <div className="text-[9px] text-[#bbcabf]">Milestone</div>
-                  <div className="font-bold text-[#4edea3]">{milestoneCompleted}/2</div>
+                <div className="p-1 rounded-md bg-[#071010] border border-[#00f5a0]/30">
+                  <div className="text-[9px] text-[#7a9490]">Milestone</div>
+                  <div className="font-bold text-[#00f5a0]">{milestoneCompleted}/2</div>
                 </div>
-                <div className="p-1 rounded bg-[#111318] border border-[#4cd7f6]/30">
-                  <div className="text-[9px] text-[#bbcabf]">Financial</div>
+                <div className="p-1 rounded-md bg-[#071010] border border-[#4cd7f6]/30">
+                  <div className="text-[9px] text-[#7a9490]">Financial</div>
                   <div className="font-bold text-[#4cd7f6]">{financialCompleted}/1</div>
                 </div>
-                <div className="p-1 rounded bg-[#111318] border border-[#c0c1ff]/30">
-                  <div className="text-[9px] text-[#bbcabf]">Learning</div>
+                <div className="p-1 rounded-md bg-[#071010] border border-[#c0c1ff]/30">
+                  <div className="text-[9px] text-[#7a9490]">Learning</div>
                   <div className="font-bold text-[#c0c1ff]">{learningCompleted}/1</div>
                 </div>
               </div>
             </div>
 
             {/* Card 4: Historical Velocity & Two-Way Sync */}
-            <div className="p-3 rounded-lg bg-[#0c0e12]/85 border border-[#3c4a42]/40 flex flex-col justify-between">
-              <div className="flex items-center justify-between text-[10px] text-[#bbcabf] uppercase">
+            <div className="p-3 rounded-xl bg-[#081414] border border-[#162b29] flex flex-col justify-between">
+              <div className="flex items-center justify-between text-[10px] text-[#7a9490] uppercase">
                 <span>System Linkage</span>
-                <Activity className="w-3.5 h-3.5 text-[#4edea3]" />
+                <Activity className="w-3.5 h-3.5 text-[#00f5a0]" />
               </div>
               <div className="mt-1 flex items-baseline justify-between">
-                <span className="text-base font-bold text-[#4edea3]">
+                <span className="text-base font-bold text-[#00f5a0]">
                   2-Way Vector Sync
                 </span>
                 <span className="text-xs text-[#c0c1ff] font-bold">
                   {allTimeAverageScore}% Avg
                 </span>
               </div>
-              <span className="text-[10px] text-[#bbcabf] mt-1.5 truncate">
+              <span className="text-[10px] text-[#7a9490] mt-1.5 truncate">
                 Toggling directive updates project SDLC &amp; Financial loop
               </span>
             </div>
@@ -924,17 +924,17 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
         {showAddGoalForm && (
           <form
             onSubmit={handleCreateGoal}
-            className="p-4 rounded-xl bg-[#0c0e12] border border-[#4edea3]/50 flex flex-col gap-3 relative z-10 animate-fadeIn"
+            className="p-4 rounded-xl bg-[#081414] border border-[#00f5a0]/50 flex flex-col gap-3 relative z-10 animate-fadeIn"
           >
-            <div className="flex items-center justify-between pb-1 border-b border-[#3c4a42]/30">
-              <span className="font-mono text-xs font-bold text-[#4edea3] uppercase flex items-center gap-1.5">
+            <div className="flex items-center justify-between pb-1 border-b border-[#162b29]">
+              <span className="font-mono text-xs font-bold text-[#00f5a0] uppercase flex items-center gap-1.5">
                 <Plus className="w-3.5 h-3.5" />
                 CREATE NEW STRATEGIC DIRECTIVE
               </span>
               <button
                 type="button"
                 onClick={() => setShowAddGoalForm(false)}
-                className="text-[#bbcabf] hover:text-[#e2e2e8] text-xs font-mono cursor-pointer"
+                className="text-[#7a9490] hover:text-[#e6f4f1] text-xs font-mono cursor-pointer"
               >
                 Cancel
               </button>
@@ -942,23 +942,23 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
               <div className="sm:col-span-2">
-                <label className="block text-[#bbcabf] mb-1">Goal / Directive Title</label>
+                <label className="block text-[#7a9490] mb-1">Goal / Directive Title</label>
                 <input
                   type="text"
                   required
                   value={newGoalTitle}
                   onChange={(e) => setNewGoalTitle(e.target.value)}
                   placeholder="e.g. Complete architecture for Finance Management app..."
-                  className="w-full bg-[#1e2024] border border-[#3c4a42]/50 rounded px-3 py-1.5 text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4edea3]"
+                  className="w-full bg-[#071010] border border-[#162b29] rounded-lg px-3 py-1.5 text-xs text-[#e6f4f1] focus:outline-none focus:border-[#00f5a0]"
                 />
               </div>
 
               <div>
-                <label className="block text-[#bbcabf] mb-1">Horizon Target</label>
+                <label className="block text-[#7a9490] mb-1">Horizon Target</label>
                 <select
                   value={newGoalHorizon}
                   onChange={(e) => setNewGoalHorizon(e.target.value as Goal['horizon'])}
-                  className="w-full bg-[#1e2024] border border-[#3c4a42]/50 rounded px-3 py-1.5 font-mono text-xs text-[#e2e2e8]"
+                  className="w-full bg-[#071010] border border-[#162b29] rounded-lg px-3 py-1.5 font-mono text-xs text-[#e6f4f1]"
                 >
                   <option value="Today">Today (Daily Focus)</option>
                   <option value="Q4 2026">Q4 2026 (Quarter)</option>
@@ -969,11 +969,11 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
               </div>
 
               <div>
-                <label className="block text-[#bbcabf] mb-1">Domain Category</label>
+                <label className="block text-[#7a9490] mb-1">Domain Category</label>
                 <select
                   value={newGoalCategory}
                   onChange={(e) => setNewGoalCategory(e.target.value as Goal['category'])}
-                  className="w-full bg-[#1e2024] border border-[#3c4a42]/50 rounded px-3 py-1.5 font-mono text-xs text-[#e2e2e8]"
+                  className="w-full bg-[#071010] border border-[#162b29] rounded-lg px-3 py-1.5 font-mono text-xs text-[#e6f4f1]"
                 >
                   <option value="Engineering">Engineering</option>
                   <option value="Commercial">Commercial</option>
@@ -984,11 +984,11 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
               </div>
 
               <div>
-                <label className="block text-[#bbcabf] mb-1">Contributes to Milestone Project</label>
+                <label className="block text-[#7a9490] mb-1">Contributes to Milestone Project</label>
                 <select
                   value={selectedProjectCode}
                   onChange={(e) => setSelectedProjectCode(e.target.value)}
-                  className="w-full bg-[#1e2024] border border-[#3c4a42]/50 rounded px-3 py-1.5 font-mono text-xs text-[#4edea3]"
+                  className="w-full bg-[#071010] border border-[#162b29] rounded-lg px-3 py-1.5 font-mono text-xs text-[#00f5a0]"
                 >
                   {state.projects.map((p) => (
                     <option key={p.id} value={p.code}>
@@ -999,20 +999,20 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
               </div>
 
               <div>
-                <label className="block text-[#bbcabf] mb-1">Target Verification Metric</label>
+                <label className="block text-[#7a9490] mb-1">Target Verification Metric</label>
                 <input
                   type="text"
                   required
                   value={newGoalMetric}
                   onChange={(e) => setNewGoalMetric(e.target.value)}
                   placeholder="e.g. Postgres schema + Ledger API spec completed"
-                  className="w-full bg-[#1e2024] border border-[#3c4a42]/50 rounded px-3 py-1.5 text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4edea3]"
+                  className="w-full bg-[#071010] border border-[#162b29] rounded-lg px-3 py-1.5 text-xs text-[#e6f4f1] focus:outline-none focus:border-[#00f5a0]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[#bbcabf] mb-1 font-mono text-xs">
+              <label className="block text-[#7a9490] mb-1 font-mono text-xs">
                 Milestone Impact &amp; Strategic Contribution
               </label>
               <input
@@ -1020,21 +1020,21 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                 value={newGoalImpact}
                 onChange={(e) => setNewGoalImpact(e.target.value)}
                 placeholder="e.g. Contributes to Milestone Project 02: Multi-Tenant Architecture &amp; Financial Ledger"
-                className="w-full bg-[#1e2024] border border-[#3c4a42]/50 rounded px-3 py-1.5 text-xs text-[#e2e2e8] font-mono focus:outline-none focus:border-[#4edea3]"
+                className="w-full bg-[#071010] border border-[#162b29] rounded-lg px-3 py-1.5 text-xs text-[#e6f4f1] font-mono focus:outline-none focus:border-[#00f5a0]"
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-[#3c4a42]/20">
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#162b29]">
               <button
                 type="button"
                 onClick={() => setShowAddGoalForm(false)}
-                className="px-3 py-1.5 rounded bg-[#1e2024] text-[#bbcabf] font-mono text-xs cursor-pointer hover:text-[#e2e2e8]"
+                className="px-3 py-1.5 rounded-lg bg-[#0e201e] border border-[#162b29] text-[#7a9490] font-mono text-xs cursor-pointer hover:text-[#e6f4f1] transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-1.5 rounded bg-[#4edea3] text-[#003824] font-mono text-xs font-bold hover:bg-[#4edea3]/90 cursor-pointer shadow-sm"
+                className="px-4 py-1.5 rounded-lg bg-[#00f5a0] text-[#050a0a] font-mono text-xs font-bold hover:bg-[#00f5a0]/90 cursor-pointer shadow-sm transition-colors"
               >
                 Save Directive
               </button>
@@ -1054,19 +1054,19 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                 return (
                   <div
                     key={slot.slotNum}
-                    className="p-4 rounded-xl border border-dashed border-[#3c4a42]/50 bg-[#0c0e12]/60 flex flex-col justify-between gap-3 text-center min-h-[220px]"
+                    className="p-4 rounded-xl border border-dashed border-[#162b29] bg-[#081414] flex flex-col justify-between gap-3 text-center min-h-[220px]"
                   >
                     <div>
-                      <span className="font-mono text-[10px] font-bold uppercase text-[#bbcabf]">
+                      <span className="font-mono text-[10px] font-bold uppercase text-[#7a9490]">
                         {slot.slotName}
                       </span>
-                      <p className="font-mono text-xs text-[#bbcabf] mt-1">{slot.slotSubtitle}</p>
+                      <p className="font-mono text-xs text-[#7a9490] mt-1">{slot.slotSubtitle}</p>
                     </div>
                     <div className="space-y-2">
-                      <p className="text-xs text-[#bbcabf] font-mono">No directive assigned to this vector slot.</p>
+                      <p className="text-xs text-[#7a9490] font-mono">No directive assigned to this vector slot.</p>
                       <button
                         onClick={handleAutoGenerateDailyDirectives}
-                        className="px-3 py-1.5 rounded bg-[#4edea3]/20 hover:bg-[#4edea3]/30 text-[#4edea3] font-mono text-xs font-bold cursor-pointer"
+                        className="px-3 py-1.5 rounded-lg bg-[#00f5a0]/15 hover:bg-[#00f5a0]/25 text-[#00f5a0] border border-[#00f5a0]/30 font-mono text-xs font-bold cursor-pointer transition-colors"
                       >
                         Auto-Populate Slot
                       </button>
@@ -1240,8 +1240,8 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                   key={goal.id}
                   className={`p-4 rounded-xl border flex flex-col justify-between transition-all group relative overflow-hidden ${
                     isCompleted
-                      ? 'bg-[#121c17]/90 border-[#4edea3]/60 shadow-[0_0_12px_rgba(78,222,163,0.12)]'
-                      : 'bg-[#181a1e]/95 border-[#3c4a42]/40 hover:border-[#4edea3]/40 hover:bg-[#1a1c20]'
+                      ? 'bg-[#0b1a19] border-[#00f5a0]/60 shadow-[0_0_15px_rgba(0,245,160,0.1)]'
+                      : 'bg-[#081414] border-[#162b29] hover:border-[#00f5a0]/40 hover:bg-[#0b1a19]'
                   }`}
                 >
                   <div>
@@ -1249,27 +1249,27 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => handleToggleGoal(goal)}
-                          className="text-[#4edea3] hover:scale-110 transition-transform cursor-pointer"
+                          className="text-[#00f5a0] hover:scale-110 transition-transform cursor-pointer"
                           title={isCompleted ? 'Mark Active' : 'Mark Completed'}
                         >
                           {isCompleted ? (
-                            <CheckSquare className="w-4 h-4 text-[#4edea3]" />
+                            <CheckSquare className="w-4 h-4 text-[#00f5a0]" />
                           ) : (
-                            <Square className="w-4 h-4 text-[#bbcabf] hover:text-[#4edea3]" />
+                            <Square className="w-4 h-4 text-[#7a9490] hover:text-[#00f5a0]" />
                           )}
                         </button>
                         <span
-                          className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                          className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
                             goal.horizon === 'Today'
-                              ? 'bg-[#4edea3]/20 text-[#4edea3] border border-[#4edea3]/40'
+                              ? 'bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/30'
                               : goal.horizon === 'Q4 2026'
-                              ? 'bg-[#4cd7f6]/20 text-[#4cd7f6] border border-[#4cd7f6]/40'
-                              : 'bg-[#c0c1ff]/20 text-[#c0c1ff] border border-[#c0c1ff]/40'
+                              ? 'bg-[#4cd7f6]/15 text-[#4cd7f6] border border-[#4cd7f6]/30'
+                              : 'bg-[#c0c1ff]/15 text-[#c0c1ff] border border-[#c0c1ff]/30'
                           }`}
                         >
                           {goal.horizon}
                         </span>
-                        <span className="font-mono text-[10px] text-[#bbcabf] px-1.5 py-0.5 rounded bg-[#111318]">
+                        <span className="font-mono text-[10px] text-[#7a9490] px-1.5 py-0.5 rounded-md bg-[#071010] border border-[#162b29]">
                           {goal.category}
                         </span>
                       </div>
@@ -1277,14 +1277,14 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleStartEditGoal(goal)}
-                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[#282a2e] text-[#bbcabf] hover:text-[#4edea3] transition-opacity cursor-pointer"
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-[#162b29] text-[#7a9490] hover:text-[#00f5a0] transition-opacity cursor-pointer"
                           title="Edit Goal"
                         >
                           <Edit3 className="w-3 h-3" />
                         </button>
                         <button
                           onClick={() => onDeleteGoal(goal.id)}
-                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[#282a2e] text-[#bbcabf] hover:text-[#ffb4ab] transition-opacity cursor-pointer"
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-[#162b29] text-[#7a9490] hover:text-[#ef4444] transition-opacity cursor-pointer"
                           title="Delete Goal"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -1298,25 +1298,25 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                           type="text"
                           value={goalDraft.title}
                           onChange={(e) => setGoalDraft({ ...goalDraft, title: e.target.value })}
-                          className="w-full bg-[#0c0e12] border border-[#3c4a42]/50 rounded px-2 py-1 text-xs text-[#e2e2e8]"
+                          className="w-full bg-[#071010] border border-[#162b29] rounded-lg px-2 py-1 text-xs text-[#e6f4f1] focus:outline-none focus:border-[#00f5a0]"
                         />
                         <input
                           type="text"
                           value={goalDraft.targetMetric}
                           onChange={(e) => setGoalDraft({ ...goalDraft, targetMetric: e.target.value })}
                           placeholder="Target Metric..."
-                          className="w-full bg-[#0c0e12] border border-[#3c4a42]/50 rounded px-2 py-1 text-[11px] text-[#4edea3]"
+                          className="w-full bg-[#071010] border border-[#162b29] rounded-lg px-2 py-1 text-[11px] text-[#00f5a0] focus:outline-none focus:border-[#00f5a0]"
                         />
                         <div className="flex justify-end gap-1.5 pt-1">
                           <button
                             onClick={() => setEditingGoalId(null)}
-                            className="px-2 py-1 rounded bg-[#282a2e] text-[#bbcabf] font-mono text-[10px] cursor-pointer"
+                            className="px-2 py-1 rounded-md bg-[#0e201e] border border-[#162b29] text-[#7a9490] hover:text-[#e6f4f1] font-mono text-[10px] cursor-pointer"
                           >
                             Cancel
                           </button>
                           <button
                             onClick={handleSaveGoalDraft}
-                            className="px-2.5 py-1 rounded bg-[#4edea3] text-[#003824] font-mono text-[10px] font-bold cursor-pointer"
+                            className="px-2.5 py-1 rounded-md bg-[#00f5a0] text-[#050a0a] font-mono text-[10px] font-bold cursor-pointer hover:bg-[#00f5a0]/90"
                           >
                             Save
                           </button>
@@ -1326,24 +1326,24 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                       <div>
                         <h4
                           className={`text-sm sm:text-[14px] font-bold font-mono tracking-tight ${
-                            isCompleted ? 'text-[#4edea3] line-through opacity-85' : 'text-[#e2e2e8]'
+                            isCompleted ? 'text-[#00f5a0] line-through opacity-85' : 'text-[#e6f4f1]'
                           }`}
                         >
                           {goal.title}
                         </h4>
-                        <div className="text-[11px] font-mono text-[#bbcabf] mt-1.5 flex items-start gap-1">
-                          <span className="text-[#4edea3] font-bold">Target:</span>
+                        <div className="text-[11px] font-mono text-[#7a9490] mt-1.5 flex items-start gap-1">
+                          <span className="text-[#00f5a0] font-bold">Target:</span>
                           <span>{goal.targetMetric}</span>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  <div className="mt-3 pt-2.5 border-t border-[#3c4a42]/20 space-y-2">
-                    <div className="flex items-center justify-between text-[11px] font-mono bg-[#0c0e12] p-2 rounded border border-[#3c4a42]/30">
+                  <div className="mt-3 pt-2.5 border-t border-[#162b29] space-y-2">
+                    <div className="flex items-center justify-between text-[11px] font-mono bg-[#071010] p-2 rounded-lg border border-[#162b29]">
                       <div className="flex items-center gap-1.5 truncate">
                         <Sparkles className="w-3 h-3 text-[#4cd7f6] shrink-0" />
-                        <span className="text-[#e2e2e8] truncate text-[11px]">
+                        <span className="text-[#e6f4f1] truncate text-[11px]">
                           {goal.impactText || (linkedProject ? `Contributes to ${linkedProject.code}` : 'Milestone Advancement')}
                         </span>
                       </div>
@@ -1351,7 +1351,7 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                       {goal.linkedProjectCode && (
                         <button
                           onClick={() => onNavigateToSection?.('milestone-projects')}
-                          className="inline-flex items-center gap-0.5 text-[10px] text-[#4edea3] hover:underline cursor-pointer shrink-0 ml-1 font-bold"
+                          className="inline-flex items-center gap-0.5 text-[10px] text-[#00f5a0] hover:underline cursor-pointer shrink-0 ml-1 font-bold"
                           title="View Milestone Project in Module 04"
                         >
                           <span>{goal.linkedProjectCode}</span>
@@ -1361,19 +1361,19 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                     </div>
 
                     <div className="space-y-1">
-                      <div className="flex justify-between items-center font-mono text-[10px] text-[#bbcabf]">
+                      <div className="flex justify-between items-center font-mono text-[10px] text-[#7a9490]">
                         <span className="flex items-center gap-1">
-                          <Zap className="w-3 h-3 text-[#4edea3]" />
+                          <Zap className="w-3 h-3 text-[#00f5a0]" />
                           <span>Execution Progress</span>
                         </span>
-                        <span className="text-[#4edea3] font-bold tabular-nums">
+                        <span className="text-[#00f5a0] font-bold tabular-nums">
                           {goal.progress}%
                         </span>
                       </div>
-                      <div className="w-full bg-[#0c0e12] h-1.5 rounded-full overflow-hidden border border-[#3c4a42]/30">
+                      <div className="w-full bg-[#071010] h-1.5 rounded-full overflow-hidden border border-[#162b29]">
                         <div
                           className={`h-full rounded-full transition-all duration-300 ${
-                            isCompleted ? 'bg-[#4edea3]' : 'bg-gradient-to-r from-[#4cd7f6] to-[#4edea3]'
+                            isCompleted ? 'bg-[#00f5a0]' : 'bg-gradient-to-r from-[#4cd7f6] to-[#00f5a0]'
                           }`}
                           style={{ width: `${Math.max(2, goal.progress)}%` }}
                         />
@@ -1390,14 +1390,14 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
       {/* High-Leverage vs Low-Leverage Contrast Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Low Leverage / Red Card */}
-        <div className="p-5 rounded-xl bg-[#93000a]/10 border border-[#ffb4ab]/30 flex flex-col justify-between">
+        <div className="p-5 rounded-2xl bg-[#081414] border border-[#ef4444]/30 flex flex-col justify-between">
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-[#ffb4ab] font-bold flex items-center gap-1.5">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[#ef4444] font-bold flex items-center gap-1.5">
                 <XCircle className="w-4 h-4" />
                 Passive Accumulation (False Competence)
               </span>
-              <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#ffb4ab]/20 text-[#ffb4ab]">
+              <span className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-[#ef4444]/15 text-[#ef4444] border border-[#ef4444]/30">
                 PROHIBITED
               </span>
             </div>
@@ -1406,28 +1406,28 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                 rows={3}
                 value={passiveDraft}
                 onChange={(e) => setPassiveDraft(e.target.value)}
-                className="mt-2 bg-[#0c0e12] border border-[#ffb4ab]/40 rounded p-2 text-sm text-[#e2e2e8]"
+                className="mt-2 bg-[#071010] border border-[#ef4444]/40 rounded-lg p-2 text-sm text-[#e6f4f1] focus:outline-none focus:border-[#ef4444]"
               />
             ) : (
-              <p className="text-[15px] leading-[20px] text-[#e2e2e8] italic mt-2">
+              <p className="text-[15px] leading-[20px] text-[#e6f4f1] italic mt-2">
                 {state.passiveAccumulationQuote}
               </p>
             )}
-            <div className="text-[12px] leading-[18px] text-[#bbcabf] mt-2">
+            <div className="text-[12px] leading-[18px] text-[#7a9490] mt-2">
               Yields zero production resilience, fragile cognitive models, and illusory confidence that dissolves upon production fires.
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-[#ffb4ab]/20 flex items-center justify-between font-mono text-[10px] text-[#ffb4ab]">
+          <div className="mt-4 pt-3 border-t border-[#ef4444]/20 flex items-center justify-between font-mono text-[10px] text-[#ef4444]">
             <span>Compounding Rate: 0.0x</span>
             <span>Cognitive Trap</span>
           </div>
         </div>
 
         {/* High Leverage / Green Card */}
-        <div className="p-5 rounded-xl bg-[#4edea3]/10 border border-[#4edea3]/40 flex flex-col justify-between shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+        <div className="p-5 rounded-2xl bg-[#081414] border border-[#00f5a0]/40 flex flex-col justify-between shadow-[0_0_15px_rgba(0,245,160,0.08)]">
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-[#4edea3] font-bold flex items-center gap-1.5">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[#00f5a0] font-bold flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4" />
                 Active Capability (True Competence)
               </span>
@@ -1443,11 +1443,11 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                       setEditingQuotes(true);
                     }
                   }}
-                  className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#1e2024] border border-[#4edea3]/40 text-[#4edea3] hover:bg-[#4edea3]/20 cursor-pointer"
+                  className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-[#0e201e] border border-[#00f5a0]/40 text-[#00f5a0] hover:bg-[#00f5a0]/20 cursor-pointer transition-colors"
                 >
                   {editingQuotes ? 'Save Quotes' : 'Edit Standard'}
                 </button>
-                <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#4edea3]/20 text-[#4edea3]">
+                <span className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/30 font-bold">
                   Apex Standard
                 </span>
               </div>
@@ -1457,18 +1457,18 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                 rows={3}
                 value={activeDraft}
                 onChange={(e) => setActiveDraft(e.target.value)}
-                className="mt-2 bg-[#0c0e12] border border-[#4edea3]/40 rounded p-2 text-sm text-[#e2e2e8]"
+                className="mt-2 bg-[#071010] border border-[#00f5a0]/40 rounded-lg p-2 text-sm text-[#e6f4f1] focus:outline-none focus:border-[#00f5a0]"
               />
             ) : (
-              <p className="text-[15px] leading-[20px] text-[#e2e2e8] font-semibold mt-2">
+              <p className="text-[15px] leading-[20px] text-[#e6f4f1] font-semibold mt-2">
                 {state.activeCapabilityQuote}
               </p>
             )}
-            <div className="text-[12px] leading-[18px] text-[#bbcabf] mt-2">
+            <div className="text-[12px] leading-[18px] text-[#7a9490] mt-2">
               {state.apexPhilosophySupporting}
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-[#4edea3]/20 flex items-center justify-between font-mono text-[10px] text-[#4edea3]">
+          <div className="mt-4 pt-3 border-t border-[#00f5a0]/20 flex items-center justify-between font-mono text-[10px] text-[#00f5a0]">
             <span>Compounding Rate: Exponential (1.01³⁶⁵)</span>
             <span>Skin in the Game</span>
           </div>
@@ -1476,20 +1476,20 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
       </div>
 
       {/* CORE NON-NEGOTIABLES // THE "NEVER LIST" (ANTI-GOALS / INVERSION PRINCIPLE) */}
-      <div className="p-5 rounded-xl bg-[#141214] border border-[#ffb4ab]/40 flex flex-col gap-3 shadow-[0_0_15px_rgba(255,180,171,0.05)]">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#ffb4ab]/20 pb-2.5">
+      <div className="p-5 rounded-2xl bg-[#081414] border border-[#ef4444]/40 flex flex-col gap-3 shadow-[0_0_15px_rgba(239,68,68,0.05)]">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#ef4444]/20 pb-2.5">
           <div className="flex items-center gap-2">
-            <XCircle className="w-4 h-4 text-[#ffb4ab]" />
+            <XCircle className="w-4 h-4 text-[#ef4444]" />
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-bold text-[#ffb4ab] uppercase tracking-wider">
+                <span className="font-mono text-xs font-bold text-[#ef4444] uppercase tracking-wider">
                   Core Non-Negotiables // The &ldquo;Never List&rdquo; (Anti-Goals)
                 </span>
-                <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-[#ffb4ab]/20 text-[#ffb4ab] font-bold">
+                <span className="font-mono text-[9px] px-1.5 py-0.5 rounded-md bg-[#ef4444]/15 border border-[#ef4444]/30 text-[#ef4444] font-bold">
                   INVERSION PRINCIPLE
                 </span>
               </div>
-              <p className="text-[11px] text-[#bbcabf] font-mono mt-0.5">
+              <p className="text-[11px] text-[#7a9490] font-mono mt-0.5">
                 Strict operational boundaries derived from inversion: what to eliminate with zero compromise.
               </p>
             </div>
@@ -1497,7 +1497,7 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
           <button
             type="button"
             onClick={() => setShowAddAntiGoal(!showAddAntiGoal)}
-            className="px-2.5 py-1 rounded bg-[#1e2024] hover:bg-[#282a2e] border border-[#ffb4ab]/40 text-[#ffb4ab] font-mono text-[11px] font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+            className="px-2.5 py-1 rounded-lg bg-[#0e201e] hover:bg-[#162b29] border border-[#ef4444]/40 text-[#ef4444] font-mono text-[11px] font-semibold transition-colors flex items-center gap-1 cursor-pointer"
           >
             <Plus className="w-3 h-3" /> Add Anti-Goal
           </button>
@@ -1506,7 +1506,7 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
         {showAddAntiGoal && (
           <form
             onSubmit={handleAddAntiGoal}
-            className="p-3 rounded-lg bg-[#0c0e12] border border-[#ffb4ab]/40 flex gap-2 animate-fadeIn"
+            className="p-3 rounded-xl bg-[#081414] border border-[#ef4444]/40 flex gap-2 animate-fadeIn"
           >
             <input
               type="text"
@@ -1514,19 +1514,19 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
               value={newAntiGoalInput}
               onChange={(e) => setNewAntiGoalInput(e.target.value)}
               placeholder="e.g. Never check communication apps during morning 90-min deep work blocks..."
-              className="flex-1 bg-[#16181d] border border-[#3c4a42]/50 rounded px-3 py-1.5 text-xs text-[#e2e2e8] focus:outline-none focus:border-[#ffb4ab]"
+              className="flex-1 bg-[#071010] border border-[#162b29] rounded-lg px-3 py-1.5 text-xs text-[#e6f4f1] focus:outline-none focus:border-[#ef4444]"
               autoFocus
             />
             <button
               type="button"
               onClick={() => setShowAddAntiGoal(false)}
-              className="px-2.5 py-1.5 rounded bg-[#1e2024] text-[#bbcabf] font-mono text-xs cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg bg-[#0e201e] hover:bg-[#162b29] text-[#7a9490] font-mono text-xs cursor-pointer border border-[#162b29]"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-3 py-1.5 rounded bg-[#ffb4ab] text-[#690005] font-mono text-xs font-bold cursor-pointer hover:bg-[#ffdad6]"
+              className="px-3 py-1.5 rounded-lg bg-[#ef4444] text-[#050a0a] font-mono text-xs font-bold cursor-pointer hover:bg-[#ef4444]/90"
             >
               Save Rule
             </button>
@@ -1537,20 +1537,20 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
           {(state.stopImmediatelyList || []).map((item, idx) => (
             <div
               key={idx}
-              className="p-3 rounded-lg bg-[#0c0e12]/80 border border-[#ffb4ab]/25 hover:border-[#ffb4ab]/50 transition-colors flex items-start justify-between gap-2.5 group"
+              className="p-3 rounded-xl bg-[#081414] border border-[#ef4444]/25 hover:border-[#ef4444]/50 transition-colors flex items-start justify-between gap-2.5 group"
             >
               <div className="flex items-start gap-2.5">
-                <span className="w-4 h-4 rounded-full bg-[#ffb4ab]/15 text-[#ffb4ab] font-mono text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                <span className="w-4 h-4 rounded-md bg-[#ef4444]/15 text-[#ef4444] font-mono text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                   ✕
                 </span>
-                <span className="text-xs text-[#e2e2e8] leading-relaxed">
+                <span className="text-xs text-[#e6f4f1] leading-relaxed">
                   {item}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => handleRemoveAntiGoal(idx)}
-                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[#282a2e] text-[#86948a] hover:text-[#ffb4ab] transition-opacity cursor-pointer shrink-0"
+                className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-[#162b29] text-[#7a9490] hover:text-[#ef4444] transition-opacity cursor-pointer shrink-0"
                 title="Remove Anti-Goal"
               >
                 <Trash2 className="w-3 h-3" />
@@ -1563,7 +1563,7 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
       {/* 9 Core Personal Development Vectors Matrix Grid */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <span className="font-mono text-[10px] text-[#bbcabf] uppercase tracking-wider">
+          <span className="font-mono text-[10px] text-[#7a9490] uppercase tracking-wider">
             The {state.principles.length} Core Personal Development Vectors (Click any vector to edit)
           </span>
           <button
@@ -1571,7 +1571,7 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
               setNewPrincipleCode(`V.0${state.principles.length + 1}`);
               setShowAddPrinciple(!showAddPrinciple);
             }}
-            className="font-mono text-[10px] text-[#4edea3] hover:underline flex items-center gap-1 cursor-pointer"
+            className="font-mono text-[10px] text-[#00f5a0] hover:underline flex items-center gap-1 cursor-pointer"
           >
             <Plus className="w-3 h-3" /> Add Vector
           </button>
@@ -1580,32 +1580,32 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
         {showAddPrinciple && (
           <form
             onSubmit={handleCreatePrinciple}
-            className="p-3 rounded-lg bg-[#0c0e12] border border-[#4edea3]/40 grid grid-cols-1 sm:grid-cols-5 gap-2"
+            className="p-3 rounded-xl bg-[#081414] border border-[#00f5a0]/40 grid grid-cols-1 sm:grid-cols-5 gap-2"
           >
             <input
               type="text"
               value={newPrincipleCode}
               onChange={(e) => setNewPrincipleCode(e.target.value)}
               placeholder="Code (e.g. V.10)"
-              className="bg-[#1e2024] border border-[#3c4a42]/50 rounded px-2.5 py-1.5 font-mono text-xs text-[#4edea3]"
+              className="bg-[#071010] border border-[#162b29] rounded-lg px-2.5 py-1.5 font-mono text-xs text-[#00f5a0]"
             />
             <input
               type="text"
               value={newPrincipleTitle}
               onChange={(e) => setNewPrincipleTitle(e.target.value)}
               placeholder="Principle title..."
-              className="bg-[#1e2024] border border-[#3c4a42]/50 rounded px-2.5 py-1.5 text-xs text-[#e2e2e8]"
+              className="bg-[#071010] border border-[#162b29] rounded-lg px-2.5 py-1.5 text-xs text-[#e6f4f1]"
             />
             <input
               type="text"
               value={newPrincipleDesc}
               onChange={(e) => setNewPrincipleDesc(e.target.value)}
               placeholder="Operational description..."
-              className="sm:col-span-2 bg-[#1e2024] border border-[#3c4a42]/50 rounded px-2.5 py-1.5 text-xs text-[#e2e2e8]"
+              className="sm:col-span-2 bg-[#071010] border border-[#162b29] rounded-lg px-2.5 py-1.5 text-xs text-[#e6f4f1]"
             />
             <button
               type="submit"
-              className="px-3 py-1.5 rounded bg-[#4edea3] text-[#003824] font-mono text-xs font-bold cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-[#00f5a0] text-[#050a0a] font-mono text-xs font-bold cursor-pointer hover:bg-[#00f5a0]/90 transition-colors"
             >
               Save Vector
             </button>
@@ -1624,7 +1624,7 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                     setPrincipleDraft({ ...p });
                   }
                 }}
-                className="p-3 rounded bg-[#1e2024] border border-[#3c4a42]/30 hover:border-[#4edea3]/40 transition-colors flex items-start gap-3 cursor-pointer group"
+                className="p-3 rounded-xl bg-[#0b1a19] border border-[#162b29] hover:border-[#00f5a0]/40 transition-colors flex items-start gap-3 cursor-pointer group"
               >
                 <span
                   className={`font-mono text-[10px] font-bold tabular-nums pt-0.5 ${
@@ -1632,7 +1632,7 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                       ? 'text-[#4cd7f6]'
                       : p.accent === 'tertiary'
                       ? 'text-[#c0c1ff]'
-                      : 'text-[#4edea3]'
+                      : 'text-[#00f5a0]'
                   }`}
                 >
                   {p.code}
@@ -1648,7 +1648,7 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                       onChange={(e) =>
                         setPrincipleDraft({ ...principleDraft, title: e.target.value })
                       }
-                      className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded px-2 py-0.5 text-xs font-bold text-[#e2e2e8]"
+                      className="bg-[#071010] border border-[#162b29] rounded-md px-2 py-0.5 text-xs font-bold text-[#e6f4f1]"
                     />
                     <textarea
                       rows={2}
@@ -1659,7 +1659,7 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                           description: e.target.value,
                         })
                       }
-                      className="bg-[#0c0e12] border border-[#3c4a42]/50 rounded px-2 py-0.5 text-[11px] text-[#bbcabf]"
+                      className="bg-[#071010] border border-[#162b29] rounded-md px-2 py-0.5 text-[11px] text-[#7a9490]"
                     />
                     <div className="flex justify-end gap-1.5">
                       <button
@@ -1667,13 +1667,13 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                           setEditingPrincipleId(null);
                           setPrincipleDraft(null);
                         }}
-                        className="px-2 py-0.5 rounded bg-[#282a2e] text-[#bbcabf] font-mono text-[10px] cursor-pointer"
+                        className="px-2 py-0.5 rounded-md bg-[#0e201e] border border-[#162b29] text-[#7a9490] hover:text-[#e6f4f1] font-mono text-[10px] cursor-pointer"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={handleSavePrinciple}
-                        className="px-2.5 py-0.5 rounded bg-[#4edea3] text-[#003824] font-mono text-[10px] font-bold cursor-pointer"
+                        className="px-2.5 py-0.5 rounded-md bg-[#00f5a0] text-[#050a0a] font-mono text-[10px] font-bold cursor-pointer hover:bg-[#00f5a0]/90"
                       >
                         Save
                       </button>
@@ -1681,10 +1681,10 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                   </div>
                 ) : (
                   <div className="flex-1">
-                    <div className="text-[13px] font-bold text-[#e2e2e8] group-hover:text-[#4edea3] transition-colors">
+                    <div className="text-[13px] font-bold text-[#e6f4f1] group-hover:text-[#00f5a0] transition-colors">
                       {p.title}
                     </div>
-                    <div className="text-[11px] leading-[16px] text-[#bbcabf] mt-1">
+                    <div className="text-[11px] leading-[16px] text-[#7a9490] mt-1">
                       {p.description}
                     </div>
                   </div>
@@ -1700,60 +1700,60 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
       {/* ========================================================================= */}
       {showSyncModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-2xl bg-[#0c0e12] border border-[#4edea3]/50 rounded-2xl shadow-2xl p-6 space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-[#3c4a42]/40">
+          <div className="w-full max-w-2xl bg-[#081414] border border-[#162b29] rounded-2xl shadow-2xl p-6 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-[#162b29]">
               <div className="flex items-center gap-2.5">
-                <Sparkles className="w-5 h-5 text-[#4edea3]" />
+                <Sparkles className="w-5 h-5 text-[#00f5a0]" />
                 <div>
-                  <h3 className="font-mono text-sm sm:text-base font-bold text-[#e2e2e8] uppercase tracking-wide">
+                  <h3 className="font-mono text-sm sm:text-base font-bold text-[#e6f4f1] uppercase tracking-wide">
                     SYNCHRONIZE 4-VECTOR DAILY DIRECTIVES
                   </h3>
-                  <p className="font-mono text-xs text-[#bbcabf]">
+                  <p className="font-mono text-xs text-[#7a9490]">
                     Auto-scans active engines to assemble today's balanced 4-directive flight plan.
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowSyncModal(false)}
-                className="text-[#bbcabf] hover:text-[#e2e2e8] p-1 rounded hover:bg-[#1e2024] cursor-pointer"
+                className="text-[#7a9490] hover:text-[#e6f4f1] p-1 rounded-md hover:bg-[#0e201e] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="space-y-3 font-mono text-xs">
-              <div className="p-3 rounded-lg bg-[#141a16] border border-[#4edea3]/30 text-[#bbcabf] space-y-1.5">
-                <div className="font-bold text-[#4edea3] uppercase flex items-center gap-1.5">
+              <div className="p-3 rounded-xl bg-[#0b1a19] border border-[#00f5a0]/30 text-[#7a9490] space-y-1.5">
+                <div className="font-bold text-[#00f5a0] uppercase flex items-center gap-1.5">
                   <CheckCheck className="w-3.5 h-3.5" />
                   <span>The 4-Vector Synchronization Protocol</span>
                 </div>
                 <p className="text-[11px]">
                   This operation reads the current state of your system and automatically selects:
                 </p>
-                <ul className="list-disc list-inside text-[11px] space-y-1 pl-1 text-[#e2e2e8]">
-                  <li><strong className="text-[#4edea3]">Slots 01 &amp; 02:</strong> Next uncompleted engineering steps in active Milestone Project SDLC phases (Implementation &amp; Verification).</li>
+                <ul className="list-disc list-inside text-[11px] space-y-1 pl-1 text-[#e6f4f1]">
+                  <li><strong className="text-[#00f5a0]">Slots 01 &amp; 02:</strong> Next uncompleted engineering steps in active Milestone Project SDLC phases (Implementation &amp; Verification).</li>
                   <li><strong className="text-[#4cd7f6]">Slot 03:</strong> Next uncompleted step in Financial OS (7-Step Commercial Experiment Loop / Retainer Target).</li>
                   <li><strong className="text-[#c0c1ff]">Slot 04:</strong> Active spaced-retention topic or curriculum objective in the Learning Engine.</li>
                 </ul>
               </div>
 
-              <div className="text-[11px] text-[#bbcabf]">
+              <div className="text-[11px] text-[#7a9490]">
                 Applying will set these 4 directives as today's focus goals with active 2-way system synchronization.
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#3c4a42]/30">
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#162b29]">
               <button
                 type="button"
                 onClick={() => setShowSyncModal(false)}
-                className="px-4 py-2 rounded-lg bg-[#1e2024] hover:bg-[#282a2e] text-[#bbcabf] font-mono text-xs cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-[#0e201e] hover:bg-[#162b29] text-[#7a9490] border border-[#162b29] font-mono text-xs cursor-pointer transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleAutoGenerateDailyDirectives}
-                className="px-5 py-2 rounded-lg bg-[#4edea3] hover:bg-[#4edea3]/90 text-[#003822] font-mono text-xs font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-[#4edea3]/20"
+                className="px-5 py-2 rounded-lg bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#050a0a] font-mono text-xs font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-[#00f5a0]/20 transition-colors"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Deploy 4-Vector Flight Plan</span>
@@ -1767,51 +1767,51 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
       {/* MODAL 2: END-OF-DAY (EOD) REVIEW, SCORING & LOGGING DIALOG                */}
       {/* ========================================================================= */}
       {showEodModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-2xl bg-[#0c0e12] border border-[#4cd7f6]/50 rounded-2xl shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-2xl bg-[#081414] border border-[#162b29] rounded-2xl shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-[#3c4a42]/40">
+            <div className="flex items-center justify-between pb-3 border-b border-[#162b29]">
               <div className="flex items-center gap-2.5">
-                <ClipboardCheck className="w-5 h-5 text-[#4cd7f6]" />
+                <ClipboardCheck className="w-5 h-5 text-[#38bdf8]" />
                 <div>
-                  <h3 className="font-mono text-sm sm:text-base font-bold text-[#e2e2e8] uppercase tracking-wide">
+                  <h3 className="font-mono text-sm sm:text-base font-bold text-[#e6f4f1] uppercase tracking-wide">
                     END-OF-DAY REVIEW &amp; EXECUTION SCORE
                   </h3>
-                  <p className="font-mono text-xs text-[#bbcabf]">
+                  <p className="font-mono text-xs text-[#7a9490]">
                     Audit daily completion, compute performance metrics, and permanently record to execution log.
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowEodModal(false)}
-                className="text-[#bbcabf] hover:text-[#e2e2e8] p-1 rounded hover:bg-[#1e2024] cursor-pointer"
+                className="text-[#7a9490] hover:text-[#e6f4f1] p-1.5 rounded-lg hover:bg-[#0e201e] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Live Score Banner */}
-            <div className="p-4 rounded-xl bg-gradient-to-r from-[#142322] via-[#0c1a18] to-[#142322] border border-[#4cd7f6]/40 flex items-center justify-between font-mono">
+            <div className="p-4 rounded-xl bg-gradient-to-r from-[#0b1a19] via-[#0e241f] to-[#0b1a19] border border-[#38bdf8]/30 flex items-center justify-between font-mono">
               <div>
-                <span className="text-[10px] text-[#bbcabf] uppercase tracking-wider block">Audited Daily Score</span>
+                <span className="text-[10px] text-[#7a9490] uppercase tracking-wider block">Audited Daily Score</span>
                 <div className="flex items-baseline gap-2 mt-0.5">
-                  <span className="text-3xl font-black text-[#e2e2e8] tabular-nums">
+                  <span className="text-3xl font-black text-[#e6f4f1] tabular-nums">
                     {todayScorePercentage}%
                   </span>
                   <span className={`px-2 py-0.5 rounded text-xs font-bold ${
                     todayScorePercentage >= 100
-                      ? 'bg-[#4edea3]/20 text-[#4edea3] border border-[#4edea3]/40'
+                      ? 'bg-[#00f5a0]/20 text-[#00f5a0] border border-[#00f5a0]/40'
                       : todayScorePercentage >= 75
-                      ? 'bg-[#4cd7f6]/20 text-[#4cd7f6] border border-[#4cd7f6]/40'
-                      : 'bg-[#ffb4ab]/20 text-[#ffb4ab] border border-[#ffb4ab]/40'
+                      ? 'bg-[#38bdf8]/20 text-[#38bdf8] border border-[#38bdf8]/40'
+                      : 'bg-[#f43f5e]/20 text-[#f43f5e] border border-[#f43f5e]/40'
                   }`}>
                     {currentGrade}
                   </span>
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-[10px] text-[#bbcabf] uppercase tracking-wider block">Slots Completed</span>
-                <span className="text-xl font-bold text-[#4edea3] mt-0.5 block">
+                <span className="text-[10px] text-[#7a9490] uppercase tracking-wider block">Slots Completed</span>
+                <span className="text-xl font-bold text-[#00f5a0] mt-0.5 block">
                   {todayCompletedCount} of {totalDailySlots}
                 </span>
               </div>
@@ -1819,7 +1819,7 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
 
             {/* Directives Audit Checklist */}
             <div className="space-y-2 font-mono text-xs">
-              <span className="text-[10px] uppercase font-bold text-[#bbcabf]">Directive Verification Audit</span>
+              <span className="text-[10px] uppercase font-bold text-[#7a9490]">Directive Verification Audit</span>
               <div className="space-y-1.5">
                 {todayGoals.map((g) => {
                   const done = g.status === 'COMPLETED' || g.progress === 100;
@@ -1828,20 +1828,20 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                       key={g.id}
                       className={`p-2.5 rounded-lg border flex items-center justify-between gap-2 ${
                         done
-                          ? 'bg-[#101c15] border-[#4edea3]/40 text-[#e2e2e8]'
-                          : 'bg-[#181a1e] border-[#3c4a42]/40 text-[#bbcabf]'
+                          ? 'bg-[#091b15] border-[#00f5a0]/40 text-[#e6f4f1]'
+                          : 'bg-[#0b1a19] border-[#162b29] text-[#7a9490]'
                       }`}
                     >
                       <div className="flex items-center gap-2 truncate">
                         {done ? (
-                          <CheckCircle2 className="w-4 h-4 text-[#4edea3] shrink-0" />
+                          <CheckCircle2 className="w-4 h-4 text-[#00f5a0] shrink-0" />
                         ) : (
-                          <XCircle className="w-4 h-4 text-[#ffb4ab] shrink-0" />
+                          <XCircle className="w-4 h-4 text-[#f43f5e] shrink-0" />
                         )}
                         <span className="truncate text-xs font-semibold">{g.title}</span>
                       </div>
                       <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${
-                        done ? 'bg-[#4edea3]/20 text-[#4edea3]' : 'bg-[#ffb4ab]/20 text-[#ffb4ab]'
+                        done ? 'bg-[#00f5a0]/20 text-[#00f5a0]' : 'bg-[#f43f5e]/20 text-[#f43f5e]'
                       }`}>
                         {done ? 'VERIFIED' : 'MISSED / INCOMPLETE'}
                       </span>
@@ -1853,29 +1853,29 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
 
             {/* Vector Domain Breakdown */}
             <div className="grid grid-cols-3 gap-2 font-mono text-xs text-center">
-              <div className="p-2 rounded-lg bg-[#111318] border border-[#4edea3]/30">
-                <span className="text-[9px] text-[#bbcabf] block">Milestone SDLC</span>
-                <span className="text-base font-bold text-[#4edea3]">{milestoneCompleted}/2</span>
+              <div className="p-2.5 rounded-xl bg-[#0b1a19] border border-[#00f5a0]/30">
+                <span className="text-[9px] text-[#7a9490] block">Milestone SDLC</span>
+                <span className="text-base font-bold text-[#00f5a0]">{milestoneCompleted}/2</span>
               </div>
-              <div className="p-2 rounded-lg bg-[#111318] border border-[#4cd7f6]/30">
-                <span className="text-[9px] text-[#bbcabf] block">Financial OS</span>
-                <span className="text-base font-bold text-[#4cd7f6]">{financialCompleted}/1</span>
+              <div className="p-2.5 rounded-xl bg-[#0b1a19] border border-[#38bdf8]/30">
+                <span className="text-[9px] text-[#7a9490] block">Financial OS</span>
+                <span className="text-base font-bold text-[#38bdf8]">{financialCompleted}/1</span>
               </div>
-              <div className="p-2 rounded-lg bg-[#111318] border border-[#c0c1ff]/30">
-                <span className="text-[9px] text-[#bbcabf] block">Learning Engine</span>
-                <span className="text-base font-bold text-[#c0c1ff]">{learningCompleted}/1</span>
+              <div className="p-2.5 rounded-xl bg-[#0b1a19] border border-[#a78bfa]/30">
+                <span className="text-[9px] text-[#7a9490] block">Learning Engine</span>
+                <span className="text-base font-bold text-[#a78bfa]">{learningCompleted}/1</span>
               </div>
             </div>
 
             {/* Operator Retrospective Notes Input */}
             <div className="space-y-1.5 font-mono text-xs">
               <div className="flex items-center justify-between">
-                <label className="text-[#bbcabf]">Operator Retrospective &amp; Execution Notes</label>
+                <label className="text-[#7a9490]">Operator Retrospective &amp; Execution Notes</label>
                 <input
                   type="date"
                   value={eodDate}
                   onChange={(e) => setEodDate(e.target.value)}
-                  className="bg-[#1e2024] border border-[#3c4a42]/50 rounded px-2 py-0.5 text-[11px] text-[#e2e2e8]"
+                  className="bg-[#050a0a] border border-[#162b29] rounded-lg px-2.5 py-1 text-[11px] text-[#e6f4f1] focus:border-[#38bdf8] focus:outline-none"
                 />
               </div>
               <textarea
@@ -1883,23 +1883,23 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                 value={eodNotes}
                 onChange={(e) => setEodNotes(e.target.value)}
                 placeholder="What was built, shipped, learned, or delayed today? Document blockers or tomorrow focus..."
-                className="w-full bg-[#1e2024] border border-[#3c4a42]/50 rounded-lg p-2.5 text-xs text-[#e2e2e8] focus:outline-none focus:border-[#4cd7f6]"
+                className="w-full bg-[#050a0a] border border-[#162b29] rounded-lg p-2.5 text-xs text-[#e6f4f1] focus:outline-none focus:border-[#38bdf8]"
               />
             </div>
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#3c4a42]/30">
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#162b29]">
               <button
                 type="button"
                 onClick={() => setShowEodModal(false)}
-                className="px-4 py-2 rounded-lg bg-[#1e2024] hover:bg-[#282a2e] text-[#bbcabf] font-mono text-xs cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-[#0e201e] hover:bg-[#162b29] text-[#7a9490] hover:text-[#e6f4f1] border border-[#162b29] font-mono text-xs cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleCommitEodLog}
-                className="px-5 py-2 rounded-lg bg-[#4cd7f6] hover:bg-[#4cd7f6]/90 text-[#002f3a] font-mono text-xs font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-[#4cd7f6]/20"
+                className="px-5 py-2 rounded-lg bg-[#38bdf8] hover:bg-[#0284c7] text-[#00281b] font-mono text-xs font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-[#38bdf8]/20"
               >
                 <ClipboardCheck className="w-3.5 h-3.5" />
                 <span>Save &amp; Commit EOD Performance Log</span>
@@ -1914,23 +1914,23 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
       {/* ========================================================================= */}
       {showLogsDrawer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-4xl bg-[#0c0e12] border border-[#c0c1ff]/50 rounded-2xl shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+          <div className="w-full max-w-4xl bg-[#081414] border border-[#162b29] rounded-2xl shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-[#3c4a42]/40">
+            <div className="flex items-center justify-between pb-3 border-b border-[#162b29]">
               <div className="flex items-center gap-2.5">
-                <BarChart3 className="w-5 h-5 text-[#c0c1ff]" />
+                <BarChart3 className="w-5 h-5 text-[#38bdf8]" />
                 <div>
-                  <h3 className="font-mono text-sm sm:text-base font-bold text-[#e2e2e8] uppercase tracking-wide">
+                  <h3 className="font-mono text-sm sm:text-base font-bold text-[#e6f4f1] uppercase tracking-wide">
                     DAILY PERFORMANCE SCOREBOARD &amp; AUDIT LOGS
                   </h3>
-                  <p className="font-mono text-xs text-[#bbcabf]">
+                  <p className="font-mono text-xs text-[#7a9490]">
                     Historical record of daily execution scores, vector completion streaks, and performance insights.
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowLogsDrawer(false)}
-                className="text-[#bbcabf] hover:text-[#e2e2e8] p-1 rounded hover:bg-[#1e2024] cursor-pointer"
+                className="text-[#7a9490] hover:text-[#e6f4f1] p-1.5 rounded-lg hover:bg-[#0e201e] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1938,63 +1938,63 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
 
             {/* Performance Metric Badges */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs">
-              <div className="p-3 rounded-xl bg-[#14161c] border border-[#c0c1ff]/30">
-                <span className="text-[10px] text-[#bbcabf] uppercase block">Execution Streak</span>
-                <span className="text-xl font-black text-[#ffb4ab] mt-1 flex items-center gap-1">
+              <div className="p-3 rounded-xl bg-[#0b1a19] border border-[#162b29]">
+                <span className="text-[10px] text-[#7a9490] uppercase block">Execution Streak</span>
+                <span className="text-xl font-black text-[#f59e0b] mt-1 flex items-center gap-1">
                   <Flame className="w-4 h-4" /> {currentStreak} Days
                 </span>
-                <span className="text-[9px] text-[#bbcabf] mt-0.5 block">&gt;=75% High Execution</span>
+                <span className="text-[9px] text-[#7a9490] mt-0.5 block">&gt;=75% High Execution</span>
               </div>
 
-              <div className="p-3 rounded-xl bg-[#14161c] border border-[#c0c1ff]/30">
-                <span className="text-[10px] text-[#bbcabf] uppercase block">All-Time Average</span>
-                <span className="text-xl font-black text-[#4edea3] mt-1 block">
+              <div className="p-3 rounded-xl bg-[#0b1a19] border border-[#162b29]">
+                <span className="text-[10px] text-[#7a9490] uppercase block">All-Time Average</span>
+                <span className="text-xl font-black text-[#00f5a0] mt-1 block">
                   {allTimeAverageScore}%
                 </span>
-                <span className="text-[9px] text-[#bbcabf] mt-0.5 block">Across {performanceLogs.length} Logged Days</span>
+                <span className="text-[9px] text-[#7a9490] mt-0.5 block">Across {performanceLogs.length} Logged Days</span>
               </div>
 
-              <div className="p-3 rounded-xl bg-[#14161c] border border-[#c0c1ff]/30">
-                <span className="text-[10px] text-[#bbcabf] uppercase block">Apex 100% Rate</span>
-                <span className="text-xl font-black text-[#4cd7f6] mt-1 block">
+              <div className="p-3 rounded-xl bg-[#0b1a19] border border-[#162b29]">
+                <span className="text-[10px] text-[#7a9490] uppercase block">Apex 100% Rate</span>
+                <span className="text-xl font-black text-[#38bdf8] mt-1 block">
                   {performanceLogs.length > 0 ? Math.round((performanceLogs.filter(l => l.score === 100).length / performanceLogs.length) * 100) : 0}%
                 </span>
-                <span className="text-[9px] text-[#bbcabf] mt-0.5 block">
+                <span className="text-[9px] text-[#7a9490] mt-0.5 block">
                   {performanceLogs.filter(l => l.score === 100).length} Flawless Days
                 </span>
               </div>
 
-              <div className="p-3 rounded-xl bg-[#14161c] border border-[#c0c1ff]/30">
-                <span className="text-[10px] text-[#bbcabf] uppercase block">Logged Audits</span>
-                <span className="text-xl font-black text-[#e2e2e8] mt-1 block">
+              <div className="p-3 rounded-xl bg-[#0b1a19] border border-[#162b29]">
+                <span className="text-[10px] text-[#7a9490] uppercase block">Logged Audits</span>
+                <span className="text-xl font-black text-[#e6f4f1] mt-1 block">
                   {performanceLogs.length}
                 </span>
-                <span className="text-[9px] text-[#bbcabf] mt-0.5 block">Persistent in Storage</span>
+                <span className="text-[9px] text-[#7a9490] mt-0.5 block">Persistent in Storage</span>
               </div>
             </div>
 
             {/* Score History Visual Sparkline Bars */}
-            <div className="p-4 rounded-xl bg-[#111318] border border-[#3c4a42]/40 font-mono text-xs space-y-2">
-              <span className="text-[10px] uppercase font-bold text-[#bbcabf] block">
+            <div className="p-4 rounded-xl bg-[#0b1a19] border border-[#162b29] font-mono text-xs space-y-2">
+              <span className="text-[10px] uppercase font-bold text-[#7a9490] block">
                 Historical Score Trajectory
               </span>
               <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 items-end min-h-[90px] pt-4">
                 {performanceLogs.slice(0, 7).reverse().map((log) => (
                   <div key={log.id} className="flex flex-col items-center gap-1 group">
-                    <span className="text-[9px] font-bold text-[#e2e2e8]">{log.score}%</span>
-                    <div className="w-full bg-[#1e2024] rounded-t h-16 flex items-end">
+                    <span className="text-[9px] font-bold text-[#e6f4f1]">{log.score}%</span>
+                    <div className="w-full bg-[#050a0a] rounded-t h-16 flex items-end border border-[#162b29]">
                       <div
                         className={`w-full rounded-t transition-all ${
                           log.score >= 100
-                            ? 'bg-[#4edea3]'
+                            ? 'bg-[#00f5a0]'
                             : log.score >= 75
-                            ? 'bg-[#4cd7f6]'
-                            : 'bg-[#ffb4ab]'
+                            ? 'bg-[#38bdf8]'
+                            : 'bg-[#f43f5e]'
                         }`}
                         style={{ height: `${Math.max(10, log.score)}%` }}
                       />
                     </div>
-                    <span className="text-[8px] text-[#bbcabf] truncate w-full text-center">
+                    <span className="text-[8px] text-[#7a9490] truncate w-full text-center">
                       {log.date.slice(5)}
                     </span>
                   </div>
@@ -2004,12 +2004,12 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
 
             {/* Detailed Log History List */}
             <div className="space-y-3 font-mono text-xs">
-              <span className="text-[10px] uppercase font-bold text-[#bbcabf] block">
+              <span className="text-[10px] uppercase font-bold text-[#7a9490] block">
                 Daily Performance Log History ({performanceLogs.length})
               </span>
 
               {performanceLogs.length === 0 ? (
-                <div className="p-6 text-center text-[#bbcabf] border border-dashed border-[#3c4a42]/40 rounded-xl">
+                <div className="p-6 text-center text-[#7a9490] border border-dashed border-[#162b29] rounded-xl bg-[#050a0a]">
                   No performance logs recorded yet. Click "EOD Review &amp; Score" to commit your first log!
                 </div>
               ) : (
@@ -2017,31 +2017,31 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                   {performanceLogs.map((log) => (
                     <div
                       key={log.id}
-                      className="p-3.5 rounded-xl bg-[#111318] border border-[#3c4a42]/40 hover:border-[#c0c1ff]/40 transition-all space-y-2"
+                      className="p-3.5 rounded-xl bg-[#0b1a19] border border-[#162b29] hover:border-[#38bdf8]/40 transition-all space-y-2"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
-                          <Calendar className="w-4 h-4 text-[#c0c1ff]" />
-                          <span className="font-bold text-[#e2e2e8]">{log.date}</span>
+                          <Calendar className="w-4 h-4 text-[#38bdf8]" />
+                          <span className="font-bold text-[#e6f4f1]">{log.date}</span>
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                             log.score >= 100
-                              ? 'bg-[#4edea3]/20 text-[#4edea3] border border-[#4edea3]/40'
+                              ? 'bg-[#00f5a0]/20 text-[#00f5a0] border border-[#00f5a0]/40'
                               : log.score >= 75
-                              ? 'bg-[#4cd7f6]/20 text-[#4cd7f6] border border-[#4cd7f6]/40'
-                              : 'bg-[#ffb4ab]/20 text-[#ffb4ab] border border-[#ffb4ab]/40'
+                              ? 'bg-[#38bdf8]/20 text-[#38bdf8] border border-[#38bdf8]/40'
+                              : 'bg-[#f43f5e]/20 text-[#f43f5e] border border-[#f43f5e]/40'
                           }`}>
                             {log.score}% // {log.grade}
                           </span>
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-[#bbcabf]">
+                          <span className="text-[10px] text-[#7a9490]">
                             {log.completedCount}/{log.totalCount} Directives
                           </span>
                           {onDeleteDailyPerformanceLog && (
                             <button
                               onClick={() => onDeleteDailyPerformanceLog(log.id)}
-                              className="text-[#bbcabf] hover:text-[#ffb4ab] p-1 rounded hover:bg-[#1e2024] cursor-pointer"
+                              className="text-[#7a9490] hover:text-[#f43f5e] p-1 rounded-lg hover:bg-[#0e201e] cursor-pointer"
                               title="Delete Log"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -2052,23 +2052,23 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
 
                       {/* Domain breakdown chips */}
                       <div className="flex flex-wrap gap-2 text-[10px]">
-                        <span className="px-2 py-0.5 rounded bg-[#0c0e12] border border-[#4edea3]/30 text-[#4edea3]">
+                        <span className="px-2 py-0.5 rounded bg-[#050a0a] border border-[#00f5a0]/30 text-[#00f5a0]">
                           Milestone SDLC: {log.domainBreakdown.milestoneProjects.completed}/{log.domainBreakdown.milestoneProjects.total}
                         </span>
-                        <span className="px-2 py-0.5 rounded bg-[#0c0e12] border border-[#4cd7f6]/30 text-[#4cd7f6]">
+                        <span className="px-2 py-0.5 rounded bg-[#050a0a] border border-[#38bdf8]/30 text-[#38bdf8]">
                           Financial OS: {log.domainBreakdown.financialOS.completed}/{log.domainBreakdown.financialOS.total}
                         </span>
-                        <span className="px-2 py-0.5 rounded bg-[#0c0e12] border border-[#c0c1ff]/30 text-[#c0c1ff]">
+                        <span className="px-2 py-0.5 rounded bg-[#050a0a] border border-[#a78bfa]/30 text-[#a78bfa]">
                           Learning Engine: {log.domainBreakdown.learningEngine.completed}/{log.domainBreakdown.learningEngine.total}
                         </span>
                       </div>
 
                       {/* Insights */}
                       {log.insights && log.insights.length > 0 && (
-                        <div className="text-[11px] text-[#bbcabf] bg-[#0c0e12] p-2 rounded border border-[#3c4a42]/20 space-y-0.5">
+                        <div className="text-[11px] text-[#7a9490] bg-[#050a0a] p-2.5 rounded-lg border border-[#162b29] space-y-0.5">
                           {log.insights.map((ins, i) => (
                             <div key={i} className="flex items-start gap-1.5">
-                              <span className="text-[#4edea3]">›</span>
+                              <span className="text-[#00f5a0]">›</span>
                               <span>{ins}</span>
                             </div>
                           ))}
@@ -2077,7 +2077,7 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
 
                       {/* Operator Notes */}
                       {log.operatorNotes && (
-                        <div className="text-[11px] italic text-[#d0fbe0] bg-[#142018]/50 p-2 rounded border border-[#4edea3]/20">
+                        <div className="text-[11px] italic text-[#e6f4f1] bg-[#091b15]/60 p-2.5 rounded-lg border border-[#00f5a0]/25">
                           "{log.operatorNotes}"
                         </div>
                       )}
@@ -2087,23 +2087,23 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                         <button
                           type="button"
                           onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
-                          className="text-[10px] text-[#4edea3] hover:underline font-mono font-bold flex items-center gap-1 cursor-pointer"
+                          className="text-[10px] text-[#00f5a0] hover:underline font-mono font-bold flex items-center gap-1 cursor-pointer"
                         >
                           <span>{expandedLogId === log.id ? 'Hide Goal Details ▴' : 'Inspect Completed & Missed Goals ▾'}</span>
                         </button>
 
                         {expandedLogId === log.id && (
-                          <div className="mt-2 p-2.5 rounded-lg bg-[#0c0e12] border border-[#3c4a42]/30 space-y-2 animate-fadeIn">
+                          <div className="mt-2 p-2.5 rounded-lg bg-[#050a0a] border border-[#162b29] space-y-2 animate-fadeIn">
                             {/* Completed */}
                             {log.completedDirectives && log.completedDirectives.length > 0 && (
                               <div className="space-y-1">
-                                <span className="text-[10px] text-[#4edea3] font-bold uppercase tracking-wider block">
+                                <span className="text-[10px] text-[#00f5a0] font-bold uppercase tracking-wider block">
                                   ✓ Verified Completed ({log.completedDirectives.length})
                                 </span>
                                 {log.completedDirectives.map((cd, idx) => (
-                                  <div key={idx} className="flex items-center gap-2 text-[11px] text-[#e2e2e8]">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-[#4edea3] shrink-0" />
-                                    <span className="font-mono text-[9px] px-1 py-0.2 rounded bg-[#16181d] text-[#bbcabf] border border-[#3c4a42]/30 shrink-0">
+                                  <div key={idx} className="flex items-center gap-2 text-[11px] text-[#e6f4f1]">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-[#00f5a0] shrink-0" />
+                                    <span className="font-mono text-[9px] px-1 py-0.2 rounded bg-[#0e201e] text-[#7a9490] border border-[#162b29] shrink-0">
                                       {cd.sourceRef || cd.sourceType}
                                     </span>
                                     <span className="truncate">{cd.title}</span>
@@ -2114,14 +2114,14 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
 
                             {/* Missed */}
                             {log.missedDirectives && log.missedDirectives.length > 0 && (
-                              <div className="space-y-1 pt-1.5 border-t border-[#3c4a42]/20">
-                                <span className="text-[10px] text-[#ffb4ab] font-bold uppercase tracking-wider block">
+                              <div className="space-y-1 pt-1.5 border-t border-[#162b29]">
+                                <span className="text-[10px] text-[#f43f5e] font-bold uppercase tracking-wider block">
                                   ✕ Deferred / Missed ({log.missedDirectives.length})
                                 </span>
                                 {log.missedDirectives.map((md, idx) => (
-                                  <div key={idx} className="flex items-center gap-2 text-[11px] text-[#bbcabf]">
-                                    <XCircle className="w-3.5 h-3.5 text-[#ffb4ab] shrink-0" />
-                                    <span className="font-mono text-[9px] px-1 py-0.2 rounded bg-[#16181d] text-[#86948a] border border-[#3c4a42]/30 shrink-0">
+                                  <div key={idx} className="flex items-center gap-2 text-[11px] text-[#7a9490]">
+                                    <XCircle className="w-3.5 h-3.5 text-[#f43f5e] shrink-0" />
+                                    <span className="font-mono text-[9px] px-1 py-0.2 rounded bg-[#0e201e] text-[#7a9490] border border-[#162b29] shrink-0">
                                       {md.sourceRef || md.sourceType}
                                     </span>
                                     <span className="truncate">{md.title}</span>
@@ -2132,7 +2132,7 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
 
                             {(!log.completedDirectives || log.completedDirectives.length === 0) &&
                               (!log.missedDirectives || log.missedDirectives.length === 0) && (
-                                <span className="text-[10px] text-[#bbcabf] italic">
+                                <span className="text-[10px] text-[#7a9490] italic">
                                   All {log.completedCount} directives verified in audit ledger.
                                 </span>
                               )}
@@ -2145,11 +2145,11 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
               )}
             </div>
 
-            <div className="flex justify-end pt-3 border-t border-[#3c4a42]/30">
+            <div className="flex justify-end pt-3 border-t border-[#162b29]">
               <button
                 type="button"
                 onClick={() => setShowLogsDrawer(false)}
-                className="px-4 py-2 rounded-lg bg-[#1e2024] hover:bg-[#282a2e] text-[#bbcabf] font-mono text-xs cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-[#0e201e] hover:bg-[#162b29] text-[#7a9490] hover:text-[#e6f4f1] border border-[#162b29] font-mono text-xs cursor-pointer"
               >
                 Close Scoreboard
               </button>
@@ -2163,23 +2163,23 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
       {/* ========================================================================= */}
       {slotCustomizerSlot !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-xl bg-[#0c0e12] border border-[#4edea3]/50 rounded-2xl shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#3c4a42]/40">
+          <div className="w-full max-w-xl bg-[#081414] border border-[#162b29] rounded-2xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#162b29]">
               <div className="flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-[#4edea3]" />
-                <h3 className="font-mono text-sm font-bold text-[#e2e2e8] uppercase">
+                <Sliders className="w-4 h-4 text-[#00f5a0]" />
+                <h3 className="font-mono text-sm font-bold text-[#e6f4f1] uppercase">
                   CONFIGURE DIRECTIVE SLOT 0{slotCustomizerSlot}
                 </h3>
               </div>
               <button
                 onClick={() => setSlotCustomizerSlot(null)}
-                className="text-[#bbcabf] hover:text-[#e2e2e8] p-1 rounded hover:bg-[#1e2024] cursor-pointer"
+                className="text-[#7a9490] hover:text-[#e6f4f1] p-1.5 rounded-lg hover:bg-[#0e201e] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="font-mono text-xs text-[#bbcabf]">
+            <p className="font-mono text-xs text-[#7a9490]">
               {slotCustomizerSlot === 1 || slotCustomizerSlot === 2
                 ? 'Select an active engineering step from any Milestone Project SDLC phase to bind to this slot.'
                 : slotCustomizerSlot === 3
@@ -2191,8 +2191,8 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
               {(slotCustomizerSlot === 1 || slotCustomizerSlot === 2) && (
                 <div className="space-y-2">
                   {state.projects.map((proj) => (
-                    <div key={proj.id} className="p-2.5 rounded bg-[#111318] border border-[#3c4a42]/30 space-y-1">
-                      <span className="font-bold text-[#4edea3] text-[11px] block">{proj.code}: {proj.title}</span>
+                    <div key={proj.id} className="p-3 rounded-xl bg-[#0b1a19] border border-[#162b29] space-y-1">
+                      <span className="font-bold text-[#00f5a0] text-[11px] block">{proj.code}: {proj.title}</span>
                       <div className="space-y-1 pl-2">
                         {(proj.steps || []).map((step) => (
                           <button
@@ -2223,10 +2223,10 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                               onSyncDailyDirectives?.([...updated, newGoal]);
                               setSlotCustomizerSlot(null);
                             }}
-                            className="w-full text-left p-1.5 rounded hover:bg-[#1e2024] text-[11px] text-[#e2e2e8] flex items-center justify-between cursor-pointer border border-transparent hover:border-[#4edea3]/30"
+                            className="w-full text-left p-1.5 rounded-lg hover:bg-[#0e201e] text-[11px] text-[#e6f4f1] flex items-center justify-between cursor-pointer border border-transparent hover:border-[#00f5a0]/30"
                           >
                             <span className="truncate">{step.title}</span>
-                            <span className="text-[10px] text-[#4cd7f6] shrink-0 ml-2">{step.estimatedDurationMinutes}m</span>
+                            <span className="text-[10px] text-[#38bdf8] shrink-0 ml-2">{step.estimatedDurationMinutes}m</span>
                           </button>
                         ))}
                       </div>
@@ -2263,10 +2263,10 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                         onSyncDailyDirectives?.([...updated, newGoal]);
                         setSlotCustomizerSlot(null);
                       }}
-                      className="w-full text-left p-2 rounded bg-[#111318] hover:bg-[#1e2024] text-[#e2e2e8] flex items-center justify-between cursor-pointer border border-[#3c4a42]/30 hover:border-[#4cd7f6]/40"
+                      className="w-full text-left p-2.5 rounded-xl bg-[#0b1a19] hover:bg-[#0e201e] text-[#e6f4f1] flex items-center justify-between cursor-pointer border border-[#162b29] hover:border-[#38bdf8]/40"
                     >
                       <div className="truncate">
-                        <span className="text-[#4cd7f6] font-bold mr-1.5">{step.stepNumber}</span>
+                        <span className="text-[#38bdf8] font-bold mr-1.5">{step.stepNumber}</span>
                         <span>{step.productAction || step.title}</span>
                       </div>
                     </button>
@@ -2302,24 +2302,24 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
                         onSyncDailyDirectives?.([...updated, newGoal]);
                         setSlotCustomizerSlot(null);
                       }}
-                      className="w-full text-left p-2 rounded bg-[#111318] hover:bg-[#1e2024] text-[#e2e2e8] flex items-center justify-between cursor-pointer border border-[#3c4a42]/30 hover:border-[#c0c1ff]/40"
+                      className="w-full text-left p-2.5 rounded-xl bg-[#0b1a19] hover:bg-[#0e201e] text-[#e6f4f1] flex items-center justify-between cursor-pointer border border-[#162b29] hover:border-[#a78bfa]/40"
                     >
                       <div className="truncate">
-                        <span className="text-[#c0c1ff] font-bold mr-1.5">{top.stage}</span>
+                        <span className="text-[#a78bfa] font-bold mr-1.5">{top.stage}</span>
                         <span>{top.topic}</span>
                       </div>
-                      <span className="text-[10px] text-[#bbcabf] ml-2 shrink-0">{top.retentionState}</span>
+                      <span className="text-[10px] text-[#7a9490] ml-2 shrink-0">{top.retentionState}</span>
                     </button>
                   ))}
                 </div>
               )}
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-[#3c4a42]/30">
+            <div className="flex justify-end pt-2 border-t border-[#162b29]">
               <button
                 type="button"
                 onClick={() => setSlotCustomizerSlot(null)}
-                className="px-4 py-1.5 rounded bg-[#1e2024] text-[#bbcabf] font-mono text-xs cursor-pointer hover:text-[#e2e2e8]"
+                className="px-4 py-1.5 rounded-lg bg-[#0e201e] border border-[#162b29] text-[#7a9490] font-mono text-xs cursor-pointer hover:text-[#e6f4f1]"
               >
                 Cancel
               </button>
@@ -2330,8 +2330,8 @@ export const NorthStarSection: React.FC<NorthStarSectionProps> = ({
 
       {/* Floating Success Notification Toast */}
       {eodSuccessToast && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-[#0c1a14] border border-[#4edea3] text-[#e2e2e8] shadow-2xl font-mono text-xs flex items-center gap-2.5 animate-slideUp">
-          <CheckCircle2 className="w-5 h-5 text-[#4edea3] shrink-0" />
+        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-[#081414] border border-[#00f5a0] text-[#e6f4f1] shadow-2xl font-mono text-xs flex items-center gap-2.5 animate-slideUp">
+          <CheckCircle2 className="w-5 h-5 text-[#00f5a0] shrink-0" />
           <span>{eodSuccessToast}</span>
         </div>
       )}

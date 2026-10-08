@@ -194,39 +194,40 @@ ${currentInsight.bottleneckIdentified}
   };
 
   return (
-    <section id="ai-guardrails" className="space-y-6">
+    <section
+      id="ai-guardrails"
+      className="p-5 sm:p-7 rounded-2xl bg-[#081414] border border-[#162b29] shadow-2xl flex flex-col gap-6 select-none animate-fadeIn relative overflow-hidden"
+    >
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#3c4a42]/30 gap-3">
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-xs px-2 py-0.5 rounded bg-[#4edea3]/10 text-[#4edea3] font-bold border border-[#4edea3]/30">
-            MOD_06
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#132626] gap-4 relative z-10">
+        <div className="space-y-1">
+          <span className="font-mono text-[10px] font-bold text-[#00f5a0] tracking-widest uppercase block">
+            COGNITION // SOVEREIGNTY &amp; VAULT
           </span>
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-[#e2e2e8] uppercase font-mono flex items-center gap-2">
-              COGNITION, AI GUARDRAILS & VAULT
-            </h2>
-            <p className="text-xs text-[#bbcabf] font-mono">
-              Enforcing human cognitive sovereignty, disciplined AI leverage, and high-retention mental models.
-            </p>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-[#e6f4f1] tracking-tight font-mono">
+            Cognition, AI Guardrails &amp; Knowledge Vault
+          </h1>
+          <p className="text-xs sm:text-sm text-[#7a9490]">
+            Enforce human cognitive sovereignty, disciplined AI leverage, and high-retention mental models.
+          </p>
         </div>
 
         {/* View Sub-Tabs */}
-        <div className="flex items-center gap-1 bg-[#0c0e12] p-1 rounded border border-[#3c4a42]/30 overflow-x-auto">
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#050a0a] border border-[#162b29] overflow-x-auto shrink-0 font-mono text-xs">
           {[
             { id: 'guardrails', label: 'AI Guardrails' },
-            { id: 'knowledge', label: 'Knowledge Vault' },
-            { id: 'decisions', label: 'Decision Log' },
-            { id: 'models', label: 'Mental Models' },
+            { id: 'knowledge', label: `Knowledge (${state.knowledgeNotes.length})` },
+            { id: 'decisions', label: `Decisions (${state.decisions.length})` },
+            { id: 'models', label: `Mental Models (${state.mentalModels.length})` },
             { id: 'ai-copilot', label: 'Tactical Copilot' },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-2.5 py-1 text-xs font-mono rounded cursor-pointer whitespace-nowrap transition-colors ${
+              className={`px-3 py-1.5 rounded-lg font-mono text-xs cursor-pointer whitespace-nowrap transition-all ${
                 activeTab === tab.id
-                  ? 'bg-[#4edea3] text-[#003822] font-bold shadow-sm'
-                  : 'text-[#bbcabf] hover:text-[#e2e2e8]'
+                  ? 'bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/40 font-bold shadow-xs'
+                  : 'text-[#7a9490] hover:text-[#e6f4f1] hover:bg-[#0c1818]'
               }`}
             >
               {tab.label}
@@ -237,12 +238,12 @@ ${currentInsight.bottleneckIdentified}
 
       {/* Tab: AI Guardrails & Human-in-the-Loop */}
       {activeTab === 'guardrails' && (
-        <div className="space-y-6">
+        <div className="space-y-6 relative z-10">
           {/* Never / Always AI Directives */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* NEVER DELEGATE TO AI */}
-            <div className="p-4 rounded-lg bg-[#201a1a]/60 border border-[#ffb4ab]/30 space-y-3">
-              <div className="flex items-center gap-2 text-[#ffb4ab]">
+            <div className="p-4 rounded-xl bg-[#081212] border border-[#ff5c5c]/30 space-y-3">
+              <div className="flex items-center gap-2 text-[#ff5c5c]">
                 <Ban className="w-4 h-4" />
                 <h3 className="font-mono text-xs font-bold uppercase tracking-wider">
                   NEVER DELEGATE TO AI (HUMAN SOVEREIGNTY)
@@ -251,7 +252,7 @@ ${currentInsight.bottleneckIdentified}
               <ul className="space-y-2">
                 {state.prohibitedAiRules.map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-xs font-mono text-[#ffdad6]">
-                    <span className="text-[#ffb4ab] font-bold">✕</span>
+                    <span className="text-[#ff5c5c] font-bold">✕</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -259,8 +260,8 @@ ${currentInsight.bottleneckIdentified}
             </div>
 
             {/* ALWAYS USE AI FOR */}
-            <div className="p-4 rounded-lg bg-[#14231a]/60 border border-[#4edea3]/30 space-y-3">
-              <div className="flex items-center gap-2 text-[#4edea3]">
+            <div className="p-4 rounded-xl bg-[#081212] border border-[#00f5a0]/30 space-y-3">
+              <div className="flex items-center gap-2 text-[#00f5a0]">
                 <Rocket className="w-4 h-4" />
                 <h3 className="font-mono text-xs font-bold uppercase tracking-wider">
                   MAXIMUM AI LEVERAGE TARGETS (ACCELERATION)
@@ -269,7 +270,7 @@ ${currentInsight.bottleneckIdentified}
               <ul className="space-y-2">
                 {state.mandatoryAiRules.map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-xs font-mono text-[#d0fbe0]">
-                    <span className="text-[#4edea3] font-bold">✓</span>
+                    <span className="text-[#00f5a0] font-bold">✓</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -278,17 +279,17 @@ ${currentInsight.bottleneckIdentified}
           </div>
 
           {/* AI Interactive Learning Workflow Loop */}
-          <div className="p-4 rounded-lg bg-[#1a1c20] border border-[#3c4a42]/30 space-y-4">
+          <div className="p-5 rounded-xl bg-[#060e0e] border border-[#162b29] space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-mono text-xs font-bold text-[#e2e2e8] uppercase tracking-wider">
+                <h3 className="font-mono text-xs font-bold text-[#e6f4f1] uppercase tracking-wider">
                   AI INTERACTIVE WORKFLOW // 5-STAGE COGNITIVE PIPELINE
                 </h3>
-                <p className="text-[11px] font-mono text-[#bbcabf]">
+                <p className="text-[11px] font-mono text-[#7a9490]">
                   Interactive loop to prevent cognitive atrophy when interfacing with LLMs.
                 </p>
               </div>
-              <span className="font-mono text-[11px] text-[#4edea3] bg-[#4edea3]/10 px-2 py-0.5 rounded border border-[#4edea3]/30">
+              <span className="font-mono text-[10px] text-[#00f5a0] uppercase tracking-wider font-bold">
                 5-STAGE PROTOCOL ACTIVE
               </span>
             </div>
@@ -298,15 +299,15 @@ ${currentInsight.bottleneckIdentified}
                 <div
                   key={step.id}
                   onClick={() => onToggleWorkflowStep(step.id)}
-                  className="p-3 rounded border text-left cursor-pointer transition-all bg-[#111318] border-[#3c4a42]/30 hover:border-[#4edea3]/50"
+                  className="p-3.5 rounded-xl border text-left cursor-pointer transition-all bg-[#081212] border-[#162b29] hover:border-[#00f5a0]/50"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-mono text-[10px] text-[#4edea3]">0{step.step}</span>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#4edea3]" />
+                    <span className="font-mono text-[10px] text-[#00f5a0] font-bold">0{step.step}</span>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#00f5a0]" />
                   </div>
-                  <h4 className="font-mono text-xs font-bold text-[#e2e2e8] mb-1">{step.label}</h4>
-                  <p className="font-mono text-[10px] text-[#4cd7f6] mb-1 font-semibold">{step.rule}</p>
-                  <p className="font-mono text-[10px] text-[#bbcabf] line-clamp-3">{step.description}</p>
+                  <h4 className="font-mono text-xs font-bold text-[#e6f4f1] mb-1">{step.label}</h4>
+                  <p className="font-mono text-[10px] text-[#38bdf8] mb-1 font-semibold">{step.rule}</p>
+                  <p className="font-mono text-[10px] text-[#7a9490] line-clamp-3">{step.description}</p>
                 </div>
               ))}
             </div>
@@ -316,11 +317,11 @@ ${currentInsight.bottleneckIdentified}
 
       {/* Tab: Knowledge Vault */}
       {activeTab === 'knowledge' && (
-        <div className="space-y-6">
+        <div className="space-y-6 relative z-10">
           {/* Add Knowledge Note Form */}
-          <form onSubmit={handleCreateNote} className="p-4 rounded-lg bg-[#1a1c20] border border-[#3c4a42]/30 space-y-3">
-            <h3 className="font-mono text-xs font-bold text-[#e2e2e8] uppercase tracking-wider flex items-center gap-2">
-              <Plus className="w-3.5 h-3.5 text-[#4edea3]" />
+          <form onSubmit={handleCreateNote} className="p-5 rounded-xl bg-[#060e0e] border border-[#162b29] space-y-3 font-mono text-xs">
+            <h3 className="text-xs font-bold text-[#e6f4f1] uppercase tracking-wider flex items-center gap-2">
+              <Plus className="w-3.5 h-3.5 text-[#00f5a0]" />
               ADD NEW REPOSITORIED KNOWLEDGE NOTE
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -329,12 +330,12 @@ ${currentInsight.bottleneckIdentified}
                 placeholder="Note Title / Concept..."
                 value={newNoteTitle}
                 onChange={(e) => setNewNoteTitle(e.target.value)}
-                className="bg-[#111318] border border-[#3c4a42]/40 rounded px-3 py-1.5 font-mono text-xs text-[#e2e2e8] focus:border-[#4edea3] focus:outline-none"
+                className="bg-[#050a0a] border border-[#162b29] rounded-lg px-3 py-2 text-[#e6f4f1] focus:border-[#00f5a0] focus:outline-none"
               />
               <select
                 value={newNoteCategory}
                 onChange={(e) => setNewNoteCategory(e.target.value as any)}
-                className="bg-[#111318] border border-[#3c4a42]/40 rounded px-3 py-1.5 font-mono text-xs text-[#e2e2e8] focus:border-[#4edea3] focus:outline-none"
+                className="bg-[#050a0a] border border-[#162b29] rounded-lg px-3 py-2 text-[#38bdf8] focus:border-[#00f5a0] focus:outline-none cursor-pointer"
               >
                 <option value="Architecture">Architecture</option>
                 <option value="Algorithms">Algorithms</option>
@@ -348,34 +349,36 @@ ${currentInsight.bottleneckIdentified}
               placeholder="Core principles, mental schemas, syntactical laws, or architectural constraints..."
               value={newNoteContent}
               onChange={(e) => setNewNoteContent(e.target.value)}
-              className="w-full bg-[#111318] border border-[#3c4a42]/40 rounded px-3 py-2 font-mono text-xs text-[#e2e2e8] focus:border-[#4edea3] focus:outline-none resize-none"
+              className="w-full bg-[#050a0a] border border-[#162b29] rounded-lg px-3 py-2 text-[#e6f4f1] focus:border-[#00f5a0] focus:outline-none resize-none leading-relaxed"
             />
-            <button
-              type="submit"
-              className="px-3 py-1.5 rounded bg-[#4edea3] hover:bg-[#4edea3]/90 text-[#003822] font-mono text-xs font-bold cursor-pointer transition-colors"
-            >
-              SAVE NOTE TO VAULT
-            </button>
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-black cursor-pointer transition-all hover:scale-105 shadow-[0_0_12px_rgba(0,245,160,0.25)]"
+              >
+                SAVE NOTE TO VAULT
+              </button>
+            </div>
           </form>
 
           {/* Notes Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {state.knowledgeNotes.map((note) => (
-              <div key={note.id} className="p-4 rounded-lg bg-[#1a1c20] border border-[#3c4a42]/30 space-y-2 flex flex-col justify-between">
+              <div key={note.id} className="p-4 rounded-xl bg-[#060e0e] border border-[#162b29] hover:border-[#00f5a0]/40 transition-colors space-y-2 flex flex-col justify-between group">
                 <div>
                   <div className="flex items-start justify-between gap-2">
-                    <span className="font-mono text-[10px] uppercase px-1.5 py-0.5 rounded bg-[#3c4a42]/30 text-[#4edea3]">
+                    <span className="font-mono text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-[#122222] text-[#38bdf8] border border-[#38bdf8]/30">
                       {note.category}
                     </span>
                     <button
                       onClick={() => onDeleteKnowledgeNote(note.id)}
-                      className="text-[#bbcabf] hover:text-[#ffb4ab] cursor-pointer"
+                      className="text-[#55736f] hover:text-[#ff5c5c] cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <h4 className="font-mono text-sm font-bold text-[#e2e2e8] mt-2">{note.title}</h4>
-                  <p className="font-mono text-xs text-[#bbcabf] mt-1 whitespace-pre-wrap leading-relaxed">{note.content}</p>
+                  <h4 className="font-mono text-sm font-bold text-[#e6f4f1] mt-2 group-hover:text-[#00f5a0] transition-colors">{note.title}</h4>
+                  <p className="font-mono text-xs text-[#7a9490] mt-1 whitespace-pre-wrap leading-relaxed">{note.content}</p>
                 </div>
               </div>
             ))}
@@ -385,12 +388,12 @@ ${currentInsight.bottleneckIdentified}
 
       {/* Tab: Decision Log */}
       {activeTab === 'decisions' && (
-        <div className="space-y-6">
+        <div className="space-y-6 relative z-10">
           {/* Add Decision Form */}
-          <form onSubmit={handleCreateDecision} className="p-4 rounded-lg bg-[#1a1c20] border border-[#3c4a42]/30 space-y-3">
-            <h3 className="font-mono text-xs font-bold text-[#e2e2e8] uppercase tracking-wider flex items-center gap-2">
-              <Plus className="w-3.5 h-3.5 text-[#4edea3]" />
-              LOG HIGH-STAKES ARCHITECTURAL / LIFE DECISION
+          <form onSubmit={handleCreateDecision} className="p-5 rounded-xl bg-[#060e0e] border border-[#162b29] space-y-3 font-mono text-xs">
+            <h3 className="text-xs font-bold text-[#e6f4f1] uppercase tracking-wider flex items-center gap-2">
+              <Plus className="w-3.5 h-3.5 text-[#00f5a0]" />
+              LOG HIGH-STAKES ARCHITECTURAL / STRATEGIC DECISION
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input
@@ -398,14 +401,14 @@ ${currentInsight.bottleneckIdentified}
                 placeholder="Decision Vector / Title..."
                 value={newDecisionTitle}
                 onChange={(e) => setNewDecisionTitle(e.target.value)}
-                className="bg-[#111318] border border-[#3c4a42]/40 rounded px-3 py-1.5 font-mono text-xs text-[#e2e2e8] focus:border-[#4edea3] focus:outline-none"
+                className="bg-[#050a0a] border border-[#162b29] rounded-lg px-3 py-2 text-[#e6f4f1] focus:border-[#00f5a0] focus:outline-none"
               />
               <input
                 type="text"
                 placeholder="Expected Outcome / Metric..."
                 value={newDecisionOutcome}
                 onChange={(e) => setNewDecisionOutcome(e.target.value)}
-                className="bg-[#111318] border border-[#3c4a42]/40 rounded px-3 py-1.5 font-mono text-xs text-[#e2e2e8] focus:border-[#4edea3] focus:outline-none"
+                className="bg-[#050a0a] border border-[#162b29] rounded-lg px-3 py-2 text-[#e6f4f1] focus:border-[#00f5a0] focus:outline-none"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -414,52 +417,56 @@ ${currentInsight.bottleneckIdentified}
                 placeholder="Context & Tradeoffs Considered..."
                 value={newDecisionContext}
                 onChange={(e) => setNewDecisionContext(e.target.value)}
-                className="bg-[#111318] border border-[#3c4a42]/40 rounded px-3 py-1.5 font-mono text-xs text-[#e2e2e8] focus:border-[#4edea3] focus:outline-none resize-none"
+                className="bg-[#050a0a] border border-[#162b29] rounded-lg px-3 py-2 text-[#e6f4f1] focus:border-[#00f5a0] focus:outline-none resize-none leading-relaxed"
               />
               <textarea
                 rows={2}
                 placeholder="Final Verdict / Chosen Path..."
                 value={newDecisionPath}
                 onChange={(e) => setNewDecisionPath(e.target.value)}
-                className="bg-[#111318] border border-[#3c4a42]/40 rounded px-3 py-1.5 font-mono text-xs text-[#e2e2e8] focus:border-[#4edea3] focus:outline-none resize-none"
+                className="bg-[#050a0a] border border-[#162b29] rounded-lg px-3 py-2 text-[#e6f4f1] focus:border-[#00f5a0] focus:outline-none resize-none leading-relaxed"
               />
             </div>
-            <button
-              type="submit"
-              className="px-3 py-1.5 rounded bg-[#4edea3] hover:bg-[#4edea3]/90 text-[#003822] font-mono text-xs font-bold cursor-pointer transition-colors"
-            >
-              RATIFY DECISION IN AUDIT RECORD
-            </button>
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-black cursor-pointer transition-all hover:scale-105 shadow-[0_0_12px_rgba(0,245,160,0.25)]"
+              >
+                RATIFY DECISION IN AUDIT RECORD
+              </button>
+            </div>
           </form>
 
           {/* Decisions List */}
-          <div className="space-y-3">
+          <div className="space-y-3 font-mono">
             {state.decisions.map((dec) => (
-              <div key={dec.id} className="p-4 rounded-lg bg-[#1a1c20] border border-[#3c4a42]/30 space-y-2">
+              <div key={dec.id} className="p-4 rounded-xl bg-[#060e0e] border border-[#162b29] space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-[#4cd7f6] font-bold">[{dec.status}]</span>
-                    <h4 className="font-mono text-sm font-bold text-[#e2e2e8]">{dec.title}</h4>
+                    <span className="text-[10px] text-[#38bdf8] font-bold px-1.5 py-0.5 rounded bg-[#122222] border border-[#38bdf8]/30">
+                      {dec.status}
+                    </span>
+                    <h4 className="text-sm font-bold text-[#e6f4f1]">{dec.title}</h4>
                   </div>
                   <button
                     onClick={() => onDeleteDecision(dec.id)}
-                    className="text-[#bbcabf] hover:text-[#ffb4ab] cursor-pointer"
+                    className="text-[#55736f] hover:text-[#ff5c5c] cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 font-mono text-xs">
-                  <div className="p-2 rounded bg-[#111318] border border-[#3c4a42]/20">
-                    <span className="text-[10px] text-[#bbcabf] uppercase block mb-1">Context</span>
-                    <p className="text-[#e2e2e8]">{dec.context}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
+                  <div className="p-2.5 rounded-lg bg-[#050a0a] border border-[#162b29]">
+                    <span className="text-[10px] text-[#7a9490] uppercase block mb-1">Context</span>
+                    <p className="text-[#e6f4f1] text-[11px] leading-relaxed">{dec.context}</p>
                   </div>
-                  <div className="p-2 rounded bg-[#111318] border border-[#3c4a42]/20">
-                    <span className="text-[10px] text-[#4edea3] uppercase block mb-1">Chosen Path</span>
-                    <p className="text-[#d0fbe0]">{dec.chosenPath}</p>
+                  <div className="p-2.5 rounded-lg bg-[#050a0a] border border-[#162b29]">
+                    <span className="text-[10px] text-[#00f5a0] uppercase block mb-1 font-bold">Chosen Path</span>
+                    <p className="text-[#d0fbe0] text-[11px] leading-relaxed">{dec.chosenPath}</p>
                   </div>
-                  <div className="p-2 rounded bg-[#111318] border border-[#3c4a42]/20">
-                    <span className="text-[10px] text-[#4cd7f6] uppercase block mb-1">Expected Outcome</span>
-                    <p className="text-[#e2e2e8]">{dec.expectedOutcome}</p>
+                  <div className="p-2.5 rounded-lg bg-[#050a0a] border border-[#162b29]">
+                    <span className="text-[10px] text-[#38bdf8] uppercase block mb-1">Expected Outcome</span>
+                    <p className="text-[#e6f4f1] text-[11px] leading-relaxed">{dec.expectedOutcome}</p>
                   </div>
                 </div>
               </div>
@@ -470,19 +477,19 @@ ${currentInsight.bottleneckIdentified}
 
       {/* Tab: Mental Models */}
       {activeTab === 'models' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10 font-mono">
           {state.mentalModels.map((model: MentalModel) => (
-            <div key={model.id} className="p-4 rounded-lg bg-[#1a1c20] border border-[#3c4a42]/30 space-y-3">
-              <div className="flex items-center gap-2 text-[#4edea3]">
+            <div key={model.id} className="p-4 rounded-xl bg-[#060e0e] border border-[#162b29] hover:border-[#00f5a0]/40 transition-colors space-y-3">
+              <div className="flex items-center gap-2 text-[#00f5a0]">
                 <Lightbulb className="w-4 h-4" />
-                <h4 className="font-mono text-xs font-bold uppercase tracking-wider">{model.name}</h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider">{model.name}</h4>
               </div>
-              <p className="font-mono text-xs text-[#4cd7f6] font-semibold">{model.tagline}</p>
-              <div className="p-2.5 rounded bg-[#111318] border border-[#3c4a42]/20">
-                <span className="font-mono text-[10px] text-[#bbcabf] uppercase tracking-wider block mb-1 font-bold">
+              <p className="text-xs text-[#38bdf8] font-semibold">{model.tagline}</p>
+              <div className="p-3 rounded-lg bg-[#050a0a] border border-[#162b29]">
+                <span className="text-[10px] text-[#7a9490] uppercase tracking-wider block mb-1 font-bold">
                   APPLIED DIRECTIVE:
                 </span>
-                <p className="font-mono text-[11px] text-[#e2e2e8]">{model.applicationRule}</p>
+                <p className="text-[11px] text-[#e6f4f1] leading-relaxed">{model.applicationRule}</p>
               </div>
             </div>
           ))}
@@ -491,24 +498,24 @@ ${currentInsight.bottleneckIdentified}
 
       {/* Tab: Tactical Copilot */}
       {activeTab === 'ai-copilot' && (
-        <div className="p-5 rounded-lg bg-[#1a1c20] border border-[#3c4a42]/30 space-y-4 relative">
+        <div className="p-5 rounded-xl bg-[#060e0e] border border-[#162b29] space-y-4 relative z-10 font-mono">
           {/* Toast Notification */}
           {toastMessage && (
-            <div className="absolute top-3 right-5 z-20 px-3 py-1.5 rounded bg-[#4edea3] text-[#003822] font-mono text-xs font-bold shadow-lg flex items-center gap-1.5 animate-fadeIn">
-              <Check className="w-3.5 h-3.5" />
+            <div className="fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-xl bg-[#00f5a0] text-[#021810] font-mono text-xs font-bold shadow-2xl flex items-center gap-2 animate-fadeIn">
+              <Check className="w-4 h-4" />
               <span>{toastMessage}</span>
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#3c4a42]/20 gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#132626] gap-2">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#4edea3]" />
+              <Sparkles className="w-4 h-4 text-[#00f5a0]" />
               <div>
-                <h3 className="font-mono text-xs font-bold text-[#e2e2e8] uppercase tracking-wider">
-                  STRATEGIC COGNITION & OMNISCIENT AI FORCE MULTIPLIER
+                <h3 className="text-xs font-bold text-[#e6f4f1] uppercase tracking-wider">
+                  STRATEGIC COGNITION &amp; OMNISCIENT AI FORCE MULTIPLIER
                 </h3>
-                <span className="text-[10px] text-[#4cd7f6] font-mono flex items-center gap-1 mt-0.5">
-                  <Layers className="w-3 h-3" />
+                <span className="text-[10px] text-[#7a9490] flex items-center gap-1 mt-0.5">
+                  <Layers className="w-3 h-3 text-[#38bdf8]" />
                   FULL 9-MODULE TELEMETRY INGESTED (ENGINEERING, CAPITAL, LEARNING, FLIGHT PLAN)
                 </span>
               </div>
@@ -518,22 +525,22 @@ ${currentInsight.bottleneckIdentified}
               {recentInsights.length > 0 && (
                 <button
                   onClick={() => setShowHistory(!showHistory)}
-                  className="px-2.5 py-1 text-[11px] font-mono rounded bg-[#111318] hover:bg-[#282a2e] text-[#bbcabf] border border-[#3c4a42]/30 flex items-center gap-1 cursor-pointer transition-colors"
+                  className="px-2.5 py-1 text-[11px] rounded-lg bg-[#081212] hover:bg-[#122222] text-[#7a9490] hover:text-[#e6f4f1] border border-[#162b29] flex items-center gap-1 cursor-pointer transition-colors"
                 >
-                  <History className="w-3 h-3 text-[#4edea3]" />
+                  <History className="w-3 h-3 text-[#00f5a0]" />
                   <span>HISTORY ({recentInsights.length})</span>
                 </button>
               )}
 
               {aiStatus.configured ? (
-                <span className="font-mono text-[10px] text-[#4edea3] bg-[#4edea3]/10 px-2.5 py-1 rounded border border-[#4edea3]/30 flex items-center gap-1.5 font-bold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3] animate-pulse" />
-                  GEMINI 3.8 FLASH [ONLINE // FREE TIER]
+                <span className="text-[10px] text-[#00f5a0] flex items-center gap-1.5 font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00f5a0] animate-pulse" />
+                  GEMINI 3.8 FLASH [ONLINE]
                 </span>
               ) : (
-                <span className="font-mono text-[10px] text-[#4cd7f6] bg-[#4cd7f6]/10 px-2.5 py-1 rounded border border-[#4cd7f6]/30 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#4cd7f6]" />
-                  LOCAL HEURISTIC ENGINE [OFFLINE // FREE]
+                <span className="text-[10px] text-[#38bdf8] flex items-center gap-1.5 font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8]" />
+                  LOCAL HEURISTIC ENGINE [ACTIVE]
                 </span>
               )}
             </div>
@@ -541,8 +548,8 @@ ${currentInsight.bottleneckIdentified}
 
           {/* Collapsible History Drawer */}
           {showHistory && recentInsights.length > 0 && (
-            <div className="p-3 rounded bg-[#111318] border border-[#3c4a42]/40 space-y-2">
-              <span className="font-mono text-[10px] text-[#bbcabf] uppercase tracking-wider block font-bold">
+            <div className="p-3.5 rounded-xl bg-[#081212] border border-[#162b29] space-y-2">
+              <span className="text-[10px] text-[#7a9490] uppercase tracking-wider block font-bold">
                 RECENT SYSTEM DIAGNOSTICS ARCHIVE:
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -553,14 +560,14 @@ ${currentInsight.bottleneckIdentified}
                       setCurrentInsight(insight);
                       setShowHistory(false);
                     }}
-                    className={`p-2 rounded text-left border cursor-pointer transition-colors ${
+                    className={`p-2.5 rounded-lg text-left border cursor-pointer transition-colors ${
                       currentInsight?.id === insight.id
-                        ? 'bg-[#1a2e22] border-[#4edea3]/50 text-[#d0fbe0]'
-                        : 'bg-[#1a1c20] hover:bg-[#202428] border-[#3c4a42]/30 text-[#e2e2e8]'
+                        ? 'bg-[#091814] border-[#00f5a0]/50 text-[#e6f4f1]'
+                        : 'bg-[#050a0a] hover:bg-[#0c1818] border-[#162b29] text-[#7a9490]'
                     }`}
                   >
-                    <div className="font-mono text-[11px] font-bold truncate text-[#4edea3]">{insight.title}</div>
-                    <div className="font-mono text-[10px] text-[#bbcabf] truncate">{insight.actionType}</div>
+                    <div className="text-[11px] font-bold truncate text-[#00f5a0]">{insight.title}</div>
+                    <div className="text-[10px] text-[#55736f] truncate">{insight.actionType}</div>
                   </button>
                 ))}
               </div>
@@ -569,7 +576,7 @@ ${currentInsight.bottleneckIdentified}
 
           {/* Quick Triggers Grid */}
           <div className="space-y-1.5">
-            <span className="text-[10px] font-mono text-[#bbcabf] uppercase tracking-wider block">
+            <span className="text-[10px] text-[#7a9490] uppercase tracking-wider block font-bold">
               RAPID CROSS-MODULE DIAGNOSTIC SUITE:
             </span>
             <div className="flex flex-wrap gap-2">
@@ -587,10 +594,10 @@ ${currentInsight.bottleneckIdentified}
                   key={btn.type}
                   onClick={() => handleRunAiAction(btn.type)}
                   disabled={aiLoading}
-                  className={`px-3 py-1.5 rounded font-mono text-xs cursor-pointer transition-colors disabled:opacity-50 border ${
+                  className={`px-3 py-1.5 rounded-lg text-xs cursor-pointer transition-all disabled:opacity-50 border ${
                     btn.highlight
-                      ? 'bg-[#4edea3]/15 hover:bg-[#4edea3]/25 text-[#4edea3] border-[#4edea3]/40 font-bold'
-                      : 'bg-[#111318] hover:bg-[#282a2e] border-[#3c4a42]/40 text-[#d0fbe0]'
+                      ? 'bg-[#00f5a0]/15 hover:bg-[#00f5a0]/25 text-[#00f5a0] border-[#00f5a0]/40 font-bold shadow-xs'
+                      : 'bg-[#081212] hover:bg-[#0c1818] border-[#162b29] text-[#e6f4f1]'
                   }`}
                 >
                   {btn.label}
@@ -608,12 +615,12 @@ ${currentInsight.bottleneckIdentified}
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleRunAiAction('CUSTOM_QUERY')}
-                className="flex-1 bg-[#111318] border border-[#3c4a42]/40 rounded px-3.5 py-2 font-mono text-xs text-[#e2e2e8] focus:border-[#4edea3] focus:outline-none placeholder:text-[#bbcabf]/40"
+                className="flex-1 bg-[#050a0a] border border-[#162b29] rounded-xl px-3.5 py-2 text-xs text-[#e6f4f1] focus:border-[#00f5a0] focus:outline-none placeholder:text-[#55736f]"
               />
               <button
                 onClick={() => handleRunAiAction('CUSTOM_QUERY')}
                 disabled={aiLoading || !aiPrompt.trim()}
-                className="px-4 py-2 rounded bg-[#4edea3] hover:bg-[#4edea3]/90 text-[#003822] font-mono text-xs font-bold cursor-pointer disabled:opacity-50 flex items-center gap-1.5 transition-colors"
+                className="px-4 py-2 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] text-xs font-black cursor-pointer disabled:opacity-50 flex items-center gap-1.5 transition-all shadow-[0_0_12px_rgba(0,245,160,0.25)]"
               >
                 <Send className="w-3.5 h-3.5" />
                 SYNTHESIZE
@@ -623,56 +630,56 @@ ${currentInsight.bottleneckIdentified}
 
           {/* Result Loading State */}
           {aiLoading && (
-            <div className="p-4 rounded bg-[#111318] border border-[#4edea3]/30 font-mono text-xs text-[#4edea3] animate-pulse space-y-2">
+            <div className="p-4 rounded-xl bg-[#081212] border border-[#00f5a0]/30 text-xs text-[#00f5a0] animate-pulse space-y-2">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#4edea3] animate-ping" />
+                <span className="w-2 h-2 rounded-full bg-[#00f5a0] animate-ping" />
                 <span>[INGESTING 100% APPLICATION GRAPH: 9 MODULES, DoD GATES, RUNWAY, SPACED RETRIEVAL...]</span>
               </div>
-              <p className="text-[11px] text-[#bbcabf]">Correlating engineering velocity with commercial runway and cognitive retention...</p>
+              <p className="text-[11px] text-[#7a9490]">Correlating engineering velocity with commercial runway and cognitive retention...</p>
             </div>
           )}
 
           {/* Result Output Card */}
           {currentInsight && !aiLoading && (
-            <div className="p-4 rounded-lg bg-[#111318] border border-[#4edea3]/30 space-y-4 font-mono text-xs shadow-md">
+            <div className="p-4 rounded-xl bg-[#081212] border border-[#00f5a0]/30 space-y-4 text-xs shadow-md">
               {/* Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[#4edea3] border-b border-[#3c4a42]/30 pb-2.5 gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[#00f5a0] border-b border-[#132626] pb-2.5 gap-2">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-bold uppercase tracking-wider text-sm">{currentInsight.title}</span>
+                  <span className="font-bold uppercase tracking-wider text-sm text-[#e6f4f1]">{currentInsight.title}</span>
                   {currentInsight.source === 'gemini-live' ? (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#4edea3]/20 text-[#4edea3] border border-[#4edea3]/40 font-bold flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3] animate-pulse" />
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#00f5a0]/20 text-[#00f5a0] border border-[#00f5a0]/40 font-bold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#00f5a0] animate-pulse" />
                       GEMINI LIVE [{currentInsight.model || 'gemini'}]
                     </span>
                   ) : (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#4cd7f6]/15 text-[#4cd7f6] border border-[#4cd7f6]/30">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#38bdf8]/15 text-[#38bdf8] border border-[#38bdf8]/30 font-semibold">
                       HEURISTIC SYNTHESIS
                     </span>
                   )}
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#3c4a42]/30 text-[#bbcabf] border border-[#3c4a42]/40">
+                  <span className="text-[9px] text-[#7a9490]">
                     ALL 9 MODS INGESTED
                   </span>
                 </div>
-                <span className="text-[10px] text-[#bbcabf] font-mono">{currentInsight.createdAt}</span>
+                <span className="text-[10px] text-[#7a9490]">{currentInsight.createdAt}</span>
               </div>
 
               {/* Inquiry Prompt Display */}
               {currentInsight.actionType && currentInsight.actionType.toLowerCase().includes('query') && (
-                <div className="p-2.5 rounded bg-[#161a20] border border-[#3c4a42]/40 flex items-start gap-2 text-xs">
-                  <span className="text-[#4edea3] font-bold shrink-0">OPERATOR PROMPT:</span>
-                  <span className="text-[#e2e2e8] italic">
+                <div className="p-2.5 rounded-lg bg-[#050a0a] border border-[#162b29] flex items-start gap-2 text-xs">
+                  <span className="text-[#00f5a0] font-bold shrink-0">OPERATOR PROMPT:</span>
+                  <span className="text-[#e6f4f1] italic">
                     "{currentInsight.actionType.replace(/^Query:\s*"?/, '').replace(/"?$/, '')}"
                   </span>
                 </div>
               )}
 
               {/* Summary */}
-              <p className="text-[#e2e2e8] leading-relaxed whitespace-pre-wrap text-xs sm:text-[13px]">{currentInsight.summary}</p>
+              <p className="text-[#e6f4f1] leading-relaxed whitespace-pre-wrap text-xs sm:text-[13px]">{currentInsight.summary}</p>
 
               {/* Cross-Module Correlation Callout */}
               {currentInsight.crossModuleCorrelation && (
-                <div className="p-3 rounded bg-[#0d1e28] border border-[#4cd7f6]/40 space-y-1">
-                  <div className="flex items-center gap-1.5 text-[#4cd7f6] text-[10px] uppercase font-bold tracking-wider">
+                <div className="p-3 rounded-lg bg-[#051419] border border-[#38bdf8]/40 space-y-1">
+                  <div className="flex items-center gap-1.5 text-[#38bdf8] text-[10px] uppercase font-bold tracking-wider">
                     <Layers className="w-3.5 h-3.5" />
                     <span>CROSS-MODULE DEPENDENCY CORRELATION:</span>
                   </div>
@@ -682,8 +689,8 @@ ${currentInsight.bottleneckIdentified}
 
               {/* Directives with One-Click Execution */}
               {currentInsight.directives && currentInsight.directives.length > 0 && (
-                <div className="pt-2 border-t border-[#3c4a42]/20 space-y-2">
-                  <span className="text-[10px] text-[#4edea3] uppercase tracking-wider block font-bold">
+                <div className="pt-2 border-t border-[#132626] space-y-2">
+                  <span className="text-[10px] text-[#00f5a0] uppercase tracking-wider block font-bold">
                     RECOMMENDED EXECUTION VECTORS:
                   </span>
                   <div className="space-y-1.5">
@@ -692,10 +699,10 @@ ${currentInsight.bottleneckIdentified}
                       return (
                         <div
                           key={i}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded bg-[#1a1c20] border border-[#3c4a42]/30 hover:border-[#4edea3]/40 transition-colors"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg bg-[#050a0a] border border-[#162b29] hover:border-[#00f5a0]/40 transition-colors"
                         >
                           <div className="flex items-start gap-2 text-[#d0fbe0] flex-1">
-                            <span className="text-[#4edea3] font-bold">▸</span>
+                            <span className="text-[#00f5a0] font-bold">▸</span>
                             <span className="text-xs leading-snug">{rec}</span>
                           </div>
 
@@ -703,10 +710,10 @@ ${currentInsight.bottleneckIdentified}
                             <button
                               onClick={() => handlePromoteDirective(rec)}
                               disabled={isAdded}
-                              className={`px-2.5 py-1 rounded text-[10px] font-mono whitespace-nowrap cursor-pointer transition-colors flex items-center gap-1 self-end sm:self-center ${
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-mono whitespace-nowrap cursor-pointer transition-colors flex items-center gap-1 self-end sm:self-center ${
                                 isAdded
-                                  ? 'bg-[#4edea3]/20 text-[#4edea3] border border-[#4edea3]/40 font-bold'
-                                  : 'bg-[#111318] hover:bg-[#282a2e] text-[#4edea3] border border-[#3c4a42]/50'
+                                  ? 'bg-[#00f5a0]/20 text-[#00f5a0] border border-[#00f5a0]/40 font-bold'
+                                  : 'bg-[#081212] hover:bg-[#0c1818] text-[#00f5a0] border border-[#162b29]'
                               }`}
                             >
                               {isAdded ? (
@@ -731,43 +738,43 @@ ${currentInsight.bottleneckIdentified}
 
               {/* Critical Bottleneck */}
               {currentInsight.bottleneckIdentified && (
-                <div className="p-3 rounded bg-[#201a1a] border border-[#ffb4ab]/30 text-[#ffdad6] space-y-1">
-                  <span className="text-[10px] text-[#ffb4ab] uppercase font-bold tracking-wider block">
+                <div className="p-3 rounded-lg bg-[#140808] border border-[#ff5c5c]/30 text-[#ffdad6] space-y-1">
+                  <span className="text-[10px] text-[#ff5c5c] uppercase font-bold tracking-wider block">
                     CRITICAL SYSTEM BOTTLENECK (THEORY OF CONSTRAINTS):
                   </span>
                   <span className="text-xs font-semibold">{currentInsight.bottleneckIdentified}</span>
                 </div>
               )}
 
-              {/* Action Bar (Export to Vault / Decision Log / Clipboard) */}
-              <div className="pt-2 border-t border-[#3c4a42]/30 flex flex-wrap items-center justify-between gap-2">
+              {/* Action Bar */}
+              <div className="pt-2 border-t border-[#132626] flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleCopyMarkdown}
-                    className="px-2.5 py-1.5 rounded bg-[#111318] hover:bg-[#282a2e] text-[#bbcabf] hover:text-[#e2e2e8] border border-[#3c4a42]/40 text-xs font-mono flex items-center gap-1.5 cursor-pointer transition-colors"
+                    className="px-2.5 py-1.5 rounded-lg bg-[#050a0a] hover:bg-[#0c1818] text-[#7a9490] hover:text-[#e6f4f1] border border-[#162b29] text-xs font-mono flex items-center gap-1.5 cursor-pointer transition-colors"
                   >
-                    <Copy className="w-3.5 h-3.5 text-[#4edea3]" />
+                    <Copy className="w-3.5 h-3.5 text-[#00f5a0]" />
                     COPY MARKDOWN
                   </button>
 
                   <button
                     onClick={handleSaveToVault}
-                    className="px-2.5 py-1.5 rounded bg-[#111318] hover:bg-[#282a2e] text-[#bbcabf] hover:text-[#e2e2e8] border border-[#3c4a42]/40 text-xs font-mono flex items-center gap-1.5 cursor-pointer transition-colors"
+                    className="px-2.5 py-1.5 rounded-lg bg-[#050a0a] hover:bg-[#0c1818] text-[#7a9490] hover:text-[#e6f4f1] border border-[#162b29] text-xs font-mono flex items-center gap-1.5 cursor-pointer transition-colors"
                   >
-                    <BookOpen className="w-3.5 h-3.5 text-[#4cd7f6]" />
+                    <BookOpen className="w-3.5 h-3.5 text-[#38bdf8]" />
                     SAVE TO VAULT
                   </button>
 
                   <button
                     onClick={handleLogAsDecision}
-                    className="px-2.5 py-1.5 rounded bg-[#111318] hover:bg-[#282a2e] text-[#bbcabf] hover:text-[#e2e2e8] border border-[#3c4a42]/40 text-xs font-mono flex items-center gap-1.5 cursor-pointer transition-colors"
+                    className="px-2.5 py-1.5 rounded-lg bg-[#050a0a] hover:bg-[#0c1818] text-[#7a9490] hover:text-[#e6f4f1] border border-[#162b29] text-xs font-mono flex items-center gap-1.5 cursor-pointer transition-colors"
                   >
-                    <Scale className="w-3.5 h-3.5 text-[#ffd700]" />
+                    <Scale className="w-3.5 h-3.5 text-[#f59e0b]" />
                     LOG AS DECISION
                   </button>
                 </div>
 
-                <span className="text-[10px] text-[#bbcabf]/60 font-mono">
+                <span className="text-[10px] text-[#55736f]">
                   Module 06 // Sovereignty Guardrails Active
                 </span>
               </div>

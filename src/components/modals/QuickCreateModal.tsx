@@ -181,18 +181,18 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
-      <div className="w-full max-w-lg bg-[#1a1c20] border border-[#3c4a42]/40 rounded-xl shadow-2xl p-5 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-[#3c4a42]/30">
-          <div className="flex items-center gap-2 text-[#4edea3]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+      <div className="w-full max-w-lg bg-[#081414] border border-[#162b29] rounded-2xl shadow-2xl p-6 space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-[#162b29]">
+          <div className="flex items-center gap-2 text-[#00f5a0]">
             <Zap className="w-4 h-4" />
-            <h3 className="font-mono text-sm font-bold uppercase tracking-wider">
+            <h3 className="font-mono text-sm font-bold uppercase tracking-wider text-[#e6f4f1]">
               QUICK DIRECTIVE CREATE // ⌘N
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="text-[#bbcabf] hover:text-[#e2e2e8] p-1 rounded cursor-pointer"
+            className="text-[#7a9490] hover:text-[#e6f4f1] p-1.5 rounded-lg hover:bg-[#0e201e] cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -204,10 +204,10 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({
             <button
               key={t.id}
               onClick={() => setSelectedType(t.id)}
-              className={`px-2.5 py-1 rounded text-xs font-mono cursor-pointer transition-colors ${
+              className={`px-2.5 py-1 rounded-md text-xs font-mono cursor-pointer transition-colors ${
                 selectedType === t.id
-                  ? 'bg-[#4edea3] text-[#003822] font-bold'
-                  : 'bg-[#111318] text-[#bbcabf] hover:text-[#e2e2e8] border border-[#3c4a42]/30'
+                  ? 'bg-[#00f5a0] text-[#00281b] font-bold shadow-sm shadow-[#00f5a0]/20'
+                  : 'bg-[#0b1a19] text-[#7a9490] hover:text-[#e6f4f1] border border-[#162b29]'
               }`}
             >
               {t.label}
@@ -217,7 +217,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block font-mono text-[10px] text-[#bbcabf] uppercase mb-1">
+            <label className="block font-mono text-[10px] text-[#7a9490] uppercase mb-1">
               Title / Primary Identifier
             </label>
             <input
@@ -226,12 +226,12 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Architect High-Throughput Event Broker"
-              className="w-full bg-[#111318] border border-[#3c4a42]/40 rounded px-3 py-2 font-mono text-xs text-[#e2e2e8] focus:border-[#4edea3] focus:outline-none"
+              className="w-full bg-[#050a0a] border border-[#162b29] rounded-lg px-3 py-2 font-mono text-xs text-[#e6f4f1] focus:border-[#00f5a0] focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block font-mono text-[10px] text-[#bbcabf] uppercase mb-1">
+            <label className="block font-mono text-[10px] text-[#7a9490] uppercase mb-1">
               Description / Context / Target
             </label>
             <textarea
@@ -239,12 +239,12 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({
               value={detail}
               onChange={(e) => setDetail(e.target.value)}
               placeholder="Details or metrics..."
-              className="w-full bg-[#111318] border border-[#3c4a42]/40 rounded px-3 py-2 font-mono text-xs text-[#e2e2e8] focus:border-[#4edea3] focus:outline-none resize-none"
+              className="w-full bg-[#050a0a] border border-[#162b29] rounded-lg px-3 py-2 font-mono text-xs text-[#e6f4f1] focus:border-[#00f5a0] focus:outline-none resize-none"
             />
           </div>
 
           <div>
-            <label className="block font-mono text-[10px] text-[#bbcabf] uppercase mb-1">
+            <label className="block font-mono text-[10px] text-[#7a9490] uppercase mb-1">
               Auxiliary Parameters (Tags, Stack, or Values)
             </label>
             <input
@@ -252,12 +252,12 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({
               value={extraVal}
               onChange={(e) => setExtraVal(e.target.value)}
               placeholder="e.g. TypeScript, Kafka, Docker or R50000"
-              className="w-full bg-[#111318] border border-[#3c4a42]/40 rounded px-3 py-2 font-mono text-xs text-[#e2e2e8] focus:border-[#4edea3] focus:outline-none"
+              className="w-full bg-[#050a0a] border border-[#162b29] rounded-lg px-3 py-2 font-mono text-xs text-[#e6f4f1] focus:border-[#00f5a0] focus:outline-none"
             />
           </div>
 
           {statusMsg && (
-            <div className="flex items-center gap-2 font-mono text-xs text-[#4edea3] bg-[#4edea3]/10 p-2 rounded border border-[#4edea3]/30">
+            <div className="flex items-center gap-2 font-mono text-xs text-[#00f5a0] bg-[#00f5a0]/10 p-2.5 rounded-lg border border-[#00f5a0]/30">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>{statusMsg}</span>
             </div>
@@ -267,13 +267,13 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 rounded bg-[#111318] hover:bg-[#282a2e] text-[#bbcabf] font-mono text-xs cursor-pointer"
+              className="px-4 py-2 rounded-lg bg-[#0e201e] hover:bg-[#162b29] border border-[#162b29] text-[#7a9490] hover:text-[#e6f4f1] font-mono text-xs cursor-pointer"
             >
               CANCEL
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 rounded bg-[#4edea3] hover:bg-[#4edea3]/90 text-[#003822] font-mono text-xs font-bold cursor-pointer transition-colors"
+              className="px-5 py-2 rounded-lg bg-[#00f5a0] hover:bg-[#00d68a] text-[#00281b] font-mono text-xs font-bold cursor-pointer transition-all shadow-lg shadow-[#00f5a0]/15"
             >
               CREATE DIRECTIVE
             </button>

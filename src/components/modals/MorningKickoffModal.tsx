@@ -218,27 +218,27 @@ export const MorningKickoffModal: React.FC<MorningKickoffModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md overflow-y-auto animate-fadeIn">
-      <div className="w-full max-w-3xl rounded-2xl bg-[#111318] border border-[#ffb4ab]/40 shadow-[0_0_60px_rgba(255,180,171,0.12)] flex flex-col overflow-hidden my-auto max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md overflow-y-auto animate-fadeIn">
+      <div className="w-full max-w-3xl rounded-2xl bg-[#081414] border border-[#162b29] shadow-2xl flex flex-col overflow-hidden my-auto max-h-[92vh]">
         
         {/* ========================================================================= */}
         {/* HEADER: DAWN STANDUP TELEMETRY                                            */}
         {/* ========================================================================= */}
-        <div className="bg-gradient-to-r from-[#1c1815] via-[#14151a] to-[#121916] border-b border-[#3c4a42]/40 px-5 sm:px-7 py-4 flex items-center justify-between">
+        <div className="bg-[#0b1a19] border-b border-[#162b29] px-5 sm:px-7 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#ffb4ab]/20 to-[#ffb4ab]/5 border border-[#ffb4ab]/40 flex items-center justify-center text-[#ffb4ab] shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-[#f59e0b]/10 border border-[#f59e0b]/30 flex items-center justify-center text-[#f59e0b] shadow-sm">
               <Sunrise className="w-5 h-5 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] text-[#ffb4ab] uppercase tracking-widest font-bold">
+                <span className="font-mono text-[10px] text-[#f59e0b] uppercase tracking-widest font-bold">
                   MORNING KICKOFF PROTOCOL
                 </span>
-                <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-[#4edea3]/20 text-[#4edea3] font-bold">
+                <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-[#00f5a0]/15 text-[#00f5a0] font-bold border border-[#00f5a0]/30">
                   READY
                 </span>
               </div>
-              <h2 className="text-base sm:text-lg font-bold text-[#e2e2e8] tracking-tight">
+              <h2 className="text-base sm:text-lg font-bold text-[#e6f4f1] tracking-tight font-mono">
                 {todayFormatted}
               </h2>
             </div>
@@ -246,13 +246,13 @@ export const MorningKickoffModal: React.FC<MorningKickoffModalProps> = ({
 
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex flex-col text-right font-mono text-[10px]">
-              <span className="text-[#bbcabf]">OPERATOR:</span>
-              <span className="text-[#4edea3] font-bold">{state.operatorName}</span>
+              <span className="text-[#7a9490]">OPERATOR:</span>
+              <span className="text-[#00f5a0] font-bold">{state.operatorName}</span>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="p-1 rounded-lg text-[#bbcabf] hover:text-[#e2e2e8] hover:bg-[#1e2024] cursor-pointer transition-colors"
+              className="p-1.5 rounded-lg text-[#7a9490] hover:text-[#e6f4f1] hover:bg-[#0e201e] cursor-pointer transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -266,34 +266,34 @@ export const MorningKickoffModal: React.FC<MorningKickoffModalProps> = ({
 
           {/* Section 1: Yesterday Recap Banner */}
           {yesterdayLog && (
-            <div className="p-3.5 rounded-xl bg-[#14161d] border border-[#c0c1ff]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs">
+            <div className="p-3.5 rounded-xl bg-[#0b1a19] border border-[#162b29] flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs">
               <div className="flex items-center gap-2.5">
-                <Flame className="w-4 h-4 text-[#ffb4ab] shrink-0" />
+                <Flame className="w-4 h-4 text-[#f59e0b] shrink-0" />
                 <div>
-                  <span className="text-[#bbcabf]">Yesterday&apos;s Audited Score: </span>
-                  <span className="font-bold text-[#e2e2e8]">{yesterdayLog.score}%</span>
-                  <span className="text-[#4edea3] font-bold ml-1.5">[{yesterdayLog.grade}]</span>
-                  <span className="text-[#bbcabf] text-[10px] ml-2">
+                  <span className="text-[#7a9490]">Yesterday&apos;s Audited Score: </span>
+                  <span className="font-bold text-[#e6f4f1]">{yesterdayLog.score}%</span>
+                  <span className="text-[#00f5a0] font-bold ml-1.5">[{yesterdayLog.grade}]</span>
+                  <span className="text-[#7a9490] text-[10px] ml-2">
                     ({yesterdayLog.completedCount}/{yesterdayLog.totalCount} directives completed)
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-[10px] text-[#bbcabf]">
+              <div className="flex items-center gap-2 text-[10px] text-[#7a9490]">
                 <span>Active Streak:</span>
-                <span className="text-[#ffb4ab] font-bold">{yesterdayLog.streakCount} Days</span>
+                <span className="text-[#f59e0b] font-bold">{yesterdayLog.streakCount} Days</span>
               </div>
             </div>
           )}
 
           {/* Section 2: Incomplete / Rollover Directives (If any exist) */}
           {incompleteDirectives.length > 0 && (
-            <div className="p-3.5 rounded-xl bg-[#191512] border border-[#ffb4ab]/30 space-y-2">
+            <div className="p-3.5 rounded-xl bg-[#0b1a19] border border-[#f59e0b]/30 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] text-[#ffb4ab] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span className="font-mono text-[10px] text-[#f59e0b] font-bold uppercase tracking-wider flex items-center gap-1.5">
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>Uncompleted Directives from Previous Flight Plan</span>
                 </span>
-                <span className="font-mono text-[10px] text-[#bbcabf]">
+                <span className="font-mono text-[10px] text-[#7a9490]">
                   {incompleteDirectives.length} Item(s)
                 </span>
               </div>
@@ -304,23 +304,23 @@ export const MorningKickoffModal: React.FC<MorningKickoffModalProps> = ({
                   return (
                     <div
                       key={item.id}
-                      className="p-2 rounded-lg bg-[#0e1014] border border-[#3c4a42]/40 flex items-center justify-between gap-2"
+                      className="p-2.5 rounded-lg bg-[#050a0a] border border-[#162b29] flex items-center justify-between gap-2"
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-mono text-[9px] text-[#ffb4ab] px-1 py-0.2 rounded bg-[#ffb4ab]/10 border border-[#ffb4ab]/20 shrink-0">
+                        <span className="font-mono text-[9px] text-[#f59e0b] px-1.5 py-0.5 rounded bg-[#f59e0b]/10 border border-[#f59e0b]/20 shrink-0">
                           {item.category}
                         </span>
-                        <span className="text-xs text-[#e2e2e8] truncate">
+                        <span className="text-xs text-[#e6f4f1] truncate">
                           {item.title}
                         </span>
                       </div>
                       <button
                         type="button"
                         onClick={() => handleToggleCarryover(item.id, item.title)}
-                        className={`px-2 py-1 rounded font-mono text-[10px] font-bold transition-all cursor-pointer shrink-0 border ${
+                        className={`px-2.5 py-1 rounded font-mono text-[10px] font-bold transition-all cursor-pointer shrink-0 border ${
                           isRolled
-                            ? 'bg-[#4edea3]/20 border-[#4edea3] text-[#4edea3]'
-                            : 'bg-[#1a1c20] border-[#3c4a42]/40 text-[#bbcabf] hover:text-[#e2e2e8]'
+                            ? 'bg-[#00f5a0]/20 border-[#00f5a0] text-[#00f5a0]'
+                            : 'bg-[#0e201e] border-[#162b29] text-[#7a9490] hover:text-[#e6f4f1]'
                         }`}
                       >
                         {isRolled ? '✓ Rolled Over' : '+ Roll Over'}
@@ -335,11 +335,11 @@ export const MorningKickoffModal: React.FC<MorningKickoffModalProps> = ({
           {/* Section 3: Primary Apex Intent / Today's Winning Condition */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="font-mono text-xs font-bold text-[#e2e2e8] flex items-center gap-1.5">
-                <Target className="w-3.5 h-3.5 text-[#ffb4ab]" />
+              <label className="font-mono text-xs font-bold text-[#e6f4f1] flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5 text-[#00f5a0]" />
                 <span>Primary Apex Intent (Today&apos;s Single Winning Condition)</span>
               </label>
-              <span className="font-mono text-[10px] text-[#bbcabf]">Non-negotiable milestone</span>
+              <span className="font-mono text-[10px] text-[#7a9490]">Non-negotiable milestone</span>
             </div>
 
             <input
@@ -348,11 +348,11 @@ export const MorningKickoffModal: React.FC<MorningKickoffModalProps> = ({
               value={primaryIntent}
               onChange={(e) => setPrimaryIntent(e.target.value)}
               placeholder="e.g. Ship verified OAuth PKCE middleware and close first retainer client discovery call."
-              className="w-full bg-[#0c0e12] border border-[#ffb4ab]/60 focus:border-[#ffb4ab] rounded-xl px-4 py-3 text-sm text-[#e2e2e8] font-bold focus:outline-none shadow-inner"
+              className="w-full bg-[#050a0a] border border-[#162b29] focus:border-[#00f5a0] rounded-xl px-4 py-3 text-sm text-[#e6f4f1] font-bold focus:outline-none shadow-inner"
             />
 
             <div className="flex flex-wrap gap-1.5 pt-0.5">
-              <span className="font-mono text-[9px] text-[#bbcabf] uppercase mr-1">Presets:</span>
+              <span className="font-mono text-[9px] text-[#7a9490] uppercase mr-1">Presets:</span>
               {[
                 'Ship production PKCE auth middleware & pass test suite.',
                 'Conduct 3 discovery calls & lock contract retainer.',
@@ -362,7 +362,7 @@ export const MorningKickoffModal: React.FC<MorningKickoffModalProps> = ({
                   key={idx}
                   type="button"
                   onClick={() => setPrimaryIntent(p)}
-                  className="font-mono text-[10px] text-[#bbcabf] hover:text-[#ffb4ab] underline cursor-pointer"
+                  className="font-mono text-[10px] text-[#7a9490] hover:text-[#00f5a0] underline cursor-pointer"
                 >
                   {p.slice(0, 32)}...
                 </button>
@@ -374,98 +374,98 @@ export const MorningKickoffModal: React.FC<MorningKickoffModalProps> = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-mono text-xs font-bold text-[#e2e2e8] uppercase tracking-wider flex items-center gap-1.5">
-                  <Compass className="w-3.5 h-3.5 text-[#4edea3]" />
+                <h3 className="font-mono text-xs font-bold text-[#e6f4f1] uppercase tracking-wider flex items-center gap-1.5">
+                  <Compass className="w-3.5 h-3.5 text-[#00f5a0]" />
                   <span>Today&apos;s 4-Vector Synchronization Deployment</span>
                 </h3>
-                <p className="font-mono text-[10px] text-[#bbcabf]">
+                <p className="font-mono text-[10px] text-[#7a9490]">
                   Automatically mapped to your active SDLC milestones, commercial loop, and spaced recall.
                 </p>
               </div>
-              <span className="font-mono text-[10px] text-[#4edea3] font-bold">
+              <span className="font-mono text-[10px] text-[#00f5a0] font-bold">
                 PARITY: 100%
               </span>
             </div>
 
             <div className="grid grid-cols-1 gap-2.5">
               {/* Slot 1: Milestone SDLC Step 1 */}
-              <div className="p-3 rounded-xl bg-[#0c0e12] border border-[#4edea3]/40 flex flex-col gap-1.5">
+              <div className="p-3.5 rounded-xl bg-[#0b1a19] border border-[#162b29] flex flex-col gap-1.5">
                 <div className="flex items-center justify-between font-mono text-[10px]">
-                  <span className="text-[#4edea3] font-bold flex items-center gap-1">
+                  <span className="text-[#00f5a0] font-bold flex items-center gap-1">
                     <Cpu className="w-3 h-3" />
                     <span>SLOT 01 // MILESTONE SDLC (IMPLEMENTATION)</span>
                   </span>
-                  <span className="text-[#bbcabf]">{defaultStep1.sourceRef}</span>
+                  <span className="text-[#7a9490]">{defaultStep1.sourceRef}</span>
                 </div>
                 <input
                   type="text"
                   value={slot1Title}
                   onChange={(e) => setSlot1Title(e.target.value)}
-                  className="w-full bg-[#14161b] border border-[#3c4a42]/40 focus:border-[#4edea3] rounded-lg px-3 py-1.5 text-xs text-[#e2e2e8] focus:outline-none font-medium"
+                  className="w-full bg-[#050a0a] border border-[#162b29] focus:border-[#00f5a0] rounded-lg px-3 py-2 text-xs text-[#e6f4f1] focus:outline-none font-medium"
                 />
               </div>
 
               {/* Slot 2: Milestone SDLC Step 2 */}
-              <div className="p-3 rounded-xl bg-[#0c0e12] border border-[#4edea3]/40 flex flex-col gap-1.5">
+              <div className="p-3.5 rounded-xl bg-[#0b1a19] border border-[#162b29] flex flex-col gap-1.5">
                 <div className="flex items-center justify-between font-mono text-[10px]">
-                  <span className="text-[#4edea3] font-bold flex items-center gap-1">
+                  <span className="text-[#00f5a0] font-bold flex items-center gap-1">
                     <Cpu className="w-3 h-3" />
                     <span>SLOT 02 // MILESTONE SDLC (VERIFICATION &amp; DOD GATE)</span>
                   </span>
-                  <span className="text-[#bbcabf]">{defaultStep2.sourceRef}</span>
+                  <span className="text-[#7a9490]">{defaultStep2.sourceRef}</span>
                 </div>
                 <input
                   type="text"
                   value={slot2Title}
                   onChange={(e) => setSlot2Title(e.target.value)}
-                  className="w-full bg-[#14161b] border border-[#3c4a42]/40 focus:border-[#4edea3] rounded-lg px-3 py-1.5 text-xs text-[#e2e2e8] focus:outline-none font-medium"
+                  className="w-full bg-[#050a0a] border border-[#162b29] focus:border-[#00f5a0] rounded-lg px-3 py-2 text-xs text-[#e6f4f1] focus:outline-none font-medium"
                 />
               </div>
 
               {/* Slot 3: Financial OS */}
-              <div className="p-3 rounded-xl bg-[#0c0e12] border border-[#4cd7f6]/40 flex flex-col gap-1.5">
+              <div className="p-3.5 rounded-xl bg-[#0b1a19] border border-[#162b29] flex flex-col gap-1.5">
                 <div className="flex items-center justify-between font-mono text-[10px]">
-                  <span className="text-[#4cd7f6] font-bold flex items-center gap-1">
+                  <span className="text-[#38bdf8] font-bold flex items-center gap-1">
                     <Landmark className="w-3 h-3" />
                     <span>SLOT 03 // FINANCIAL OS (COMMERCIAL VELOCITY &amp; RETAINER)</span>
                   </span>
-                  <span className="text-[#bbcabf]">REVENUE TARGET</span>
+                  <span className="text-[#7a9490]">REVENUE TARGET</span>
                 </div>
                 <input
                   type="text"
                   value={slot3Title}
                   onChange={(e) => setSlot3Title(e.target.value)}
-                  className="w-full bg-[#14161b] border border-[#3c4a42]/40 focus:border-[#4cd7f6] rounded-lg px-3 py-1.5 text-xs text-[#e2e2e8] focus:outline-none font-medium"
+                  className="w-full bg-[#050a0a] border border-[#162b29] focus:border-[#38bdf8] rounded-lg px-3 py-2 text-xs text-[#e6f4f1] focus:outline-none font-medium"
                 />
               </div>
 
               {/* Slot 4: Learning Engine */}
-              <div className="p-3 rounded-xl bg-[#0c0e12] border border-[#c0c1ff]/40 flex flex-col gap-1.5">
+              <div className="p-3.5 rounded-xl bg-[#0b1a19] border border-[#162b29] flex flex-col gap-1.5">
                 <div className="flex items-center justify-between font-mono text-[10px]">
-                  <span className="text-[#c0c1ff] font-bold flex items-center gap-1">
+                  <span className="text-[#a78bfa] font-bold flex items-center gap-1">
                     <Brain className="w-3 h-3" />
                     <span>SLOT 04 // LEARNING ENGINE (SPACED RECALL &amp; FEYNMAN MASTERY)</span>
                   </span>
-                  <span className="text-[#bbcabf]">RETENTION</span>
+                  <span className="text-[#7a9490]">RETENTION</span>
                 </div>
                 <input
                   type="text"
                   value={slot4Title}
                   onChange={(e) => setSlot4Title(e.target.value)}
-                  className="w-full bg-[#14161b] border border-[#3c4a42]/40 focus:border-[#c0c1ff] rounded-lg px-3 py-1.5 text-xs text-[#e2e2e8] focus:outline-none font-medium"
+                  className="w-full bg-[#050a0a] border border-[#162b29] focus:border-[#a78bfa] rounded-lg px-3 py-2 text-xs text-[#e6f4f1] focus:outline-none font-medium"
                 />
               </div>
             </div>
           </div>
 
           {/* Section 5: Cadence Commitment & Focus Timer Auto-Start */}
-          <div className="p-4 rounded-xl bg-[#14161b] border border-[#3c4a42]/40 space-y-3 font-mono text-xs">
+          <div className="p-4 rounded-xl bg-[#0b1a19] border border-[#162b29] space-y-3 font-mono text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-[#e2e2e8] font-bold flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-[#ffb4ab]" />
+              <span className="text-[#e6f4f1] font-bold flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-[#00f5a0]" />
                 <span>Today&apos;s Deep Work Commitment:</span>
               </span>
-              <span className="text-sm font-black text-[#ffb4ab] tabular-nums">
+              <span className="text-sm font-black text-[#00f5a0] tabular-nums">
                 {targetDeepWorkMinutes} Minutes ({(targetDeepWorkMinutes / 60).toFixed(1)}h)
               </span>
             </div>
@@ -482,8 +482,8 @@ export const MorningKickoffModal: React.FC<MorningKickoffModalProps> = ({
                   onClick={() => setTargetDeepWorkMinutes(c.mins)}
                   className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono transition-all cursor-pointer border ${
                     targetDeepWorkMinutes === c.mins
-                      ? 'bg-[#ffb4ab]/20 border-[#ffb4ab] text-[#ffb4ab] font-bold'
-                      : 'bg-[#0c0e12] border-[#3c4a42]/40 text-[#bbcabf] hover:text-[#e2e2e8]'
+                      ? 'bg-[#00f5a0]/20 border-[#00f5a0] text-[#00f5a0] font-bold'
+                      : 'bg-[#050a0a] border-[#162b29] text-[#7a9490] hover:text-[#e6f4f1]'
                   }`}
                 >
                   {c.label}
@@ -491,15 +491,15 @@ export const MorningKickoffModal: React.FC<MorningKickoffModalProps> = ({
               ))}
             </div>
 
-            <label className="flex items-center gap-2.5 pt-1 text-xs text-[#e2e2e8] cursor-pointer select-none">
+            <label className="flex items-center gap-2.5 pt-1 text-xs text-[#e6f4f1] cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={startTimerNow}
                 onChange={(e) => setStartTimerNow(e.target.checked)}
-                className="w-4 h-4 accent-[#ffb4ab] cursor-pointer rounded"
+                className="w-4 h-4 accent-[#00f5a0] cursor-pointer rounded"
               />
               <span>
-                Immediately queue and start <strong className="text-[#4edea3]">90-Min Focus Timer Block 01</strong> for Slot 01 upon deployment
+                Immediately queue and start <strong className="text-[#00f5a0]">90-Min Focus Timer Block 01</strong> for Slot 01 upon deployment
               </span>
             </label>
           </div>
@@ -509,11 +509,11 @@ export const MorningKickoffModal: React.FC<MorningKickoffModalProps> = ({
         {/* ========================================================================= */}
         {/* FOOTER ACTIONS                                                            */}
         {/* ========================================================================= */}
-        <div className="bg-[#0e1014] border-t border-[#3c4a42]/40 px-5 sm:px-7 py-4 flex items-center justify-between gap-3">
+        <div className="bg-[#0b1a19] border-t border-[#162b29] px-5 sm:px-7 py-4 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-[#1a1c20] hover:bg-[#282a2e] text-[#bbcabf] font-mono text-xs cursor-pointer"
+            className="px-4 py-2 rounded-lg bg-[#0e201e] hover:bg-[#162b29] text-[#7a9490] hover:text-[#e6f4f1] border border-[#162b29] font-mono text-xs cursor-pointer"
           >
             Cancel
           </button>
@@ -521,7 +521,7 @@ export const MorningKickoffModal: React.FC<MorningKickoffModalProps> = ({
           <button
             type="button"
             onClick={handleDeploy}
-            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#ffb4ab] via-[#ff988b] to-[#4edea3] hover:opacity-95 text-[#1e0e0a] font-mono text-xs font-black flex items-center gap-2.5 cursor-pointer shadow-[0_0_30px_rgba(255,180,171,0.35)] transition-all hover:scale-[1.02]"
+            className="px-6 py-2.5 rounded-lg bg-[#00f5a0] hover:bg-[#00d68a] text-[#00281b] font-mono text-xs font-bold flex items-center gap-2.5 cursor-pointer shadow-lg shadow-[#00f5a0]/20 transition-all hover:scale-[1.01]"
           >
             <Rocket className="w-4 h-4" />
             <span>IGNITE DAY // DEPLOY FLIGHT PLAN {startTimerNow ? '& START 90M DEEP WORK' : ''}</span>

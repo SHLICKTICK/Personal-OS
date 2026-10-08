@@ -39,6 +39,7 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
   version,
 }) => {
   const isLearningView = activeSection === 'learning-engine';
+  const isProjectView = activeSection === 'milestone-projects';
 
   return (
     <header className="fixed top-0 right-0 left-0 h-14 px-4 lg:px-6 flex items-center justify-between z-30 bg-[#050a0a] border-b border-[#132626] select-none">
@@ -72,11 +73,15 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
             <span className="font-extrabold tracking-wider text-[#e6f4f1] text-sm leading-tight group-hover:text-[#00f5a0] transition-colors">
               PERSONAL OS
             </span>
-            {isLearningView && (
+            {isLearningView ? (
               <span className="font-mono text-[9px] text-[#00f5a0] tracking-widest leading-none font-bold">
                 LEARNING &amp; RETENTION ENGINE
               </span>
-            )}
+            ) : isProjectView ? (
+              <span className="font-mono text-[9px] text-[#00f5a0] tracking-widest leading-none font-bold">
+                EXECUTION / BUILD / COMPOUND
+              </span>
+            ) : null}
           </div>
         </button>
       </div>
@@ -92,6 +97,8 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
             <span className="text-xs truncate text-[#7a9490] group-hover:text-[#e6f4f1]">
               {isLearningView
                 ? 'Search knowledge, topics, or notes...'
+                : isProjectView
+                ? 'Search projects, skills, notes...'
                 : 'Search directives, skills, notes...'}
             </span>
           </div>
@@ -103,13 +110,13 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
 
       {/* Right: Actions matching Reference Images */}
       <div className="flex items-center gap-2.5">
-        {/* + New Directive button */}
+        {/* + New Directive / + New Project button */}
         <button
           onClick={onOpenQuickCreate}
           className="px-3 py-1.5 rounded-lg bg-[#071714] hover:bg-[#00f5a0]/15 border border-[#00f5a0]/50 text-[#00f5a0] font-mono text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-[0_0_12px_rgba(0,245,160,0.12)] whitespace-nowrap"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>New Directive</span>
+          <span>{isProjectView ? 'New Project' : 'New Directive'}</span>
         </button>
 
         {/* Viewport Dimension Toggle (Mobile/Desktop Preview) */}

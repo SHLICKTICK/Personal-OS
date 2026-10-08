@@ -47,8 +47,20 @@ export const ExecutiveRightSidebar: React.FC<ExecutiveRightSidebarProps> = ({
   onReviewTopic,
   onUpdateLearningTopic,
 }) => {
-  const [timeStr, setTimeStr] = useState('19:00');
-  const [dateStr, setDateStr] = useState('FRI, OCT 04');
+  const [timeStr, setTimeStr] = useState(() => {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+  });
+  const [dateStr, setDateStr] = useState(() => {
+    const now = new Date();
+    const dayName = now.toLocaleDateString([], { weekday: 'short' }).toUpperCase();
+    const monthName = now.toLocaleDateString([], { month: 'short' }).toUpperCase();
+    const dayNum = String(now.getDate()).padStart(2, '0');
+    return `${dayName}, ${monthName} ${dayNum}`;
+  });
 
   // Interactive Modal State for Retention Health
   const [showHealthDiagnostics, setShowHealthDiagnostics] = useState(false);
@@ -70,9 +82,10 @@ export const ExecutiveRightSidebar: React.FC<ExecutiveRightSidebarProps> = ({
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      setTimeStr(
-        now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
-      );
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      setTimeStr(`${hours}:${minutes}:${seconds}`);
       const dayName = now.toLocaleDateString([], { weekday: 'short' }).toUpperCase();
       const monthName = now.toLocaleDateString([], { month: 'short' }).toUpperCase();
       const dayNum = String(now.getDate()).padStart(2, '0');
@@ -84,6 +97,27 @@ export const ExecutiveRightSidebar: React.FC<ExecutiveRightSidebarProps> = ({
   }, []);
 
   const isLearningView = activeSection === 'learning-engine';
+  const isProjectView = activeSection === 'milestone-projects';
+
+  const projectHealth = useMemo(() => {
+    const projects = state.projects || [];
+    const active = projects.filter((p) => p.status === 'IN PROGRESS').length;
+    const queued = projects.filter((p) => p.status === 'QUEUED' || p.phaseTag === 'FUTURE').length;
+    const ready = projects.filter((p) => p.status === 'READY' || p.phaseTag === 'PLANNED').length;
+    const completed = projects.filter((p) => p.status === 'COMPLETED').length;
+    const avgProgress = projects.length > 0
+      ? Math.round(projects.reduce((acc, p) => acc + (p.progress || 0), 0) / projects.length)
+      : 0;
+    return {
+      progress: avgProgress,
+      onTrack: active,
+      atRisk: 0,
+      blocked: 0,
+      ready,
+      queued,
+      completed,
+    };
+  }, [state.projects]);
 
   const topics = state.learningTopics || [];
   const reviews = state.learningReviews || [];
@@ -373,6 +407,19 @@ export const ExecutiveRightSidebar: React.FC<ExecutiveRightSidebarProps> = ({
         {/* ========================================================================= */}
         {isLearningView ? (
           <div className="space-y-6 animate-fadeIn">
+            {/* Live System Clock Strip */}
+            <div className="flex items-center justify-between pb-3 border-b border-[#132626] font-mono">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#00f5a0] animate-pulse" />
+                <span>NOW</span>
+                <span className="text-[#3b5552]">·</span>
+                <span className="text-[#7a9490]">{dateStr}</span>
+              </div>
+              <div className="text-sm font-extrabold text-[#eef7f5] tracking-wider tabular-nums font-mono">
+                {timeStr}
+              </div>
+            </div>
+
             {/* RETENTION HEALTH */}
             <div className="space-y-4">
               <div className="flex items-center justify-between font-mono text-[11px] font-bold text-[#00f5a0] uppercase tracking-wider">
@@ -525,6 +572,218 @@ export const ExecutiveRightSidebar: React.FC<ExecutiveRightSidebarProps> = ({
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        ) : isProjectView ? (
+          /* ========================================================================= */
+          /* MODE 3: PROJECT COMMAND RIGHT TELEMETRY matching Reference Image          */
+          /* ========================================================================= */
+          <div className="space-y-6 animate-fadeIn">
+            {/* Live System Clock Strip */}
+            <div className="flex items-center justify-between pb-3 border-b border-[#132626] font-mono">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#00f5a0] animate-pulse" />
+                <span>NOW</span>
+                <span className="text-[#3b5552]">·</span>
+                <span className="text-[#7a9490]">{dateStr}</span>
+              </div>
+              <div className="text-sm font-extrabold text-[#eef7f5] tracking-wider tabular-nums font-mono">
+                {timeStr}
+              </div>
+            </div>
+
+            {/* 1. PROJECT HEALTH */}
+            <div className="space-y-3.5">
+              <span className="font-mono text-xs font-bold text-[#e6f4f1] uppercase tracking-wider block">
+                PROJECT HEALTH
+              </span>
+
+              {/* Progress Donut & 30-day Delta */}
+              <div className="p-4 rounded-xl bg-[#091414] border border-[#162b29] flex items-center justify-between shadow-sm">
+                <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      className="text-[#122222]"
+                      strokeWidth="3.2"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <path
+                      className="text-[#00f5a0] transition-all duration-500"
+                      strokeDasharray={`${projectHealth.progress}, 100`}
+                      strokeWidth="3.2"
+                      strokeLinecap="round"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-xl font-black text-[#eef7f5] font-mono leading-none">
+                      {projectHealth.progress}%
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1 text-right">
+                  <span className="text-xs font-bold text-[#e6f4f1] block">
+                    Overall Progress
+                  </span>
+                  <span className="text-[11px] font-mono text-[#00f5a0] flex items-center justify-end gap-1 font-bold">
+                    <span>↑ 12%</span>
+                    <span className="text-[#55736f] font-normal">vs. last 30 days</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Health Indicator Breakdown List */}
+              <div className="space-y-2 p-3.5 rounded-xl bg-[#091414] border border-[#162b29] font-mono text-xs">
+                <div className="flex items-center justify-between text-[#a1b8b4]">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#00f5a0]" />
+                    <span>On Track</span>
+                  </div>
+                  <span className="text-[#e6f4f1] font-bold">{projectHealth.onTrack}</span>
+                </div>
+
+                <div className="flex items-center justify-between text-[#a1b8b4]">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-[#38bdf8]" />
+                    <span>Ready</span>
+                  </div>
+                  <span className="text-[#e6f4f1] font-bold">{projectHealth.ready}</span>
+                </div>
+
+                <div className="flex items-center justify-between text-[#a1b8b4]">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-3.5 h-3.5 text-[#7a9490]" />
+                    <span>Queued</span>
+                  </div>
+                  <span className="text-[#e6f4f1] font-bold">{projectHealth.queued}</span>
+                </div>
+
+                <div className="flex items-center justify-between text-[#a1b8b4]">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#00f5a0]" />
+                    <span>Completed</span>
+                  </div>
+                  <span className="text-[#e6f4f1] font-bold">{projectHealth.completed}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. PROJECT TIMELINE (Gantt Mini) */}
+            <div className="space-y-3">
+              <span className="font-mono text-xs font-bold text-[#e6f4f1] uppercase tracking-wider block">
+                PROJECT TIMELINE
+              </span>
+
+              <div className="p-3.5 rounded-xl bg-[#091414] border border-[#162b29] space-y-2.5">
+                {/* Month Headers */}
+                <div className="flex items-center justify-between font-mono text-[10px] text-[#55736f] px-1 border-b border-[#132626] pb-1">
+                  <span>Oct</span>
+                  <span>Nov</span>
+                  <span>Dec</span>
+                  <span>Jan</span>
+                  <span>Feb</span>
+                  <span>Mar</span>
+                </div>
+
+                {/* Timeline Gantt Rows */}
+                <div className="space-y-2 relative pb-2">
+                  {/* Dotted vertical Today indicator */}
+                  <div className="absolute top-0 bottom-0 left-[62%] w-px border-r border-dashed border-[#00f5a0]/50 z-10 pointer-events-none">
+                    <span className="absolute -bottom-3 -left-3 font-mono text-[8px] text-[#00f5a0] font-bold">
+                      Today
+                    </span>
+                  </div>
+
+                  {(state.projects || []).slice(0, 6).map((proj, idx) => {
+                    const offsets = ['15%', '35%', '10%', '18%', '45%', '55%'];
+                    const widths = ['45%', '25%', '60%', '65%', '40%', '38%'];
+                    const colors = ['#00f5a0', '#38bdf8', '#818cf8', '#2dd4bf', '#64748b', '#00f5a0'];
+                    const code = proj.code.replace(/PROJECT\s*/i, 'P0').slice(0, 3);
+                    return (
+                      <div key={proj.id} className="flex items-center gap-2 text-xs font-mono" title={`${proj.code}: ${proj.title} (${proj.progress}%)`}>
+                        <span className="text-[10px] text-[#7a9490] w-6 shrink-0">{code}</span>
+                        <div className="flex-1 h-2 bg-[#050a0a] rounded-full relative overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              marginLeft: offsets[idx % offsets.length],
+                              width: widths[idx % widths.length],
+                              backgroundColor: proj.status === 'IN PROGRESS' ? '#00f5a0' : proj.status === 'COMPLETED' ? '#38bdf8' : colors[idx % colors.length],
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* 3. RECENT ACTIVITY */}
+            <div className="space-y-3">
+              <span className="font-mono text-xs font-bold text-[#e6f4f1] uppercase tracking-wider block">
+                RECENT ACTIVITY
+              </span>
+
+              <div className="space-y-2">
+                {[
+                  {
+                    code: 'P01',
+                    action: 'Milestone completed',
+                    detail: 'Command UI components',
+                    time: '2h ago',
+                  },
+                  {
+                    code: 'P03',
+                    action: 'Status changed',
+                    detail: 'Now Ready for development',
+                    time: '4h ago',
+                  },
+                  {
+                    code: 'P02',
+                    action: 'Note added',
+                    detail: 'Research: Expo vs React Native',
+                    time: '6h ago',
+                  },
+                  {
+                    code: 'P04',
+                    action: 'Dependency updated',
+                    detail: 'Waiting for P02 (API Design)',
+                    time: '1d ago',
+                  },
+                ].map((act, idx) => (
+                  <div
+                    key={idx}
+                    className="p-2.5 rounded-xl bg-[#091414] border border-[#162b29] hover:border-[#00f5a0]/30 transition-colors text-xs font-mono space-y-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#00f5a0]" />
+                        <span className="font-bold text-[#00f5a0]">{act.code}</span>
+                        <span className="text-[#a1b8b4] font-semibold text-[11px] truncate">
+                          {act.action}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-[#55736f] shrink-0">{act.time}</span>
+                    </div>
+                    <div className="text-[11px] text-[#7a9490] pl-3.5 truncate">
+                      {act.detail}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Bottom Quote matching Reference Image */}
+            <div className="p-3.5 rounded-xl bg-[#071313] border border-[#162b29] text-center font-mono">
+              <p className="text-xs italic text-[#7a9490]">
+                &ldquo;Focus on execution. The rest compounds.&rdquo;
+              </p>
             </div>
           </div>
         ) : (

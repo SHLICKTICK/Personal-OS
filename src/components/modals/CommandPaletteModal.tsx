@@ -78,20 +78,20 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-black/80 backdrop-blur-sm">
-      <div className="w-full max-w-xl bg-[#1a1c20] border border-[#3c4a42]/40 rounded-xl shadow-2xl overflow-hidden space-y-0">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+      <div className="w-full max-w-xl bg-[#081414] border border-[#162b29] rounded-2xl shadow-2xl overflow-hidden space-y-0">
         {/* Search header */}
-        <div className="p-3 border-b border-[#3c4a42]/30 flex items-center gap-3">
-          <Search className="w-4 h-4 text-[#4edea3]" />
+        <div className="p-3.5 border-b border-[#162b29] flex items-center gap-3">
+          <Search className="w-4 h-4 text-[#00f5a0]" />
           <input
             type="text"
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Type a command or jump vector..."
-            className="flex-1 bg-transparent font-mono text-xs text-[#e2e2e8] placeholder:text-[#bbcabf]/50 focus:outline-none"
+            className="flex-1 bg-transparent font-mono text-xs text-[#e6f4f1] placeholder:text-[#7a9490]/60 focus:outline-none"
           />
-          <button onClick={onClose} className="text-[#bbcabf] hover:text-[#e2e2e8]">
+          <button onClick={onClose} className="text-[#7a9490] hover:text-[#e6f4f1] p-1 rounded hover:bg-[#0e201e] cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -99,7 +99,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
         {/* Results */}
         <div className="max-h-80 overflow-y-auto p-2 space-y-1">
           {filtered.length === 0 ? (
-            <div className="p-4 text-center font-mono text-xs text-[#bbcabf]">
+            <div className="p-4 text-center font-mono text-xs text-[#7a9490]">
               No directive commands matching "{query}"
             </div>
           ) : (
@@ -107,17 +107,17 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
               <button
                 key={cmd.id}
                 onClick={() => handleSelect(cmd)}
-                className="w-full flex items-center justify-between p-2.5 rounded hover:bg-[#282a2e] text-left group transition-colors cursor-pointer"
+                className="w-full flex items-center justify-between p-2.5 rounded-lg hover:bg-[#0e201e] text-left group transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-2.5 font-mono text-xs text-[#e2e2e8] group-hover:text-[#4edea3]">
-                  <span className="text-[#4edea3]">{cmd.icon}</span>
+                <div className="flex items-center gap-2.5 font-mono text-xs text-[#e6f4f1] group-hover:text-[#00f5a0]">
+                  <span className="text-[#00f5a0]">{cmd.icon}</span>
                   <span>{cmd.label}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-[#bbcabf] uppercase bg-[#111318] px-1.5 py-0.5 rounded">
+                  <span className="font-mono text-[10px] text-[#7a9490] uppercase bg-[#050a0a] border border-[#162b29] px-1.5 py-0.5 rounded">
                     {cmd.group}
                   </span>
-                  <ArrowRight className="w-3 h-3 text-[#bbcabf] opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRight className="w-3 h-3 text-[#7a9490] opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </button>
             ))
@@ -125,9 +125,9 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
         </div>
 
         {/* Import file option footer */}
-        <div className="p-3 bg-[#111318] border-t border-[#3c4a42]/20 flex items-center justify-between font-mono text-[11px] text-[#bbcabf]">
-          <label className="flex items-center gap-1.5 hover:text-[#e2e2e8] cursor-pointer">
-            <Upload className="w-3.5 h-3.5 text-[#4edea3]" />
+        <div className="p-3.5 bg-[#050a0a] border-t border-[#162b29] flex items-center justify-between font-mono text-[11px] text-[#7a9490]">
+          <label className="flex items-center gap-1.5 hover:text-[#e6f4f1] cursor-pointer">
+            <Upload className="w-3.5 h-3.5 text-[#00f5a0]" />
             <span>Import State JSON</span>
             <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
           </label>

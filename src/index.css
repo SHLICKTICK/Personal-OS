@@ -1,36 +1,36 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #111318;
-  --color-surface: #111318;
-  --color-surface-dim: #111318;
-  --color-surface-bright: #37393e;
-  --color-surface-container-lowest: #0c0e12;
-  --color-surface-container-low: #1a1c20;
-  --color-surface-container: #1e2024;
-  --color-surface-container-high: #282a2e;
-  --color-surface-container-highest: #333539;
-  --color-surface-variant: #333539;
-  --color-on-surface: #e2e2e8;
-  --color-on-surface-variant: #bbcabf;
-  --color-on-background: #e2e2e8;
-  --color-primary: #4edea3;
-  --color-primary-container: #10b981;
-  --color-on-primary: #003824;
-  --color-on-primary-container: #00422b;
+  --color-background: #050a0a;
+  --color-surface: #081414;
+  --color-surface-dim: #050a0a;
+  --color-surface-bright: #162b29;
+  --color-surface-container-lowest: #030606;
+  --color-surface-container-low: #071010;
+  --color-surface-container: #081414;
+  --color-surface-container-high: #0b1a19;
+  --color-surface-container-highest: #0e201e;
+  --color-surface-variant: #0e201e;
+  --color-on-surface: #e6f4f1;
+  --color-on-surface-variant: #7a9490;
+  --color-on-background: #e6f4f1;
+  --color-primary: #00f5a0;
+  --color-primary-container: #00d98b;
+  --color-on-primary: #050a0a;
+  --color-on-primary-container: #003824;
   --color-secondary: #4cd7f6;
   --color-secondary-container: #03b5d3;
   --color-on-secondary: #003640;
   --color-tertiary: #c0c1ff;
   --color-tertiary-container: #9699ff;
   --color-on-tertiary: #1000a9;
-  --color-gold: #c9a227;
-  --color-error: #ffb4ab;
-  --color-error-container: #93000a;
-  --color-on-error: #690005;
-  --color-on-error-container: #ffdad6;
-  --color-outline: #86948a;
-  --color-outline-variant: #3c4a42;
+  --color-gold: #f59e0b;
+  --color-error: #ef4444;
+  --color-error-container: #7f1d1d;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #fecaca;
+  --color-outline: #22423e;
+  --color-outline-variant: #162b29;
 
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
@@ -38,8 +38,8 @@
 
 @layer base {
   body {
-    background-color: #111318;
-    color: #e2e2e8;
+    background-color: #050a0a;
+    color: #e6f4f1;
     font-family: var(--font-sans);
   }
 
@@ -55,19 +55,19 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0c0e12;
+  background: #050a0a;
 }
 ::-webkit-scrollbar-thumb {
-  background: #282a2e;
-  border-radius: 2px;
+  background: #162b29;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3c4a42;
+  background: #22423e;
 }
 
 .subtle-grid {
   background-size: 32px 32px;
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+    linear-gradient(to right, rgba(0, 245, 160, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 245, 160, 0.02) 1px, transparent 1px);
 }
