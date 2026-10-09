@@ -162,6 +162,13 @@ export interface LearningTopic {
   linkedProjectId?: string;
   notes: string;
   reviewCount: number;
+  intervalDays?: number;
+  easeFactor?: number;
+  repetitionCount?: number;
+  lastGrade?: number;
+  nextDueDate?: string;
+  lastReviewedDate?: string;
+  decayHalfLifeDays?: number;
   createdAt: string;
   updatedAt: string;
 }

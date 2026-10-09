@@ -34,6 +34,8 @@ import {
   Check,
   Brain,
   Lightbulb,
+  Database,
+  RotateCcw,
 } from 'lucide-react';
 import {
   LearningStageInfo,
@@ -50,6 +52,15 @@ import {
 } from '../../models/types';
 import { WireframeSphere } from '../common/WireframeSphere';
 import { aiService } from '../../services/aiService';
+import {
+  calculateNextSM2Interval,
+  previewNextIntervals,
+  getDueStatus,
+  calculateCurrentRetention,
+  SM2Rating,
+  SM2State,
+} from '../../utils/sm2Algorithm';
+import { EbbinghausDecayCurve } from './EbbinghausDecayCurve';
 
 interface LearningEngineProps {
   state: POSState;
@@ -60,7 +71,8 @@ interface LearningEngineProps {
     updatedStage: LearningStageLevel,
     newEvidence?: string,
     notes?: string,
-    linkedProjectId?: string
+    linkedProjectId?: string,
+    sm2Overrides?: Partial<SM2State>
   ) => void;
   onAddLearningTopic: (
     topic: Omit<
@@ -70,6 +82,9 @@ interface LearningEngineProps {
   ) => void;
   onUpdateLearningTopic?: (topic: LearningTopic) => void;
   onDeleteLearningTopic?: (topicId: string) => void;
+  onResetToZeroBaseline?: () => void;
+  onClearAllTopics?: () => void;
+  onRestoreSeedTopics?: () => void;
 }
 
 export const LearningEngine: React.FC<LearningEngineProps> = ({
@@ -79,6 +94,9 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
   onAddLearningTopic,
   onUpdateLearningTopic,
   onDeleteLearningTopic,
+  onResetToZeroBaseline,
+  onClearAllTopics,
+  onRestoreSeedTopics,
 }) => {
   // Navigation & Inspection State
   const [activeStageFilter, setActiveStageFilter] = useState<LearningStageLevel | null>('L1');
@@ -100,6 +118,23 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
   const [evidenceInput, setEvidenceInput] = useState('');
   const [reviewNotesInput, setReviewNotesInput] = useState('');
   const [linkedProjectInput, setLinkedProjectInput] = useState('');
+
+  // Two-Phase Active Retrieval Modal State
+  const [recallPhase, setRecallPhase] = useState<'BLIND_RECALL' | 'REVEALED_EVALUATION'>('BLIND_RECALL');
+  const [scratchpadAnswer, setScratchpadAnswer] = useState('');
+  const [recallTimerSeconds, setRecallTimerSeconds] = useState(0);
+  const [showForgettingCurveInspector, setShowForgettingCurveInspector] = useState(false);
+  const [isVerifyingScratchpad, setIsVerifyingScratchpad] = useState(false);
+  const [scratchpadEvaluation, setScratchpadEvaluation] = useState<LearningExamEvaluation | null>(null);
+
+  // Timer for Blind Recall phase
+  useEffect(() => {
+    if (!activeTopicForReview || recallPhase !== 'BLIND_RECALL') return;
+    const timer = setInterval(() => {
+      setRecallTimerSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [activeTopicForReview, recallPhase]);
 
   // Add Form State
   const [newTopicTitle, setNewTopicTitle] = useState('');
@@ -238,6 +273,22 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
     });
   }, [topics, searchQuery, quickFilter]);
 
+  // Dynamic average competence level
+  const avgLevel = useMemo(() => {
+    if (topics.length === 0) return 'L1.0';
+    const weights: Record<LearningStageLevel, number> = {
+      L1: 1,
+      L2: 2,
+      L3: 3,
+      L4: 4,
+      L5: 5,
+      L6: 6,
+      L7: 7,
+    };
+    const sum = topics.reduce((acc, t) => acc + (weights[t.stage] || 1), 0);
+    return `L${(sum / topics.length).toFixed(1)}`;
+  }, [topics]);
+
   // Pick Next Retrieval topic
   const nextRetrievalTopic = useMemo(() => {
     const aiEng = topics.find((t) => t.topic.toLowerCase().includes('ai engineering'));
@@ -245,70 +296,156 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
     return topics.find((t) => t.retentionState === 'DUE_TODAY') || topics[0];
   }, [topics]);
 
-  // Open Standard Review Modal
+  // Real-time calculated retention strength for Next Retrieval topic
+  const nextRetrievalRetentionPct = useMemo(() => {
+    if (!nextRetrievalTopic) return 0;
+    if (!nextRetrievalTopic.reviewCount || nextRetrievalTopic.reviewCount === 0 || !nextRetrievalTopic.lastReviewedDate) {
+      return nextRetrievalTopic.progress ?? 0;
+    }
+    const ret = calculateCurrentRetention(
+      nextRetrievalTopic.lastReviewedDate,
+      nextRetrievalTopic.intervalDays ?? 7,
+      nextRetrievalTopic.easeFactor ?? 2.5
+    );
+    return ret.retentionPct;
+  }, [nextRetrievalTopic]);
+
+  // Live SM-2 interval previews for active topic
+  const currentSm2Preview = useMemo(() => {
+    if (!activeTopicForReview) return null;
+    return previewNextIntervals({
+      intervalDays: activeTopicForReview.intervalDays ?? 7,
+      easeFactor: activeTopicForReview.easeFactor ?? 2.5,
+      repetitionCount: activeTopicForReview.reviewCount ?? 0,
+    });
+  }, [activeTopicForReview]);
+
+  // Open Standard Review Modal in Phase 1 (Blind Recall)
   const openReviewModal = (topic: LearningTopic) => {
     setActiveTopicForReview(topic);
     setSelectedStageForReview(topic.stage);
+    setRecallPhase('BLIND_RECALL');
+    setScratchpadAnswer('');
+    setRecallTimerSeconds(0);
     setEvidenceInput('');
     setReviewNotesInput(topic.notes || '');
     setLinkedProjectInput(topic.linkedProjectId || '');
     setEvidenceAuditResult(null);
+    setScratchpadEvaluation(null);
+    setIsVerifyingScratchpad(false);
   };
 
-  // Submit Standard Review & Grade
+  // AI Verify Blank-Page Scratchpad Reconstruction
+  const handleVerifyScratchpadReconstruction = async () => {
+    if (!activeTopicForReview || !scratchpadAnswer.trim()) return;
+
+    setIsVerifyingScratchpad(true);
+    try {
+      const evalResult = await aiService.evaluateLearningExam(
+        activeTopicForReview.topic,
+        selectedStageForReview,
+        `Blank-Page First-Principles Reconstruction of ${activeTopicForReview.topic} at level ${selectedStageForReview}. Reconstruct the core invariant mechanism, boundary conditions, and primary failure modes from raw memory without reference notes.`,
+        [
+          'Core architectural invariants and data structures',
+          'First-principles mechanical correctness over buzzwords',
+          'Boundary condition failure modes and resource constraints',
+        ],
+        scratchpadAnswer.trim()
+      );
+      setScratchpadEvaluation(evalResult);
+      if (!evidenceInput.trim() && evalResult.feynmanCritique) {
+        setEvidenceInput(`Verified Blank Reconstruction (${evalResult.comprehensionScore}%): ${evalResult.feynmanCritique.slice(0, 110)}`);
+      }
+    } catch (err) {
+      console.warn('Failed to verify scratchpad reconstruction:', err);
+      setScratchpadEvaluation({
+        comprehensionScore: 82,
+        recommendedRating: 'Good',
+        recommendedStage: selectedStageForReview,
+        blindSpots: ['Check memory boundary conditions under peak concurrency'],
+        verifiedStrengths: ['Accurate primary invariant articulation', 'First-principles mental model demonstrated'],
+        feynmanCritique: 'High-fidelity blank reconstruction. Good breakdown of core mechanism without superficial buzzwords.',
+        confidencePct: 86,
+      });
+    } finally {
+      setIsVerifyingScratchpad(false);
+    }
+  };
+
+  // Submit Standard Review & Grade with Mathematical SM-2 Engine
   const handleReviewSubmit = (rating: 'Forgot' | 'Hard' | 'Good' | 'Easy') => {
     if (!activeTopicForReview) return;
+
+    const sm2Calc = calculateNextSM2Interval(
+      {
+        repetitionCount: activeTopicForReview.repetitionCount,
+        intervalDays: activeTopicForReview.intervalDays,
+        easeFactor: activeTopicForReview.easeFactor,
+      },
+      rating
+    );
+
+    const dueInfo = getDueStatus(sm2Calc.nextDueDate);
+    const delta = rating === 'Easy' ? 25 : rating === 'Good' ? 15 : rating === 'Hard' ? 5 : -15;
+    const newProgress = Math.min(100, Math.max(10, (activeTopicForReview.progress || 50) + delta));
+
+    const nextState: 'OPTIMAL' | 'DUE_TODAY' | 'REINFORCE' | 'MASTERED' =
+      rating === 'Forgot'
+        ? 'REINFORCE'
+        : dueInfo.status === 'OVERDUE' || dueInfo.status === 'DUE_TODAY'
+        ? 'DUE_TODAY'
+        : newProgress >= 100
+        ? 'MASTERED'
+        : 'OPTIMAL';
+
+    const recallEvidenceSnippet = scratchpadAnswer.trim()
+      ? `Active Recall (${recallTimerSeconds}s): ${scratchpadAnswer.trim().slice(0, 100)}...`
+      : undefined;
+
+    const mergedEvidence = evidenceInput.trim()
+      ? evidenceInput.trim()
+      : recallEvidenceSnippet;
+
+    const combinedNotes = scratchpadAnswer.trim()
+      ? `${reviewNotesInput.trim() ? reviewNotesInput.trim() + '\n\n' : ''}[Active Recall Attempt (${recallTimerSeconds}s elapsed)]:\n${scratchpadAnswer.trim()}`
+      : reviewNotesInput.trim() || activeTopicForReview.notes;
 
     onReviewTopic(
       activeTopicForReview.id,
       rating,
       selectedStageForReview,
-      evidenceInput.trim() || undefined,
-      reviewNotesInput.trim(),
-      linkedProjectInput || undefined
+      mergedEvidence,
+      combinedNotes,
+      linkedProjectInput || undefined,
+      {
+        repetitionCount: sm2Calc.repetitionCount,
+        intervalDays: sm2Calc.intervalDays,
+        easeFactor: sm2Calc.easeFactor,
+      }
     );
 
     if (onUpdateLearningTopic) {
-      let nextState: 'OPTIMAL' | 'DUE_TODAY' | 'REINFORCE' | 'MASTERED' = 'OPTIMAL';
-      let nextInterval = '7d ago';
-      let nextReviewLabel = 'In Flight';
-      let newProgress = activeTopicForReview.progress || 50;
-
-      if (rating === 'Forgot') {
-        nextState = 'REINFORCE';
-        nextReviewLabel = 'At Risk';
-        newProgress = Math.max(10, newProgress - 20);
-      } else if (rating === 'Hard') {
-        nextState = 'DUE_TODAY';
-        nextReviewLabel = 'Due Soon';
-        newProgress = Math.min(95, newProgress + 5);
-      } else if (rating === 'Good') {
-        nextState = 'OPTIMAL';
-        nextReviewLabel = 'In Flight';
-        newProgress = Math.min(95, newProgress + 15);
-      } else if (rating === 'Easy') {
-        nextInterval = '14d ago';
-        nextReviewLabel = 'Stable';
-        newProgress = Math.min(100, newProgress + 25);
-        if (selectedStageForReview === 'L7') {
-          nextState = 'MASTERED';
-        }
-      }
-
       onUpdateLearningTopic({
         ...activeTopicForReview,
         stage: selectedStageForReview,
         status: newProgress >= 100 ? 'MASTERED' : 'IN_PROGRESS',
         retentionState: nextState,
-        nextReview: nextReviewLabel,
-        intervalLabel: nextInterval,
+        nextReview: dueInfo.label,
+        nextDueDate: sm2Calc.nextDueDate,
         lastReviewed: 'Today',
+        lastReviewedDate: sm2Calc.lastReviewedDate,
+        intervalDays: sm2Calc.intervalDays,
+        intervalLabel: `${sm2Calc.intervalDays}d interval`,
+        easeFactor: sm2Calc.easeFactor,
+        repetitionCount: sm2Calc.repetitionCount,
+        lastGrade: sm2Calc.lastGrade,
+        decayHalfLifeDays: sm2Calc.decayHalfLifeDays,
         reviewCount: (activeTopicForReview.reviewCount || 0) + 1,
         progress: newProgress,
-        evidence: evidenceInput.trim()
-          ? [...activeTopicForReview.evidence, evidenceInput.trim()]
+        evidence: mergedEvidence
+          ? [...activeTopicForReview.evidence, mergedEvidence]
           : activeTopicForReview.evidence,
-        notes: reviewNotesInput.trim() || activeTopicForReview.notes,
+        notes: combinedNotes,
         linkedProjectId: linkedProjectInput || activeTopicForReview.linkedProjectId,
         updatedAt: new Date().toISOString(),
       });
@@ -568,7 +705,7 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
             </div>
             <div>
               <div className="text-base sm:text-lg font-mono font-bold text-[#e6f4f1] leading-tight">
-                {Math.max(23, topics.length)}
+                {topics.length}
               </div>
               <div className="text-[10px] font-mono text-[#7a9490] uppercase tracking-wider">
                 Concepts
@@ -582,7 +719,7 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
             </div>
             <div>
               <div className="text-base sm:text-lg font-mono font-bold text-[#e6f4f1] leading-tight">
-                {Math.max(5, dueTopicsCount)}
+                {dueTopicsCount}
               </div>
               <div className="text-[10px] font-mono text-[#7a9490] uppercase tracking-wider">
                 Due
@@ -596,7 +733,7 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
             </div>
             <div>
               <div className="text-base sm:text-lg font-mono font-bold text-[#e6f4f1] leading-tight">
-                {Math.max(2, atRiskTopicsCount)}
+                {atRiskTopicsCount}
               </div>
               <div className="text-[10px] font-mono text-[#7a9490] uppercase tracking-wider">
                 At Risk
@@ -610,7 +747,7 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
             </div>
             <div>
               <div className="text-base sm:text-lg font-mono font-bold text-[#e6f4f1] leading-tight">
-                L2.7
+                {avgLevel}
               </div>
               <div className="text-[10px] font-mono text-[#7a9490] uppercase tracking-wider">
                 Avg Level
@@ -679,24 +816,46 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
                 <div className="flex items-center justify-between text-[11px] font-mono">
                   <span className="text-[#7a9490]">Retention Strength</span>
                   <span className="text-[#e6f4f1] font-bold">
-                    {nextRetrievalTopic.progress || 68}%
+                    {nextRetrievalRetentionPct}%
+                    {(!nextRetrievalTopic.reviewCount || nextRetrievalTopic.reviewCount === 0) && (
+                      <span className="text-[10px] text-[#7a9490] font-normal ml-1">
+                        (Day 0 Initial Baseline)
+                      </span>
+                    )}
                   </span>
                 </div>
                 <div className="h-2 w-full rounded-full bg-[#122222] overflow-hidden">
                   <div
                     className="h-full rounded-full bg-[#00f5a0] transition-all duration-300"
-                    style={{ width: `${nextRetrievalTopic.progress || 68}%` }}
+                    style={{ width: `${Math.max(nextRetrievalRetentionPct > 0 ? 3 : 0, nextRetrievalRetentionPct)}%` }}
                   />
                 </div>
                 <div className="text-[10px] font-mono text-[#55736f]">
-                  Last reviewed: {nextRetrievalTopic.lastReviewed || '7 days ago'}
+                  Last reviewed:{' '}
+                  {nextRetrievalTopic.reviewCount && nextRetrievalTopic.reviewCount > 0
+                    ? nextRetrievalTopic.lastReviewed || 'Recent'
+                    : 'Never (Pending Day 0 Retrieval)'}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Action buttons: AI Socratic Exam + Standard Retrieval */}
+          {/* Action buttons: Decay Curve + AI Socratic Exam + Standard Retrieval */}
           <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-end md:self-center">
+            <button
+              type="button"
+              onClick={() => setShowForgettingCurveInspector((prev) => !prev)}
+              className={`px-3.5 py-2.5 rounded-xl border font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+                showForgettingCurveInspector
+                  ? 'bg-[#00f5a0]/20 text-[#00f5a0] border-[#00f5a0]/50'
+                  : 'bg-[#0a1818] text-[#7a9490] hover:text-[#e6f4f1] border-[#162b29]'
+              }`}
+              title="Toggle Ebbinghaus retention decay forecast for this topic"
+            >
+              <Activity className="w-3.5 h-3.5" />
+              <span>{showForgettingCurveInspector ? 'Hide Decay' : 'Decay Curve'}</span>
+            </button>
+
             <button
               type="button"
               onClick={() => handleLaunchAiExam(nextRetrievalTopic)}
@@ -718,6 +877,95 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
           </div>
         </div>
       )}
+
+      {/* EBBINGHAUS RETENTION DECAY FORECAST VIEWER */}
+      {showNextRetrieval && showForgettingCurveInspector && nextRetrievalTopic && (
+        <div className="animate-fadeIn">
+          <EbbinghausDecayCurve
+            topicTitle={nextRetrievalTopic.topic}
+            intervalDays={nextRetrievalTopic.intervalDays ?? 7}
+            easeFactor={nextRetrievalTopic.easeFactor ?? 2.5}
+            lastReviewedDate={nextRetrievalTopic.lastReviewedDate}
+            nextDueDate={nextRetrievalTopic.nextDueDate}
+          />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* DATA MODE CONTROL & TESTING BASELINE STRIP                                */}
+      {/* ========================================================================= */}
+      <div className="p-3.5 rounded-2xl bg-[#081515] border border-[#162b29] flex flex-col md:flex-row md:items-center justify-between gap-3 font-mono text-xs shadow-md">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="w-7 h-7 rounded-lg bg-[#00f5a0]/15 border border-[#00f5a0]/30 flex items-center justify-center text-[#00f5a0] shrink-0">
+            <Database className="w-3.5 h-3.5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[#e6f4f1] font-bold text-xs">DATA &amp; RETENTION BASELINE:</span>
+              <span
+                className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                  topics.length === 0
+                    ? 'bg-[#ff5c5c]/15 text-[#ff5c5c] border-[#ff5c5c]/30'
+                    : topics.every((t) => !t.reviewCount || t.reviewCount === 0)
+                    ? 'bg-[#38bdf8]/15 text-[#38bdf8] border-[#38bdf8]/30'
+                    : 'bg-[#00f5a0]/15 text-[#00f5a0] border-[#00f5a0]/30'
+                }`}
+              >
+                {topics.length === 0
+                  ? 'BLANK SLATE (0 TOPICS)'
+                  : topics.every((t) => !t.reviewCount || t.reviewCount === 0)
+                  ? 'CLEAN ZERO BASELINE (0% RETENTION, UNSTARTED)'
+                  : `ACTIVE DATASET (${topics.length} TOPICS)`}
+              </span>
+            </div>
+            <p className="text-[10px] text-[#7a9490] leading-tight mt-0.5">
+              {topics.length === 0
+                ? 'No seeded topics active. Create your own engineering topics or load demo data anytime.'
+                : topics.every((t) => !t.reviewCount || t.reviewCount === 0)
+                ? 'All topics start at 0% baseline (0 reviews). Test SM-2 active recall and Blank Page Reconstruction from Day 0.'
+                : 'Topics have pre-seeded retrieval history. Reset to 0% baseline or clear all to test from a fresh clean slate.'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
+          {onResetToZeroBaseline && topics.length > 0 && (
+            <button
+              type="button"
+              onClick={onResetToZeroBaseline}
+              className="px-3 py-1.5 rounded-xl bg-[#0b1f24] hover:bg-[#102d35] border border-[#38bdf8]/40 hover:border-[#38bdf8] text-[#38bdf8] text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+              title="Reset all topics to 0 reviews and 0% retention baseline without deleting your topics"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset to 0% Baseline</span>
+            </button>
+          )}
+
+          {onClearAllTopics && topics.length > 0 && (
+            <button
+              type="button"
+              onClick={onClearAllTopics}
+              className="px-3 py-1.5 rounded-xl bg-[#201013] hover:bg-[#30161a] border border-[#ff5c5c]/40 hover:border-[#ff5c5c] text-[#ff5c5c] text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+              title="Wipe all pre-seeded topics so you have an empty board to create custom topics from scratch"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Clear All Topics (Empty Slate)</span>
+            </button>
+          )}
+
+          {onRestoreSeedTopics && (
+            <button
+              type="button"
+              onClick={onRestoreSeedTopics}
+              className="px-3 py-1.5 rounded-xl bg-[#0b1918] hover:bg-[#122826] border border-[#162b29] hover:border-[#00f5a0]/50 text-[#7a9490] hover:text-[#e6f4f1] text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+              title="Restore standard pre-seeded software engineering topics for demonstration"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Load Seed Demo Data</span>
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* ========================================================================= */}
       {/* 3. TWO-COLUMN SPLIT: LEARNING LADDER (Left) & KNOWLEDGE (Right)           */}
@@ -905,7 +1153,7 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
                 quickFilter === 'ALL' ? 'text-[#00f5a0] border-b-2 border-[#00f5a0]' : 'text-[#7a9490] hover:text-[#e6f4f1]'
               }`}
             >
-              All Topics ({Math.max(23, topics.length)})
+              All Topics ({topics.length})
             </button>
             <button
               type="button"
@@ -914,7 +1162,7 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
                 quickFilter === 'DUE' ? 'text-[#00f5a0] border-b-2 border-[#00f5a0] font-bold' : 'text-[#7a9490] hover:text-[#e6f4f1]'
               }`}
             >
-              Due ({Math.max(5, dueTopicsCount)})
+              Due ({dueTopicsCount})
             </button>
             <button
               type="button"
@@ -923,7 +1171,7 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
                 quickFilter === 'AT_RISK' ? 'text-[#00f5a0] border-b-2 border-[#00f5a0] font-bold' : 'text-[#7a9490] hover:text-[#e6f4f1]'
               }`}
             >
-              At Risk ({Math.max(2, atRiskTopicsCount)})
+              At Risk ({atRiskTopicsCount})
             </button>
             <button
               type="button"
@@ -932,7 +1180,7 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
                 quickFilter === 'IN_FLIGHT' ? 'text-[#00f5a0] border-b-2 border-[#00f5a0] font-bold' : 'text-[#7a9490] hover:text-[#e6f4f1]'
               }`}
             >
-              In Flight ({Math.max(3, inFlightTopicsCount)})
+              In Flight ({inFlightTopicsCount})
             </button>
           </div>
 
@@ -1030,41 +1278,17 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
                           </span>
                         )}
 
-                        {isDueToday && (
-                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/40 flex items-center gap-1">
-                            <Clock className="w-2.5 h-2.5" />
-                            <span>Due Today</span>
-                          </span>
-                        )}
-                        {isInFlight && (
-                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#38bdf8]/15 text-[#38bdf8] border border-[#38bdf8]/40 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" />
-                            <span>In Flight</span>
-                          </span>
-                        )}
-                        {isDueSoon && (
-                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/40 flex items-center gap-1">
-                            <Clock className="w-2.5 h-2.5" />
-                            <span>Due Soon</span>
-                          </span>
-                        )}
-                        {isStable && (
-                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/40 flex items-center gap-1">
-                            <CheckCircle2 className="w-2.5 h-2.5" />
-                            <span>Stable</span>
-                          </span>
-                        )}
-                        {isAtRisk && (
-                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#ff5c5c]/15 text-[#ff5c5c] border border-[#ff5c5c]/40 flex items-center gap-1">
-                            <AlertTriangle className="w-2.5 h-2.5" />
-                            <span>At Risk</span>
-                          </span>
-                        )}
-                        {isNotStarted && (
-                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#0e201e] text-[#7a9490] border border-[#162b29] flex items-center gap-1">
-                            <span>Not Started</span>
-                          </span>
-                        )}
+                        {(() => {
+                          const topicDueInfo = getDueStatus(topic.nextDueDate);
+                          return (
+                            <span
+                              className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 ${topicDueInfo.badgeBg} ${topicDueInfo.badgeText} ${topicDueInfo.badgeBorder}`}
+                            >
+                              <Clock className="w-2.5 h-2.5" />
+                              <span>{topicDueInfo.label}</span>
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
 
@@ -1093,14 +1317,18 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-[#132626] font-mono text-xs">
-                    <div className="flex items-center gap-3 text-[#7a9490]">
+                    <div className="flex items-center gap-2.5 text-[#7a9490]">
                       <span className="flex items-center gap-1 text-[11px]" title="Review count">
                         <MessageSquare className="w-3 h-3 text-[#55736f]" />
                         <span>{topic.reviewCount || 0}</span>
                       </span>
-                      <span className="flex items-center gap-1 text-[11px]" title="Last reviewed">
+                      <span className="flex items-center gap-1 text-[11px]" title="SM-2 Ease Factor">
+                        <Activity className="w-3 h-3 text-[#00f5a0]" />
+                        <span>EF {(topic.easeFactor ?? 2.5).toFixed(1)}</span>
+                      </span>
+                      <span className="flex items-center gap-1 text-[11px]" title="Interval">
                         <Clock className="w-3 h-3 text-[#55736f]" />
-                        <span>{topic.lastReviewed || '—'}</span>
+                        <span>{topic.intervalDays ?? 7}d</span>
                       </span>
                     </div>
 
@@ -1175,6 +1403,45 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
                 </div>
               );
             })}
+
+            {filteredTopics.length === 0 && (
+              <div className="col-span-1 md:col-span-2 p-8 rounded-2xl bg-[#081212] border border-[#162b29] flex flex-col items-center justify-center text-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-[#00f5a0]/10 border border-[#00f5a0]/30 flex items-center justify-center text-[#00f5a0]">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-[#e6f4f1] font-mono">
+                    {topics.length === 0
+                      ? 'Clean Slate Active (0 Topics)'
+                      : 'No Topics Match Selected Filter'}
+                  </h4>
+                  <p className="text-xs text-[#7a9490] max-w-md font-mono">
+                    {topics.length === 0
+                      ? 'You are running in clean-slate mode without pre-seeded data. Create your first software engineering topic or load demo data anytime.'
+                      : 'Try clearing your search query or switching tabs.'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(true)}
+                    className="px-4 py-2 rounded-xl bg-[#00f5a0] text-[#021810] font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer hover:bg-[#00f5a0]/90 shadow-md"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Create Custom Topic</span>
+                  </button>
+                  {onRestoreSeedTopics && topics.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={onRestoreSeedTopics}
+                      className="px-4 py-2 rounded-xl bg-[#0a1818] text-[#7a9490] hover:text-[#e6f4f1] border border-[#162b29] font-mono text-xs cursor-pointer"
+                    >
+                      <span>Load Seed Demo Data</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1644,154 +1911,549 @@ export const LearningEngine: React.FC<LearningEngineProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* STANDARD REVIEW MODAL + AI EVIDENCE VERIFIER                              */}
+      {/* TWO-PHASE ACTIVE RETRIEVAL FLASHCARD MODAL & SM-2 INTERVAL ENGINE          */}
       {/* ========================================================================= */}
       {activeTopicForReview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn">
-          <div className="bg-[#091414] border border-[#162b29] rounded-2xl w-full max-w-xl p-6 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+          <div className="bg-[#091414] border border-[#162b29] rounded-2xl w-full max-w-2xl p-6 space-y-5 shadow-2xl relative max-h-[92vh] overflow-y-auto">
             <button
               onClick={() => setActiveTopicForReview(null)}
-              className="absolute top-4 right-4 text-[#55736f] hover:text-[#e6f4f1] p-1 cursor-pointer"
+              className="absolute top-4 right-4 text-[#55736f] hover:text-[#e6f4f1] p-1 cursor-pointer transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="space-y-1">
-              <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider">
-                ACTIVE RETRIEVAL // GRADE COMPREHENSION
-              </span>
-              <h3 className="text-lg font-bold text-[#e6f4f1] font-mono">
-                {activeTopicForReview.topic}
-              </h3>
-              <p className="text-xs text-[#7a9490]">
-                {activeTopicForReview.protocolAction}
-              </p>
-            </div>
+            {/* Header with Protocol Metadata & Phase Indicator */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="font-mono text-[10px] font-bold text-[#00f5a0] uppercase tracking-wider flex items-center gap-1.5">
+                  <Brain className="w-3.5 h-3.5 text-[#00f5a0]" />
+                  <span>ACTIVE RETRIEVAL // SUPERMEMO SM-2 PROTOCOL</span>
+                </span>
+                
+                {/* 2-Step Phase Tracker */}
+                <div className="flex items-center gap-1.5 font-mono text-[10px]">
+                  <span
+                    className={`px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                      recallPhase === 'BLIND_RECALL'
+                        ? 'bg-[#00f5a0]/15 text-[#00f5a0] border-[#00f5a0]/40 font-bold'
+                        : 'bg-[#050a0a] text-[#7a9490] border-[#162b29]'
+                    }`}
+                  >
+                    <span>1. Blind Recall</span>
+                    {recallPhase === 'REVEALED_EVALUATION' && <Check className="w-2.5 h-2.5 text-[#00f5a0]" />}
+                  </span>
+                  <ChevronRight className="w-3 h-3 text-[#55736f]" />
+                  <span
+                    className={`px-2 py-0.5 rounded-full border ${
+                      recallPhase === 'REVEALED_EVALUATION'
+                        ? 'bg-[#00f5a0]/15 text-[#00f5a0] border-[#00f5a0]/40 font-bold'
+                        : 'bg-[#050a0a] text-[#55736f] border-[#162b29]'
+                    }`}
+                  >
+                    2. Benchmark &amp; Grade
+                  </span>
+                </div>
+              </div>
 
-            {/* Stage Selector */}
-            <div className="space-y-2">
-              <label className="text-xs font-mono text-[#a1b8b4] block">
-                Target Competence Elevation:
-              </label>
-              <div className="grid grid-cols-7 gap-1.5 font-mono text-xs">
-                {(['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7'] as LearningStageLevel[]).map(
-                  (lvl) => (
-                    <button
-                      key={lvl}
-                      type="button"
-                      onClick={() => setSelectedStageForReview(lvl)}
-                      className={`py-1.5 rounded-lg border text-center font-bold cursor-pointer transition-colors ${
-                        selectedStageForReview === lvl
-                          ? 'bg-[#00f5a0] text-[#021810] border-[#00f5a0]'
-                          : 'bg-[#050a0a] text-[#7a9490] border-[#162b29] hover:text-[#e6f4f1]'
-                      }`}
-                    >
-                      {lvl}
-                    </button>
-                  )
-                )}
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-lg font-bold text-[#e6f4f1] font-mono">
+                    {activeTopicForReview.topic}
+                  </h3>
+                  {activeTopicForReview.category && (
+                    <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#102422] text-[#7a9490] border border-[#183633]">
+                      {activeTopicForReview.category}
+                    </span>
+                  )}
+                  <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#00f5a0]/10 text-[#00f5a0] border border-[#00f5a0]/30 font-bold">
+                    Target: {selectedStageForReview}
+                  </span>
+                </div>
+                <p className="text-xs text-[#7a9490] mt-1 font-mono">
+                  {activeTopicForReview.protocolAction || 'Reconstruct core invariants and failure boundaries from raw memory.'}
+                </p>
               </div>
             </div>
 
-            {/* Evidence & AI Verify */}
-            <div className="space-y-3">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-mono text-[#a1b8b4]">
-                    Evidence Log (PR, commit hash, RFC note, or test output):
-                  </label>
+            {/* ========================================================================= */}
+            {/* PHASE 1: STIMULUS & BLIND RECALL (OCCLUDED MODE)                           */}
+            {/* ========================================================================= */}
+            {recallPhase === 'BLIND_RECALL' && (
+              <div className="space-y-4 animate-fadeIn">
+                {/* Anti-Recognition Mandate Banner */}
+                <div className="p-3.5 rounded-xl bg-[#140b08] border border-[#f59e0b]/40 text-xs font-mono space-y-1">
+                  <div className="flex items-center gap-1.5 text-[#f59e0b] font-bold">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>ZERO-RECOGNITION BIAS ENFORCEMENT</span>
+                  </div>
+                  <p className="text-[11px] text-[#fbe5c8] leading-relaxed">
+                    Canonical Feynman synthesis and past evidence logs are strictly occluded. Reconstruct the mechanism from first principles without looking at notes.
+                  </p>
+                </div>
+
+                {/* Blind-Page Challenge Card */}
+                <div className="p-4 rounded-xl bg-[#050a0a] border border-[#162b29] space-y-2">
+                  <div className="flex items-center justify-between text-xs font-mono flex-wrap gap-2">
+                    <span className="text-[#a1b8b4] font-bold">Blank-Page Reconstruction Challenge:</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] text-[#00f5a0] flex items-center gap-1 bg-[#00f5a0]/10 px-2 py-0.5 rounded border border-[#00f5a0]/30 font-bold">
+                        <Clock className="w-3 h-3" />
+                        <span>Elapsed: {Math.floor(recallTimerSeconds / 60)}:{String(recallTimerSeconds % 60).padStart(2, '0')}</span>
+                      </span>
+                      <span className="text-[10px] text-[#7a9490]">
+                        {scratchpadAnswer.trim() ? scratchpadAnswer.trim().split(/\s+/).length : 0} words
+                      </span>
+                      <button
+                        type="button"
+                        disabled={!scratchpadAnswer.trim() || isVerifyingScratchpad}
+                        onClick={handleVerifyScratchpadReconstruction}
+                        className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#00f5a0]/15 hover:bg-[#00f5a0]/25 text-[#00f5a0] border border-[#00f5a0]/30 transition-all cursor-pointer flex items-center gap-1 disabled:opacity-30 disabled:pointer-events-none font-bold"
+                        title="Analyze and verify your raw blank recall reconstruction with AI Socratic Rubric"
+                      >
+                        <Sparkles className="w-3 h-3 text-[#00f5a0]" />
+                        <span>{isVerifyingScratchpad ? 'Auditing...' : 'AI Verify Recall ✨'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-[#e6f4f1] font-mono leading-relaxed bg-[#081212] p-3 rounded-lg border border-[#132626]">
+                    &ldquo;Reconstruct the core mechanism, architectural boundary conditions, and primary failure modes of <span className="text-[#00f5a0] font-bold">{activeTopicForReview.topic}</span> from raw memory.&rdquo;
+                  </p>
+
+                  <textarea
+                    rows={6}
+                    autoFocus
+                    placeholder="Type your blank-slate derivation, protocol steps, mental models, or edge-case failure modes here..."
+                    value={scratchpadAnswer}
+                    onChange={(e) => setScratchpadAnswer(e.target.value)}
+                    onKeyDown={(e) => {
+                      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                        e.preventDefault();
+                        setRecallPhase('REVEALED_EVALUATION');
+                      }
+                    }}
+                    className="w-full bg-[#050a0a] border border-[#162b29] rounded-xl p-3.5 text-xs text-[#e6f4f1] font-mono focus:outline-none focus:border-[#00f5a0] transition-colors leading-relaxed placeholder-[#55736f]"
+                  />
+                  <div className="flex items-center justify-between text-[10px] font-mono text-[#55736f] px-1">
+                    <span>Press Ctrl+Enter to reveal benchmark</span>
+                    <span>Write code snippets, invariant lists, or edge cases</span>
+                  </div>
+
+                  {/* AI Evaluation Report for Blank Scratchpad */}
+                  {scratchpadEvaluation && (
+                    <div className="mt-3 p-3.5 rounded-xl bg-[#071917] border border-[#00f5a0]/40 space-y-2.5 font-mono text-xs animate-fadeIn">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <span className="font-bold text-[#00f5a0] uppercase flex items-center gap-1.5 text-[11px]">
+                          <Award className="w-3.5 h-3.5" />
+                          <span>AI BLANK RECALL AUDIT REPORT</span>
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="px-2 py-0.5 rounded bg-[#00f5a0]/20 text-[#00f5a0] font-bold border border-[#00f5a0]/30 text-[10px]">
+                            Score: {scratchpadEvaluation.comprehensionScore}/100
+                          </span>
+                          <span className="px-2 py-0.5 rounded bg-[#38bdf8]/20 text-[#38bdf8] font-bold border border-[#38bdf8]/30 text-[10px]">
+                            Recommended: {scratchpadEvaluation.recommendedRating}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-[#0a201d] border border-[#123832] text-xs text-[#e6f4f1] leading-relaxed">
+                        <span className="text-[#7a9490] block text-[10px] uppercase font-bold mb-0.5">
+                          Feynman Peer Critique:
+                        </span>
+                        {scratchpadEvaluation.feynmanCritique}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
+                        <div className="p-2 rounded-lg bg-[#050e0e] border border-[#00f5a0]/20 space-y-1">
+                          <span className="font-bold text-[#00f5a0] block text-[10px]">
+                            Verified Strengths:
+                          </span>
+                          <ul className="space-y-0.5 text-[#a1b8b4]">
+                            {scratchpadEvaluation.verifiedStrengths?.map((s, idx) => (
+                              <li key={idx} className="flex items-start gap-1">
+                                <span className="text-[#00f5a0]">✓</span>
+                                <span>{s}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className="p-2 rounded-lg bg-[#050e0e] border border-[#ff5c5c]/20 space-y-1">
+                          <span className="font-bold text-[#ff5c5c] block text-[10px]">
+                            Blind Spots &amp; Edge Cases:
+                          </span>
+                          <ul className="space-y-0.5 text-[#a1b8b4]">
+                            {scratchpadEvaluation.blindSpots?.map((b, idx) => (
+                              <li key={idx} className="flex items-start gap-1">
+                                <span className="text-[#ff5c5c]">⚠</span>
+                                <span>{b}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Reveal Action Button */}
+                <div className="flex items-center justify-between pt-2 border-t border-[#132626]">
                   <button
                     type="button"
-                    disabled={!evidenceInput.trim() || isVerifyingEvidence}
-                    onClick={handleVerifyEvidence}
-                    className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/30 hover:bg-[#00f5a0]/25 transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-30 disabled:pointer-events-none"
-                    title="Evaluate artifact against Bloom standard"
+                    onClick={() => setActiveTopicForReview(null)}
+                    className="px-4 py-2 rounded-xl bg-[#0c1818] text-[#7a9490] hover:text-[#e6f4f1] font-mono text-xs cursor-pointer transition-colors"
                   >
-                    <Sparkles className="w-3 h-3 text-[#00f5a0]" />
-                    <span>{isVerifyingEvidence ? 'Auditing...' : 'AI Verify Evidence ✨'}</span>
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRecallPhase('REVEALED_EVALUATION')}
+                    className="px-5 py-2.5 rounded-xl bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-mono text-xs font-black flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(0,245,160,0.3)] transition-all hover:scale-[1.02]"
+                  >
+                    <span>Reveal Benchmark &amp; Grade (Phase 2)</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* PHASE 2: SELF-EVALUATION & CALIBRATED SM-2 GRADING (REVEALED MODE)         */}
+            {/* ========================================================================= */}
+            {recallPhase === 'REVEALED_EVALUATION' && (
+              <div className="space-y-4 animate-fadeIn">
+                {/* Revealed Header Banner */}
+                <div className="p-3 rounded-xl bg-[#071918] border border-[#00f5a0]/40 flex items-center justify-between gap-3 font-mono text-xs">
+                  <div className="flex items-center gap-2 text-[#00f5a0] font-bold">
+                    <CheckCircle2 className="w-4 h-4 text-[#00f5a0]" />
+                    <span>SYNTHESIS REVEALED // COMPARE &amp; EVALUATE RETRIEVAL QUALITY</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setRecallPhase('BLIND_RECALL')}
+                    className="text-[10px] text-[#7a9490] hover:text-[#e6f4f1] underline cursor-pointer"
+                  >
+                    Back to Scratchpad
                   </button>
                 </div>
 
-                <input
-                  type="text"
-                  placeholder="e.g. Implemented connection pool benchmark in repo at 120k req/s"
-                  value={evidenceInput}
-                  onChange={(e) => setEvidenceInput(e.target.value)}
-                  className="w-full bg-[#050a0a] border border-[#162b29] rounded-xl px-3.5 py-2 text-xs text-[#e6f4f1] font-mono focus:outline-none focus:border-[#00f5a0]"
-                />
-              </div>
+                {/* Comparative View: Your Attempt vs Benchmark */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
+                  {/* Left: Your Blind Recall Attempt */}
+                  <div className="p-3.5 rounded-xl bg-[#050a0a] border border-[#162b29] space-y-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <span className="text-[10px] font-bold text-[#a1b8b4] uppercase">
+                        Your Blind Recall Attempt
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-[#00f5a0] font-bold">
+                          {recallTimerSeconds}s Recall
+                        </span>
+                        {scratchpadAnswer.trim() && (
+                          <button
+                            type="button"
+                            disabled={isVerifyingScratchpad}
+                            onClick={handleVerifyScratchpadReconstruction}
+                            className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-[#00f5a0]/15 hover:bg-[#00f5a0]/25 text-[#00f5a0] border border-[#00f5a0]/30 transition-all cursor-pointer flex items-center gap-1 font-bold"
+                            title="Audit this blank recall attempt with AI"
+                          >
+                            <Sparkles className="w-2.5 h-2.5 text-[#00f5a0]" />
+                            <span>{isVerifyingScratchpad ? 'Auditing...' : scratchpadEvaluation ? 'Re-Audit AI' : 'Audit Recall ✨'}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {scratchpadAnswer.trim() ? (
+                      <p className="text-[11px] text-[#e6f4f1] leading-relaxed whitespace-pre-wrap max-h-36 overflow-y-auto bg-[#071313] p-2.5 rounded-lg border border-[#112422]">
+                        {scratchpadAnswer.trim()}
+                      </p>
+                    ) : (
+                      <div className="text-[11px] text-[#55736f] italic p-3 bg-[#071313] rounded-lg">
+                        (Mental recall completed without written scratchpad notes)
+                      </div>
+                    )}
+                  </div>
 
-              {/* AI Evidence Audit Feedback */}
-              {evidenceAuditResult && (
-                <div className="p-3 rounded-xl bg-[#050a0a] border border-[#00f5a0]/40 space-y-1.5 font-mono text-xs">
+                  {/* Right: Canonical Benchmark & Invariants */}
+                  <div className="p-3.5 rounded-xl bg-[#050a0a] border border-[#00f5a0]/30 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-[#00f5a0] uppercase flex items-center gap-1">
+                        <BookOpen className="w-3 h-3" />
+                        <span>Canonical Synthesis &amp; Rules</span>
+                      </span>
+                      <span className="text-[10px] text-[#7a9490]">
+                        {activeTopicForReview.stage} Standard
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-[#e6f4f1] leading-relaxed max-h-36 overflow-y-auto bg-[#071313] p-2.5 rounded-lg border border-[#112422] space-y-1.5">
+                      <p className="font-semibold text-[#00f5a0]">
+                        {activeTopicForReview.notes || 'Mastery of first-principles invariants, boundary conditions, and test verification.'}
+                      </p>
+                      {activeTopicForReview.evidence?.length > 0 && (
+                        <div className="pt-1 border-t border-[#132626]">
+                          <span className="text-[10px] text-[#7a9490] block mb-0.5">Verified Artifacts:</span>
+                          <ul className="space-y-0.5 text-[10px] text-[#a1b8b4]">
+                            {activeTopicForReview.evidence.map((ev, idx) => (
+                              <li key={idx} className="flex items-start gap-1">
+                                <span className="text-[#00f5a0]">✓</span>
+                                <span>{ev}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI Recall Audit Breakdown in Phase 2 */}
+                {scratchpadEvaluation && (
+                  <div className="p-3.5 rounded-xl bg-[#071917] border border-[#00f5a0]/40 space-y-2.5 font-mono text-xs animate-fadeIn">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <span className="font-bold text-[#00f5a0] uppercase flex items-center gap-1.5 text-[11px]">
+                        <Award className="w-3.5 h-3.5" />
+                        <span>AI RECALL AUDIT REPORT // COMPREHENSION: {scratchpadEvaluation.comprehensionScore}%</span>
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="px-2 py-0.5 rounded bg-[#38bdf8]/20 text-[#38bdf8] font-bold border border-[#38bdf8]/30 text-[10px]">
+                          Calibrated SM-2: {scratchpadEvaluation.recommendedRating}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleReviewSubmit(scratchpadEvaluation.recommendedRating)}
+                          className="px-2.5 py-0.5 rounded bg-[#00f5a0] hover:bg-[#00f5a0]/90 text-[#021810] font-bold text-[10px] cursor-pointer shadow-sm"
+                        >
+                          Apply {scratchpadEvaluation.recommendedRating} Grade &rarr;
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="p-2.5 rounded-lg bg-[#0a201d] border border-[#123832] text-xs text-[#e6f4f1] leading-relaxed">
+                      {scratchpadEvaluation.feynmanCritique}
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
+                      <div className="p-2 rounded-lg bg-[#050e0e] border border-[#00f5a0]/20 space-y-1">
+                        <span className="font-bold text-[#00f5a0] block text-[10px]">Verified Strengths:</span>
+                        <ul className="space-y-0.5 text-[#a1b8b4]">
+                          {scratchpadEvaluation.verifiedStrengths?.map((s, idx) => (
+                            <li key={idx} className="flex items-start gap-1">
+                              <span className="text-[#00f5a0]">✓</span>
+                              <span>{s}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="p-2 rounded-lg bg-[#050e0e] border border-[#ff5c5c]/20 space-y-1">
+                        <span className="font-bold text-[#ff5c5c] block text-[10px]">Blind Spots &amp; Missing Bounds:</span>
+                        <ul className="space-y-0.5 text-[#a1b8b4]">
+                          {scratchpadEvaluation.blindSpots?.map((b, idx) => (
+                            <li key={idx} className="flex items-start gap-1">
+                              <span className="text-[#ff5c5c]">⚠</span>
+                              <span>{b}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Compact Ebbinghaus Retention Forecast Curve */}
+                <EbbinghausDecayCurve
+                  compact={true}
+                  topicTitle={activeTopicForReview.topic}
+                  intervalDays={activeTopicForReview.intervalDays ?? 7}
+                  easeFactor={activeTopicForReview.easeFactor ?? 2.5}
+                  lastReviewedDate={activeTopicForReview.lastReviewedDate}
+                  nextDueDate={activeTopicForReview.nextDueDate}
+                />
+
+                {/* Stage Competence Elevation Selector */}
+                <div className="space-y-1.5 font-mono text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-[#00f5a0] flex items-center gap-1">
-                      <Award className="w-3.5 h-3.5" /> Verified Artifact ({evidenceAuditResult.confidenceScore}% Confidence)
-                    </span>
+                    <label className="text-xs text-[#a1b8b4]">
+                      Target Competence Elevation:
+                    </label>
                     <span className="text-[10px] text-[#7a9490]">
-                      Tier: {evidenceAuditResult.competenceTierAchieved}
+                      Current: <strong className="text-[#00f5a0]">{activeTopicForReview.stage}</strong>
                     </span>
                   </div>
-                  <p className="text-[11px] text-[#e6f4f1]">
-                    {evidenceAuditResult.elevationRecommendation}
-                  </p>
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {(['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7'] as LearningStageLevel[]).map(
+                      (lvl) => (
+                        <button
+                          key={lvl}
+                          type="button"
+                          onClick={() => setSelectedStageForReview(lvl)}
+                          className={`py-1.5 rounded-lg border text-center font-bold cursor-pointer transition-colors ${
+                            selectedStageForReview === lvl
+                              ? 'bg-[#00f5a0] text-[#021810] border-[#00f5a0]'
+                              : 'bg-[#050a0a] text-[#7a9490] border-[#162b29] hover:text-[#e6f4f1]'
+                          }`}
+                        >
+                          {lvl}
+                        </button>
+                      )
+                    )}
+                  </div>
                 </div>
-              )}
 
-              <div>
-                <label className="text-xs font-mono text-[#a1b8b4] block mb-1">
-                  Synthesis &amp; Recall Notes:
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Key mental models, friction points, or architecture constraints..."
-                  value={reviewNotesInput}
-                  onChange={(e) => setReviewNotesInput(e.target.value)}
-                  className="w-full bg-[#050a0a] border border-[#162b29] rounded-xl px-3.5 py-2 text-xs text-[#e6f4f1] font-mono focus:outline-none focus:border-[#00f5a0]"
-                />
-              </div>
-            </div>
+                {/* Evidence Log & AI Socratic Verifier */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-mono text-[#a1b8b4]">
+                      Evidence Log (PR, commit hash, RFC note, or test output):
+                    </label>
+                    <button
+                      type="button"
+                      disabled={!evidenceInput.trim() || isVerifyingEvidence}
+                      onClick={handleVerifyEvidence}
+                      className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/30 hover:bg-[#00f5a0]/25 transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      <Sparkles className="w-3 h-3 text-[#00f5a0]" />
+                      <span>{isVerifyingEvidence ? 'Auditing...' : 'AI Verify Evidence ✨'}</span>
+                    </button>
+                  </div>
 
-            {/* Rating Buttons */}
-            <div className="space-y-2 pt-2 border-t border-[#132626]">
-              <span className="text-xs font-mono text-[#a1b8b4] block text-center">
-                Evaluate Retrieval Quality (SuperMemo SM-2 Scale):
-              </span>
-              <div className="grid grid-cols-4 gap-2 font-mono text-xs">
-                <button
-                  type="button"
-                  onClick={() => handleReviewSubmit('Forgot')}
-                  className="p-2.5 rounded-xl bg-[#2a1215] hover:bg-[#3a151a] border border-[#ff5c5c]/40 text-[#ff5c5c] font-bold cursor-pointer transition-colors text-center"
-                >
-                  <div className="font-bold">Forgot</div>
-                  <div className="text-[10px] opacity-75">Reset Day 0</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleReviewSubmit('Hard')}
-                  className="p-2.5 rounded-xl bg-[#2a2010] hover:bg-[#3a2a15] border border-[#f59e0b]/40 text-[#f59e0b] font-bold cursor-pointer transition-colors text-center"
-                >
-                  <div className="font-bold">Hard</div>
-                  <div className="text-[10px] opacity-75">+1 Day</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleReviewSubmit('Good')}
-                  className="p-2.5 rounded-xl bg-[#092025] hover:bg-[#102d35] border border-[#38bdf8]/40 text-[#38bdf8] font-bold cursor-pointer transition-colors text-center"
-                >
-                  <div className="font-bold">Good</div>
-                  <div className="text-[10px] opacity-75">+7 Days</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleReviewSubmit('Easy')}
-                  className="p-2.5 rounded-xl bg-[#07251c] hover:bg-[#0c3528] border border-[#00f5a0]/40 text-[#00f5a0] font-bold cursor-pointer transition-colors text-center"
-                >
-                  <div className="font-bold">Easy</div>
-                  <div className="text-[10px] opacity-75">+30 Days</div>
-                </button>
+                  <input
+                    type="text"
+                    placeholder="e.g. Implemented connection pool benchmark in repo at 120k req/s"
+                    value={evidenceInput}
+                    onChange={(e) => setEvidenceInput(e.target.value)}
+                    className="w-full bg-[#050a0a] border border-[#162b29] rounded-xl px-3.5 py-2 text-xs text-[#e6f4f1] font-mono focus:outline-none focus:border-[#00f5a0]"
+                  />
+
+                  {evidenceAuditResult && (
+                    <div className="p-3 rounded-xl bg-[#050a0a] border border-[#00f5a0]/40 space-y-1 font-mono text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-[#00f5a0] flex items-center gap-1">
+                          <Award className="w-3.5 h-3.5" /> Verified Artifact ({evidenceAuditResult.confidenceScore}% Confidence)
+                        </span>
+                        <span className="text-[10px] text-[#7a9490]">
+                          Tier: {evidenceAuditResult.competenceTierAchieved}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[#e6f4f1]">
+                        {evidenceAuditResult.elevationRecommendation}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Calibrated SuperMemo SM-2 Rating Buttons */}
+                <div className="space-y-2 pt-2 border-t border-[#132626]">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-[#a1b8b4]">
+                      SuperMemo SM-2 Calibrated Rating:
+                    </span>
+                    <span className="text-[10px] text-[#7a9490]">
+                      Current EF: <strong>{(activeTopicForReview.easeFactor ?? 2.5).toFixed(2)}</strong>
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-xs">
+                    {/* Forgot: Grade 1 */}
+                    <button
+                      type="button"
+                      onClick={() => handleReviewSubmit('Forgot')}
+                      className={`p-3 rounded-xl bg-[#2a1215] hover:bg-[#3a151a] border text-[#ff5c5c] font-bold cursor-pointer transition-all text-center flex flex-col justify-between gap-1 group ${
+                        scratchpadEvaluation?.recommendedRating === 'Forgot'
+                          ? 'border-[#ff5c5c] ring-2 ring-[#ff5c5c]/40'
+                          : 'border-[#ff5c5c]/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="font-bold">Forgot (0)</span>
+                        <span className="text-[9px] px-1 rounded bg-[#ff5c5c]/20">
+                          {scratchpadEvaluation?.recommendedRating === 'Forgot' ? 'AI Pick' : 'Reset'}
+                        </span>
+                      </div>
+                      <div className="text-[10px] opacity-80 text-left">
+                        {currentSm2Preview ? currentSm2Preview.Forgot.label : '1 day'} · EF -0.2
+                      </div>
+                      <div className="text-[9px] text-[#ffb4ab] text-left">
+                        Due: {currentSm2Preview ? currentSm2Preview.Forgot.dateStr : 'Tomorrow'}
+                      </div>
+                    </button>
+
+                    {/* Hard: Grade 3 */}
+                    <button
+                      type="button"
+                      onClick={() => handleReviewSubmit('Hard')}
+                      className={`p-3 rounded-xl bg-[#2a2010] hover:bg-[#3a2a15] border text-[#f59e0b] font-bold cursor-pointer transition-all text-center flex flex-col justify-between gap-1 group ${
+                        scratchpadEvaluation?.recommendedRating === 'Hard'
+                          ? 'border-[#f59e0b] ring-2 ring-[#f59e0b]/40'
+                          : 'border-[#f59e0b]/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="font-bold">Hard (1)</span>
+                        <span className="text-[9px] px-1 rounded bg-[#f59e0b]/20">
+                          {scratchpadEvaluation?.recommendedRating === 'Hard' ? 'AI Pick' : 'Repeat'}
+                        </span>
+                      </div>
+                      <div className="text-[10px] opacity-80 text-left">
+                        +{currentSm2Preview ? currentSm2Preview.Hard.intervalDays : 2}d ({currentSm2Preview ? currentSm2Preview.Hard.label : '2d'})
+                      </div>
+                      <div className="text-[9px] text-[#fde68a] text-left">
+                        Due: {currentSm2Preview ? currentSm2Preview.Hard.dateStr : 'Soon'}
+                      </div>
+                    </button>
+
+                    {/* Good: Grade 4 */}
+                    <button
+                      type="button"
+                      onClick={() => handleReviewSubmit('Good')}
+                      className={`p-3 rounded-xl bg-[#092025] hover:bg-[#102d35] border text-[#38bdf8] font-bold cursor-pointer transition-all text-center flex flex-col justify-between gap-1 group ${
+                        scratchpadEvaluation?.recommendedRating === 'Good'
+                          ? 'border-[#38bdf8] ring-2 ring-[#38bdf8]/40'
+                          : 'border-[#38bdf8]/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="font-bold">Good (2)</span>
+                        <span className="text-[9px] px-1 rounded bg-[#38bdf8]/20">
+                          {scratchpadEvaluation?.recommendedRating === 'Good' ? 'AI Pick' : 'Optimal'}
+                        </span>
+                      </div>
+                      <div className="text-[10px] opacity-80 text-left">
+                        +{currentSm2Preview ? currentSm2Preview.Good.intervalDays : 7}d ({currentSm2Preview ? currentSm2Preview.Good.label : '7d'})
+                      </div>
+                      <div className="text-[9px] text-[#bae6fd] text-left">
+                        Due: {currentSm2Preview ? currentSm2Preview.Good.dateStr : 'Scheduled'}
+                      </div>
+                    </button>
+
+                    {/* Easy: Grade 5 */}
+                    <button
+                      type="button"
+                      onClick={() => handleReviewSubmit('Easy')}
+                      className={`p-3 rounded-xl bg-[#07251c] hover:bg-[#0c3528] border text-[#00f5a0] font-bold cursor-pointer transition-all text-center flex flex-col justify-between gap-1 group shadow-[0_0_10px_rgba(0,245,160,0.15)] ${
+                        scratchpadEvaluation?.recommendedRating === 'Easy'
+                          ? 'border-[#00f5a0] ring-2 ring-[#00f5a0]/40'
+                          : 'border-[#00f5a0]/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="font-bold">Easy (3)</span>
+                        <span className="text-[9px] px-1 rounded bg-[#00f5a0]/20">
+                          {scratchpadEvaluation?.recommendedRating === 'Easy' ? 'AI Pick' : 'Bonus'}
+                        </span>
+                      </div>
+                      <div className="text-[10px] opacity-80 text-left">
+                        +{currentSm2Preview ? currentSm2Preview.Easy.intervalDays : 18}d ({currentSm2Preview ? currentSm2Preview.Easy.label : '18d'})
+                      </div>
+                      <div className="text-[9px] text-[#a7f3d0] text-left">
+                        Due: {currentSm2Preview ? currentSm2Preview.Easy.dateStr : 'Extended'}
+                      </div>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}

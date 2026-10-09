@@ -22,6 +22,8 @@ import {
   Check,
 } from 'lucide-react';
 import { NavigationSection, POSState, LearningStageLevel, LearningTopic } from '../../models/types';
+import { EbbinghausDecayCurve } from '../dashboard/EbbinghausDecayCurve';
+import { calculateNextSM2Interval } from '../../utils/sm2Algorithm';
 
 interface ExecutiveRightSidebarProps {
   activeSection: NavigationSection;
@@ -343,6 +345,15 @@ export const ExecutiveRightSidebar: React.FC<ExecutiveRightSidebarProps> = ({
   const handleQuickReviewSubmit = () => {
     if (!selectedTopicForQuickReview) return;
 
+    const sm2Calc = calculateNextSM2Interval(
+      {
+        repetitionCount: selectedTopicForQuickReview.repetitionCount,
+        intervalDays: selectedTopicForQuickReview.intervalDays,
+        easeFactor: selectedTopicForQuickReview.easeFactor,
+      },
+      quickRating
+    );
+
     if (onReviewTopic) {
       onReviewTopic(
         selectedTopicForQuickReview.id,
@@ -379,6 +390,15 @@ export const ExecutiveRightSidebar: React.FC<ExecutiveRightSidebarProps> = ({
         status: nextProgress >= 100 ? 'MASTERED' : 'IN_PROGRESS',
         retentionState: nextState,
         lastReviewed: 'Today',
+        lastReviewedDate: sm2Calc.lastReviewedDate,
+        nextDueDate: sm2Calc.nextDueDate,
+        nextReview: sm2Calc.dueStatusLabel,
+        intervalDays: sm2Calc.intervalDays,
+        intervalLabel: `${sm2Calc.intervalDays}d interval`,
+        easeFactor: sm2Calc.easeFactor,
+        repetitionCount: sm2Calc.repetitionCount,
+        lastGrade: sm2Calc.lastGrade,
+        decayHalfLifeDays: sm2Calc.decayHalfLifeDays,
         reviewCount: (selectedTopicForQuickReview.reviewCount || 0) + 1,
         evidence: quickEvidenceText.trim()
           ? [...(selectedTopicForQuickReview.evidence || []), quickEvidenceText.trim()]
@@ -1128,6 +1148,16 @@ export const ExecutiveRightSidebar: React.FC<ExecutiveRightSidebarProps> = ({
                 {selectedTopicForQuickReview.stage}
               </p>
             </div>
+
+            {/* Ebbinghaus Decay Curve in Sidebar Quick Calibrate Modal */}
+            <EbbinghausDecayCurve
+              compact={true}
+              topicTitle={selectedTopicForQuickReview.topic}
+              intervalDays={selectedTopicForQuickReview.intervalDays ?? 7}
+              easeFactor={selectedTopicForQuickReview.easeFactor ?? 2.5}
+              lastReviewedDate={selectedTopicForQuickReview.lastReviewedDate}
+              nextDueDate={selectedTopicForQuickReview.nextDueDate}
+            />
 
             {/* Quick Adjust Buttons */}
             <div className="space-y-2">

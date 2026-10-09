@@ -43,6 +43,8 @@ import {
   Transaction,
 } from '../models/types';
 import { posRepository } from '../storage/repository';
+import { SEED_POS_STATE } from '../data/seedData';
+import { calculateNextSM2Interval, getDueStatus, SM2State } from '../utils/sm2Algorithm';
 import { Sidebar } from '../components/layout/Sidebar';
 import { ExecutiveHeader } from '../components/layout/ExecutiveHeader';
 import { ExecutiveRightSidebar } from '../components/layout/ExecutiveRightSidebar';
@@ -75,6 +77,7 @@ const CORE_MODULE_ORDER: NavigationSection[] = [
 export const DashboardScreen: React.FC = () => {
   const [state, setState] = useState<POSState>(() => posRepository.loadState());
   const [activeSection, setActiveSection] = useState<NavigationSection>('north-star');
+  const [cognitionSubTab, setCognitionSubTab] = useState<'guardrails' | 'knowledge' | 'decisions' | 'models' | 'ai-copilot'>('guardrails');
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [androidPreviewMode, setAndroidPreviewMode] = useState(false);
@@ -256,8 +259,11 @@ export const DashboardScreen: React.FC = () => {
   }, []);
 
   // View navigation handler that switches the single-page view cleanly: one tab at a time
-  const handleSelectSection = (sec: NavigationSection) => {
+  const handleSelectSection = (sec: NavigationSection, subTab?: string) => {
     setActiveSection(sec);
+    if (sec === 'ai-guardrails' && subTab) {
+      setCognitionSubTab(subTab as any);
+    }
     setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
@@ -345,33 +351,71 @@ export const DashboardScreen: React.FC = () => {
     updatedStage: LearningStageLevel,
     newEvidence?: string,
     notes?: string,
-    linkedProjectId?: string
+    linkedProjectId?: string,
+    sm2Overrides?: Partial<SM2State>
   ) => {
-    updateState((prev) => ({
-      ...prev,
-      learningTopics: prev.learningTopics.map((top) => {
-        if (top.id !== topicId) return top;
-        return {
-          ...top,
-          stage: updatedStage,
-          lastReviewed: 'Today',
-          reviewCount: top.reviewCount + 1,
-          evidence: newEvidence ? [...top.evidence, newEvidence] : top.evidence,
-          notes: notes || top.notes,
-          linkedProjectId: linkedProjectId || top.linkedProjectId,
-        };
-      }),
-      learningReviews: [
+    updateState((prev) => {
+      const existingTopic = prev.learningTopics.find((t) => t.id === topicId);
+      const sm2Calc = calculateNextSM2Interval(
         {
-          id: `lr-${Date.now()}`,
-          topicId,
-          rating,
-          notes: notes || '',
-          reviewedAt: new Date().toISOString(),
+          repetitionCount: sm2Overrides?.repetitionCount ?? existingTopic?.repetitionCount,
+          intervalDays: sm2Overrides?.intervalDays ?? existingTopic?.intervalDays,
+          easeFactor: sm2Overrides?.easeFactor ?? existingTopic?.easeFactor,
         },
-        ...prev.learningReviews,
-      ],
-    }));
+        rating
+      );
+
+      const dueInfo = getDueStatus(sm2Calc.nextDueDate);
+      const delta = rating === 'Easy' ? 25 : rating === 'Good' ? 15 : rating === 'Hard' ? 5 : -15;
+      const nextProgress = Math.min(100, Math.max(10, (existingTopic?.progress || 50) + delta));
+      const nextRetentionState: 'OPTIMAL' | 'DUE_TODAY' | 'REINFORCE' | 'MASTERED' =
+        rating === 'Forgot'
+          ? 'REINFORCE'
+          : dueInfo.status === 'OVERDUE' || dueInfo.status === 'DUE_TODAY'
+          ? 'DUE_TODAY'
+          : nextProgress >= 100
+          ? 'MASTERED'
+          : 'OPTIMAL';
+
+      return {
+        ...prev,
+        learningTopics: prev.learningTopics.map((top) => {
+          if (top.id !== topicId) return top;
+          return {
+            ...top,
+            stage: updatedStage,
+            lastReviewed: 'Today',
+            lastReviewedDate: sm2Calc.lastReviewedDate,
+            nextReview: dueInfo.label,
+            nextDueDate: sm2Calc.nextDueDate,
+            intervalDays: sm2Calc.intervalDays,
+            intervalLabel: `${sm2Calc.intervalDays}d interval`,
+            easeFactor: sm2Calc.easeFactor,
+            repetitionCount: sm2Calc.repetitionCount,
+            lastGrade: sm2Calc.lastGrade,
+            decayHalfLifeDays: sm2Calc.decayHalfLifeDays,
+            retentionState: nextRetentionState,
+            progress: nextProgress,
+            status: nextProgress >= 100 ? 'MASTERED' : 'IN_PROGRESS',
+            reviewCount: top.reviewCount + 1,
+            evidence: newEvidence ? [...top.evidence, newEvidence] : top.evidence,
+            notes: notes || top.notes,
+            linkedProjectId: linkedProjectId || top.linkedProjectId,
+            updatedAt: new Date().toISOString(),
+          };
+        }),
+        learningReviews: [
+          {
+            id: `lr-${Date.now()}`,
+            topicId,
+            rating,
+            notes: notes || '',
+            reviewedAt: new Date().toISOString(),
+          },
+          ...prev.learningReviews,
+        ],
+      };
+    });
   };
 
   const handleAddLearningTopic = (
@@ -402,6 +446,46 @@ export const DashboardScreen: React.FC = () => {
     updateState((prev) => ({
       ...prev,
       learningTopics: prev.learningTopics.filter((t) => t.id !== topicId),
+    }));
+  };
+
+  const handleResetToZeroBaseline = () => {
+    updateState((prev) => ({
+      ...prev,
+      learningTopics: prev.learningTopics.map((t) => ({
+        ...t,
+        progress: 0,
+        reviewCount: 0,
+        repetitionCount: 0,
+        lastReviewed: 'Never',
+        lastReviewedDate: undefined,
+        nextReview: 'Due Today',
+        nextDueDate: new Date().toISOString(),
+        retentionState: 'DUE_TODAY',
+        intervalDays: 1,
+        intervalLabel: '0d interval',
+        easeFactor: 2.5,
+        lastGrade: undefined,
+        decayHalfLifeDays: undefined,
+        evidence: [],
+      })),
+      learningReviews: [],
+    }));
+  };
+
+  const handleClearAllLearningTopics = () => {
+    updateState((prev) => ({
+      ...prev,
+      learningTopics: [],
+      learningReviews: [],
+    }));
+  };
+
+  const handleRestoreSeedLearningTopics = () => {
+    updateState((prev) => ({
+      ...prev,
+      learningTopics: SEED_POS_STATE.learningTopics,
+      learningReviews: SEED_POS_STATE.learningReviews || [],
     }));
   };
 
@@ -1131,6 +1215,9 @@ export const DashboardScreen: React.FC = () => {
               onAddLearningTopic={handleAddLearningTopic}
               onUpdateLearningTopic={handleUpdateLearningTopic}
               onDeleteLearningTopic={handleDeleteLearningTopic}
+              onResetToZeroBaseline={handleResetToZeroBaseline}
+              onClearAllTopics={handleClearAllLearningTopics}
+              onRestoreSeedTopics={handleRestoreSeedLearningTopics}
             />
           </div>
         );
@@ -1178,6 +1265,8 @@ export const DashboardScreen: React.FC = () => {
           <div className="space-y-8 animate-fadeIn">
             <CognitionAI
               state={state}
+              initialTab={cognitionSubTab}
+              onTabChange={setCognitionSubTab}
               onAddKnowledgeNote={handleAddKnowledgeNote}
               onDeleteKnowledgeNote={handleDeleteKnowledgeNote}
               onAddDecision={handleAddDecision}
@@ -1259,6 +1348,7 @@ export const DashboardScreen: React.FC = () => {
     <div className={`min-h-screen bg-[#050a0a] text-[#e6f4f1] flex flex-col ${androidPreviewMode ? 'max-w-[430px] mx-auto border-x border-[#162b29] shadow-2xl' : ''}`}>
       {/* Top Header */}
       <ExecutiveHeader
+        activeSection={activeSection}
         onSelectSection={handleSelectSection}
         onOpenQuickCreate={() => setQuickCreateOpen(true)}
         onOpenCommandPalette={() => setCommandPaletteOpen(true)}
@@ -1469,6 +1559,7 @@ export const DashboardScreen: React.FC = () => {
         onExportState={handleExportState}
         onImportState={handleImportState}
         onTriggerAI={handleTriggerAI}
+        state={state}
       />
 
       {/* Progressive Multi-Step Onboarding Modal */}
