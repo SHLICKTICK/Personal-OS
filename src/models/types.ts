@@ -520,6 +520,9 @@ export interface MorningKickoffRecord {
   deferredCarriedOverCount: number;
 }
 
+export * from './learningAssessmentTypes';
+import { AssessmentAttempt, TopicCompetenceRecord } from './learningAssessmentTypes';
+
 export interface POSState {
   version: string;
   operatorName: string;
@@ -574,4 +577,6 @@ export interface POSState {
   dailyPerformanceLogs?: DailyPerformanceLog[];
   focusSessions?: FocusSession[];
   activeFocusTimer?: ActiveFocusTimer;
+  assessmentAttempts?: AssessmentAttempt[];
+  competenceRecords?: TopicCompetenceRecord[];
 }

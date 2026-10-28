@@ -10,6 +10,8 @@ import {
   Smartphone,
 } from 'lucide-react';
 import { NavigationSection } from '../../models/types';
+import { PWAInstallButton } from '../common/PWAInstallButton';
+import { NetworkStatusBadge } from '../common/OfflineIndicator';
 
 interface ExecutiveHeaderProps {
   searchQuery?: string;
@@ -109,7 +111,13 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
       </div>
 
       {/* Right: Actions matching Reference Images */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2 sm:gap-2.5">
+        {/* Network Online / Offline Status Badge */}
+        <NetworkStatusBadge />
+
+        {/* PWA Install Button */}
+        <PWAInstallButton />
+
         {/* + New Directive / + New Project button */}
         <button
           onClick={onOpenQuickCreate}

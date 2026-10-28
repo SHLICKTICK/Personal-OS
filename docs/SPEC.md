@@ -180,3 +180,59 @@ Where:
 * **Clean Zero Baseline (0% Retention, Day 0):** Resets all topics to $\text{progress} = 0$, $\text{reviewCount} = 0$, $\text{repetitionCount} = 0$, $\text{lastReviewedDate} = \text{undefined}$, $\text{retentionState} = \text{'DUE\_TODAY'}$, $\text{intervalDays} = 1$, $\text{easeFactor} = 2.50$. Clears historical reviews.
 * **Empty Slate (0 Topics):** Empties the topic repository to test ground-up syllabus creation with zero pre-seeded data.
 * **Seed Demo Data (23 Topics):** Restores curated reference datasets across Distributed Systems, AI Engineering, Databases, and Low-Latency Runtimes.
+
+---
+
+## 7. Data Contracts & State Schemas
+
+### 7.1 Learning Topic Interface (`src/types/index.ts`)
+```typescript
+export type LearningStageLevel = 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6' | 'L7';
+
+export interface LearningTopic {
+  id: string;
+  topic: string;
+  category: string;
+  currentStage: LearningStageLevel;
+  progress: number; // 0 - 100
+  intervalDays: number; // SM-2 interval
+  easeFactor: number; // SM-2 ease factor >= 1.30
+  repetitionCount: number; // consecutive successful reviews
+  reviewCount?: number; // total lifetime reviews
+  nextReviewDate: string; // ISO-8601 string
+  lastReviewed?: string; // ISO-8601 string or undefined
+  retentionState?: 'OPTIMAL' | 'DECAYING' | 'CRITICAL' | 'DUE_TODAY';
+  currentRetention?: number; // 0 - 100
+  halfLifeDays?: number; // t_1/2 memory decay stability
+  evidenceHistory?: Array<{
+    id: string;
+    stage: LearningStageLevel;
+    timestamp: string;
+    evidenceText: string;
+    verified: boolean;
+    verificationNotes?: string;
+  }>;
+}
+```
+
+### 7.2 SM-2 Calculation Output Contract (`src/utils/sm2Algorithm.ts`)
+```typescript
+export interface SM2Result {
+  nextIntervalDays: number;
+  nextEaseFactor: number;
+  nextRepetitionCount: number;
+  nextDueDate: string;
+  retentionEstimatePct: number;
+  stateLabel: 'OPTIMAL' | 'DECAYING' | 'CRITICAL' | 'DUE_TODAY';
+}
+
+export interface RetentionDecayResult {
+  retentionPct: number;
+  elapsedDays: number;
+  halfLifeDays: number;
+  remainingHalfLifeDays: number;
+  stabilityScore: number;
+  stateLabel: 'OPTIMAL' | 'DECAYING' | 'CRITICAL' | 'DUE_TODAY';
+}
+```
+

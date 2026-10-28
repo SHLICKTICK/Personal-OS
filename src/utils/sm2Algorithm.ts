@@ -2,8 +2,15 @@
  * SuperMemo SM-2 Spaced Repetition Algorithm & Ebbinghaus Retention Decay Engine
  * 
  * Implements calibrated SM-2 interval arithmetic, ease factor adjustments,
- * and Ebbinghaus exponential memory decay modeling for the Personal OS Learning Engine.
+ * Ebbinghaus exponential memory decay modeling, and criterion rubric scoring formulas.
  */
+
+import {
+  AssessmentCriterion,
+  CriterionEvaluationResult,
+  DetectedMisconception,
+  MisconceptionRule,
+} from '../models/learningAssessmentTypes';
 
 export type SM2Rating = 'Forgot' | 'Hard' | 'Good' | 'Easy';
 
@@ -13,7 +20,7 @@ export interface SM2State {
   easeFactor: number;      // EF: difficulty factor (minimum 1.3, initial 2.5)
   nextDueDate: string;     // ISO timestamp for next scheduled retrieval
   lastReviewedDate: string;// ISO timestamp of last review
-  lastGrade: number;       // 1 to 5 numerical grade
+  lastGrade: number;       // 0 to 5 numerical grade (Forgot=0, Hard=3, Good=4, Easy=5)
 }
 
 export interface SM2CalculationResult extends SM2State {
@@ -34,16 +41,17 @@ export interface DecayPoint {
 /**
  * Standard SuperMemo SM-2 Interval Calculation
  * 
- * @param current Current SM-2 state or topic parameters
- * @param rating User self-evaluation or AI assessment ('Forgot', 'Hard', 'Good', 'Easy')
+ * Classic SM-2 grade mapping:
+ * Forgot: q = 0 (Failure: resets repetitions to 0, 1-day relearn interval)
+ * Hard:   q = 3 (Success with difficulty: reinforcement interval 2 days, EF decreases by 0.14)
+ * Good:   q = 4 (Normal successful recall: optimal SM-2 progression, EF unchanged)
+ * Easy:   q = 5 (Effortless recall: extended interval bonus, EF increases by 0.10)
  */
 export function calculateNextSM2Interval(
   current: Partial<SM2State>,
   rating: SM2Rating
 ): SM2CalculationResult {
-  // Map qualitative rating to SM-2 quality grade (q: 0-5)
-  // Forgot: q=1, Hard: q=3, Good: q=4, Easy: q=5
-  const q = rating === 'Forgot' ? 1 : rating === 'Hard' ? 3 : rating === 'Good' ? 4 : 5;
+  const q = rating === 'Forgot' ? 0 : rating === 'Hard' ? 3 : rating === 'Good' ? 4 : 5;
 
   let repetitionCount = current.repetitionCount ?? 0;
   let intervalDays = current.intervalDays ?? 1;
@@ -51,34 +59,39 @@ export function calculateNextSM2Interval(
   const previousIntervalDays = intervalDays;
 
   if (q < 3) {
-    // Incorrect / Failed Recall: Reset repetition streak, schedule for immediate re-test
+    // Failed recall (Forgot = 0): Reset repetition streak, schedule for immediate re-test
     repetitionCount = 0;
     intervalDays = 1;
   } else {
-    // Successful Recall: Apply SM-2 progression
-    if (repetitionCount === 0) {
+    // Successful recall (q >= 3):
+    if (rating === 'Hard') {
+      // Reinforcement short interval
+      intervalDays = 2;
+      repetitionCount += 1;
+    } else if (repetitionCount === 0) {
       intervalDays = 1;
+      repetitionCount += 1;
     } else if (repetitionCount === 1) {
       intervalDays = 6;
+      repetitionCount += 1;
     } else {
       const bonusMultiplier = rating === 'Easy' ? 1.3 : 1.0;
       intervalDays = Math.max(1, Math.round(intervalDays * easeFactor * bonusMultiplier));
+      repetitionCount += 1;
     }
-    repetitionCount += 1;
   }
 
-  // Adjust Ease Factor: EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
-  // Enforce lower bound of 1.3
+  // Adjust Ease Factor: EF' = max(1.3, EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)))
   const efDelta = 0.1 - (5 - q) * (0.08 + (5 - q) * 0.02);
   easeFactor = Math.max(1.3, Number((easeFactor + efDelta).toFixed(2)));
 
-  // Calculate timestamps
+  // Timestamps
   const now = new Date();
   const nextDueDateObj = new Date(now.getTime() + intervalDays * 24 * 60 * 60 * 1000);
   const nextDueDate = nextDueDateObj.toISOString();
   const lastReviewedDate = now.toISOString();
 
-  // Half-life calculation based on memory stability (S ≈ intervalDays * (easeFactor / 2.5))
+  // Illustrative memory stability: S ≈ intervalDays * (easeFactor / 2.5)
   const memoryStability = Math.max(1, intervalDays * (easeFactor / 2.5));
   const decayHalfLifeDays = Number((memoryStability * Math.LN2).toFixed(1));
 
@@ -102,7 +115,9 @@ export function calculateNextSM2Interval(
 /**
  * Preview upcoming intervals for all 4 ratings without committing state changes
  */
-export function previewNextIntervals(current: Partial<SM2State>): Record<SM2Rating, { intervalDays: number; label: string; dateStr: string }> {
+export function previewNextIntervals(
+  current: Partial<SM2State>
+): Record<SM2Rating, { intervalDays: number; label: string; dateStr: string }> {
   const ratings: SM2Rating[] = ['Forgot', 'Hard', 'Good', 'Easy'];
   const preview: Record<string, { intervalDays: number; label: string; dateStr: string }> = {};
 
@@ -146,13 +161,12 @@ export function getDueStatus(nextDueDateStr?: string): {
   const now = new Date();
   const dueDate = new Date(nextDueDateStr);
   const diffMs = dueDate.getTime() - now.getTime();
-  const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
+  const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
 
   if (diffDays < 0) {
-    const absDays = Math.abs(diffDays);
     return {
       status: 'OVERDUE',
-      label: `Overdue by ${absDays}d`,
+      label: `${Math.abs(diffDays)}d overdue`,
       daysRemaining: diffDays,
       badgeBg: 'bg-[#ff5c5c]/15',
       badgeText: 'text-[#ff5c5c]',
@@ -200,8 +214,10 @@ export function getDueStatus(nextDueDateStr?: string): {
 /**
  * Ebbinghaus Retention Decay Modeling
  * 
- * Calculates current retention percentage: R(t) = e^(-t / S)
+ * Calculates current retention percentage: R(t) = exp(-t / S)
  * where t is elapsed days since last review and S is memory stability.
+ * 
+ * Explicitly documented as an illustrative theoretical estimate.
  */
 export function calculateCurrentRetention(
   lastReviewedDateStr?: string,
@@ -213,6 +229,7 @@ export function calculateCurrentRetention(
   halfLifeDays: number;
   remainingHalfLifeDays: number;
   stabilityScore: number;
+  modelType: 'ILLUSTRATIVE_ESTIMATE';
 } {
   const stability = Math.max(1, intervalDays * (easeFactor / 2.5));
   const halfLifeDays = stability * Math.LN2;
@@ -224,6 +241,7 @@ export function calculateCurrentRetention(
       halfLifeDays: Number(halfLifeDays.toFixed(1)),
       remainingHalfLifeDays: 0,
       stabilityScore: Number(stability.toFixed(1)),
+      modelType: 'ILLUSTRATIVE_ESTIMATE',
     };
   }
 
@@ -233,7 +251,7 @@ export function calculateCurrentRetention(
 
   // R(t) = exp(-elapsed / stability)
   const rawRetention = Math.exp(-elapsedDays / stability);
-  const retentionPct = Math.round(Math.max(10, Math.min(100, rawRetention * 100)));
+  const retentionPct = Math.round(Math.max(0, Math.min(100, rawRetention * 100)));
   const remainingHalfLifeDays = Math.max(0, Number((halfLifeDays - elapsedDays).toFixed(1)));
 
   return {
@@ -242,6 +260,7 @@ export function calculateCurrentRetention(
     halfLifeDays: Number(halfLifeDays.toFixed(1)),
     remainingHalfLifeDays,
     stabilityScore: Number(stability.toFixed(1)),
+    modelType: 'ILLUSTRATIVE_ESTIMATE',
   };
 }
 
@@ -256,7 +275,7 @@ export function generateDecayCurvePoints(
 ): DecayPoint[] {
   const stability = Math.max(1, intervalDays * (easeFactor / 2.5));
   const points: DecayPoint[] = [];
-  const steps = 25;
+  const steps = 30;
   const dayStep = maxDays / steps;
 
   for (let i = 0; i <= steps; i++) {
@@ -276,4 +295,59 @@ export function generateDecayCurvePoints(
   }
 
   return points;
+}
+
+// =========================================================================
+// SECTION 6 RUBRIC SCORING & MISCONCEPTION EVALUATION UTILITIES
+// =========================================================================
+
+/**
+ * Calculates normalized weighted percentage for criterion evaluation results:
+ * percentage = sum(weight * score / maxScore) / sum(weight) * 100
+ */
+export function calculateWeightedRubricScore(
+  criterionResults: Array<{ score: number; maxScore: number; weight: number }>
+): number {
+  if (!criterionResults || criterionResults.length === 0) return 0;
+
+  let totalWeightedAchieved = 0;
+  let totalWeights = 0;
+
+  for (const cr of criterionResults) {
+    const weight = Math.max(0.1, cr.weight || 1.0);
+    const maxScore = Math.max(1, cr.maxScore || 4);
+    const score = Math.max(0, Math.min(maxScore, cr.score || 0));
+
+    totalWeightedAchieved += weight * (score / maxScore);
+    totalWeights += weight;
+  }
+
+  if (totalWeights === 0) return 0;
+  const percentage = (totalWeightedAchieved / totalWeights) * 100;
+  return Math.round(Math.max(0, Math.min(100, percentage)));
+}
+
+/**
+ * Evaluates whether an assessment attempt satisfies passing rules,
+ * strictly enforcing that fatal critical misconceptions override aggregate scores.
+ */
+export function evaluatePassingAndMisconceptionRules(
+  weightedScorePct: number,
+  passingScorePct: number = 75,
+  detectedMisconceptions: DetectedMisconception[] = []
+): {
+  passed: boolean;
+  blockedByFatalMisconception: boolean;
+  fatalMisconceptionNames: string[];
+} {
+  const fatal = detectedMisconceptions.filter((m) => m.isFatalToCompetence);
+  const blockedByFatalMisconception = fatal.length > 0;
+
+  const passed = !blockedByFatalMisconception && weightedScorePct >= passingScorePct;
+
+  return {
+    passed,
+    blockedByFatalMisconception,
+    fatalMisconceptionNames: fatal.map((f) => f.name),
+  };
 }
